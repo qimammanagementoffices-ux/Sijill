@@ -48,7 +48,11 @@ public class Employee {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // EAGER: EmployeeListItem/EmployeeDetail always render this, and the
+    // DTO mapping happens in the controller after the request's
+    // transaction closes — LAZY here throws LazyInitializationException
+    // (open-in-view is off; see docs/api-conventions.md).
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "job_title_id")
     private JobTitle jobTitle;
 

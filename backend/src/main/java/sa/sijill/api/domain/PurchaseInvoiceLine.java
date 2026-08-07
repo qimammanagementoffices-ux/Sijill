@@ -22,7 +22,8 @@ public class PurchaseInvoiceLine {
     @JoinColumn(name = "invoice_id")
     private PurchaseInvoice invoice;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // EAGER: see Employee.jobTitle for why.
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "inventory_item_id")
     private InventoryItem inventoryItem;
 

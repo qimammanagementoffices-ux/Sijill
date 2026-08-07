@@ -25,7 +25,8 @@ public class NeedRequestAction {
     @JoinColumn(name = "need_request_id")
     private NeedRequest needRequest;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // EAGER: see Employee.jobTitle for why.
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "actor_employee_id")
     private Employee actor;
 

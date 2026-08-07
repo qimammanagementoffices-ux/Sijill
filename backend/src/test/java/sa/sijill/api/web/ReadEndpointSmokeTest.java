@@ -1,0 +1,172 @@
+package sa.sijill.api.web;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.repository.*;
+import sa.sijill.api.web.dto.*;
+
+/**
+ * Deliberately NOT @Transactional. Every prior test class in this suite is
+ * @Transactional, which wraps the whole test method (including every
+ * MockMvc.perform call) in one Hibernate session/transaction — that masks
+ * exactly the bug this class exists to catch: entities loaded in one real
+ * request-scoped transaction (open-in-view is off, see application.yml)
+ * whose LAZY associations get touched later, in a *different* request,
+ * during DTO mapping. That threw LazyInitializationException -> 500 on
+ * GET /warehouse/invoices in production (see the fix on
+ * PurchaseInvoiceLine.inventoryItem and siblings — changed LAZY to EAGER).
+ * This test exercises the real per-request transaction boundary.
+ *
+ * Because nothing here rolls back, this class MUST clean up everything it
+ * creates in @AfterEach — onboarding is a use-once-ever operation
+ * (needsOnboarding() is just "does any employee exist"), so leaving an
+ * employee behind permanently breaks every other test class's
+ * createAdminAndGetToken() helper with a 409 instead of 200. This bit us
+ * once already; don't remove the cleanup.
+ */
+class ReadEndpointSmokeTest extends AbstractIntegrationTest {
+
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+    @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private NeedRequestRepository needRequestRepository;
+    @Autowired private PurchaseInvoiceRepository purchaseInvoiceRepository;
+    @Autowired private InventoryItemRepository inventoryItemRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private EmployeeRepository employeeRepository;
+    @Autowired private JobTitleRepository jobTitleRepository;
+
+    @AfterEach
+    @Transactional
+    void cleanUp() {
+        auditLogRepository.deleteAll();
+        needRequestRepository.deleteAll();
+        purchaseInvoiceRepository.deleteAll();
+        inventoryItemRepository.deleteAll();
+        categoryRepository.deleteAll();
+        employeeRepository.deleteAll();
+        jobTitleRepository.deleteAll();
+    }
+
+    @Test
+    void listEndpointsRenderNestedAssociationsWithoutLazyInitializationException() throws Exception {
+        var onboarding = new FirstAdminRequest("Admin", "0598111111", "1234", "1234");
+        String onboardBody = mockMvc.perform(post("/api/v1/onboarding/first-admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(onboarding)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String token = objectMapper.readTree(onboardBody).get("token").asText();
+
+        // Employee with a job title (the association that broke first).
+        var jobTitle = new UpsertLocalizedEntityRequest("معلم", "Teacher", null);
+        String jobTitleBody = mockMvc.perform(post("/api/v1/job-titles")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(jobTitle)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String jobTitleId = objectMapper.readTree(jobTitleBody).get("id").asText();
+
+        var employee = new CreateEmployeeRequest(
+                "Smoke Test Employee", "0598222222", "1234", "1234", null, null, null,
+                UUID.fromString(jobTitleId), null, java.util.Set.of());
+        String employeeBody = mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(employee)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String employeeId = objectMapper.readTree(employeeBody).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/employees").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/employees/" + employeeId).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobTitle.en").value("Teacher"));
+
+        // Category + item (the association that broke on the warehouse side).
+        var category = new UpsertLocalizedEntityRequest("قرطاسية", "Stationery", null);
+        String categoryBody = mockMvc.perform(post("/api/v1/warehouse/categories")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(category)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String categoryId = objectMapper.readTree(categoryBody).get("id").asText();
+
+        var item = new CreateInventoryItemRequest(
+                "SMOKE-001", "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5);
+        String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(item)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String itemId = objectMapper.readTree(itemBody).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/warehouse/items").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        // Invoice — this is the exact endpoint that 500'd in production.
+        var invoice = new CreateInvoiceRequest(
+                "SMOKE-INV-1",
+                LocalDate.now(),
+                "Vendor",
+                new BigDecimal("15"),
+                List.of(new InvoiceLineRequest(UUID.fromString(itemId), 3, new BigDecimal("2.00"))));
+        mockMvc.perform(post("/api/v1/warehouse/invoices")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invoice)));
+
+        mockMvc.perform(get("/api/v1/warehouse/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].lines[0].itemCode").value("SMOKE-001"));
+
+        // Need request — department/category/line-item/action-actor associations.
+        var request = new CreateNeedRequestRequest(
+                null, null, "smoke test", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
+        String requestBody = mockMvc.perform(post("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode created = objectMapper.readTree(requestBody);
+
+        mockMvc.perform(get("/api/v1/warehouse/requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].requesterName").exists());
+
+        mockMvc.perform(get("/api/v1/warehouse/requests/" + created.get("id").asText())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lines[0].itemCode").value("SMOKE-001"));
+    }
+}
