@@ -66,7 +66,8 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/api/v1/system/status",
                                 "/api/v1/auth/login",
-                                "/api/v1/onboarding/first-admin")
+                                "/api/v1/onboarding/first-admin",
+                                "/api/v1/i18n/dictionary")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

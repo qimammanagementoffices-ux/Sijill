@@ -3,6 +3,14 @@
 
 export type LocalizedRef = { id: string; ar: string; en: string };
 
+export type TranslationRow = {
+  key: string;
+  valueAr: string;
+  valueEn: string;
+  valueHi: string | null;
+  version: number;
+};
+
 export type EmployeeListItem = {
   id: string;
   employeeNumber: string;
