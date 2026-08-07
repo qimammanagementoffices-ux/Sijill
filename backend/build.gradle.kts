@@ -57,5 +57,6 @@ tasks.withType<Test> {
         showCauses = true
         showExceptions = true
         showStackTraces = true
+        showStandardStreams = true
     }
 }
