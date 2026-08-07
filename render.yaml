@@ -27,14 +27,18 @@ services:
         fromDatabase:
           name: sijill-postgres
           property: database
+      # NOT fromDatabase: Render's `property: user` always resolves to the
+      # database's original owner role, even after creating a new default
+      # credential via the dashboard's "Credentials" rotation feature — it
+      # does not track which credential is actually active for new
+      # connections. That mismatch took the API down (role stuck on
+      # NOLOGIN) on 2026-08-07. Set these manually in the Render dashboard
+      # (sijill-api service -> Environment) to match whichever credential
+      # is currently the database's active one.
       - key: DATABASE_USERNAME
-        fromDatabase:
-          name: sijill-postgres
-          property: user
+        sync: false
       - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: sijill-postgres
-          property: password
+        sync: false
       - key: FRONTEND_ORIGIN
         value: https://sijill-frontend.onrender.com
       - key: JWT_SIGNING_SECRET
