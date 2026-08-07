@@ -1,0 +1,30 @@
+package sa.sijill.api.repository;
+
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import sa.sijill.api.domain.Domain;
+import sa.sijill.api.domain.InventoryItem;
+
+public interface InventoryItemRepository extends JpaRepository<InventoryItem, UUID> {
+
+    boolean existsByDomainAndCode(Domain domain, String code);
+
+    @Query("""
+            select i from InventoryItem i
+            where i.domain = :domain
+              and (:q is null or :q = ''
+                or lower(i.nameAr) like lower(concat('%', :q, '%'))
+                or lower(i.nameEn) like lower(concat('%', :q, '%'))
+                or lower(i.code) like lower(concat('%', :q, '%')))
+              and (:lowStockOnly = false or i.quantity <= i.minQuantity)
+            """)
+    Page<InventoryItem> search(
+            @Param("domain") Domain domain,
+            @Param("q") String q,
+            @Param("lowStockOnly") boolean lowStockOnly,
+            Pageable pageable);
+}
