@@ -8,7 +8,12 @@
   "onboarding": {
     "welcomeTitle": "مرحبًا بك في سجل",
     "welcomeSubtitle": "لم يتم إعداد النظام بعد. أنشئ حساب المسؤول الأول للبدء.",
-    "createAdmin": "إنشاء حساب المسؤول"
+    "createAdmin": "إنشاء حساب المسؤول",
+    "nameLabel": "الاسم",
+    "phoneLabel": "رقم الجوال",
+    "pinLabel": "الرمز السري",
+    "pinConfirmLabel": "تأكيد الرمز السري",
+    "submit": "إنشاء الحساب"
   },
   "login": {
     "title": "تسجيل الدخول",
@@ -16,6 +21,13 @@
     "pinLabel": "الرمز السري",
     "submit": "دخول",
     "genericError": "رقم الجوال أو الرمز السري غير صحيح"
+  },
+  "dashboard": {
+    "welcomeMessage": "مرحبًا",
+    "logout": "تسجيل الخروج"
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. حاول مرة أخرى."
   },
   "publicAsset": {
     "notFound": "لم يتم العثور على هذا العنصر"

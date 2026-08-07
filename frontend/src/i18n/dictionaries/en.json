@@ -8,7 +8,12 @@
   "onboarding": {
     "welcomeTitle": "Welcome to Sijill",
     "welcomeSubtitle": "The system hasn't been set up yet. Create the first admin account to get started.",
-    "createAdmin": "Create admin account"
+    "createAdmin": "Create admin account",
+    "nameLabel": "Name",
+    "phoneLabel": "Phone number",
+    "pinLabel": "PIN",
+    "pinConfirmLabel": "Confirm PIN",
+    "submit": "Create account"
   },
   "login": {
     "title": "Sign in",
@@ -16,6 +21,13 @@
     "pinLabel": "PIN",
     "submit": "Sign in",
     "genericError": "Invalid phone number or PIN"
+  },
+  "dashboard": {
+    "welcomeMessage": "Welcome",
+    "logout": "Log out"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again."
   },
   "publicAsset": {
     "notFound": "This item could not be found"
