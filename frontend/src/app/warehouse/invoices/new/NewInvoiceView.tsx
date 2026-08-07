@@ -44,6 +44,10 @@ export default function NewInvoiceView({
     setLines([...lines, { inventoryItemId: "", quantity: "1", unitPrice: "0" }]);
   }
 
+  function removeLine(index: number) {
+    setLines(lines.filter((_, i) => i !== index));
+  }
+
   const subtotal = lines.reduce((sum, l) => sum + Number(l.quantity || 0) * Number(l.unitPrice || 0), 0);
   const taxTotal = (subtotal * Number(taxRate || 0)) / 100;
 
@@ -134,6 +138,11 @@ export default function NewInvoiceView({
                 onChange={(e) => updateLine(index, { unitPrice: e.target.value })}
               />
             </label>
+            {lines.length > 1 && (
+              <button type="button" onClick={() => removeLine(index)}>
+                ×
+              </button>
+            )}
           </div>
         ))}
         <button type="button" onClick={addLine}>

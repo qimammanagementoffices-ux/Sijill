@@ -59,6 +59,10 @@ export default function NewRequestView({
     setLines([...lines, { inventoryItemId: "", quantityRequested: "1" }]);
   }
 
+  function removeLine(index: number) {
+    setLines(lines.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -138,6 +142,11 @@ export default function NewRequestView({
                 onChange={(e) => updateLine(index, { quantityRequested: e.target.value })}
               />
             </label>
+            {lines.length > 1 && (
+              <button type="button" onClick={() => removeLine(index)}>
+                ×
+              </button>
+            )}
           </div>
         ))}
         <button type="button" onClick={addLine}>
