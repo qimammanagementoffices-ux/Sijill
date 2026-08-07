@@ -2,6 +2,7 @@ package sa.sijill.api.web;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,11 +49,12 @@ public class AttachmentController {
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         Attachment attachment =
                 attachmentRepository.findById(id).orElseThrow(() -> ApiException.notFound("Attachment not found"));
         requirePermission(actor, managePermissionFor(attachment.getOwnerType()));
         attachmentService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     private String viewPermissionFor(AttachmentOwnerType ownerType) {
