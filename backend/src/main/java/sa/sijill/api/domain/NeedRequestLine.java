@@ -21,7 +21,8 @@ public class NeedRequestLine {
     @JoinColumn(name = "need_request_id")
     private NeedRequest needRequest;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // EAGER: see Employee.jobTitle for why.
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "inventory_item_id")
     private InventoryItem inventoryItem;
 

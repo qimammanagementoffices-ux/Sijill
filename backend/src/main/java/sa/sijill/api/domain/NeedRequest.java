@@ -21,15 +21,17 @@ public class NeedRequest {
     @GeneratedValue
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // EAGER on all three: see Employee.jobTitle for why (DTO mapping for
+    // list/detail happens in the controller after the transaction closes).
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "requester_employee_id")
     private Employee requester;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")
     private Department department;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private Category category;
 
