@@ -9,12 +9,19 @@ import type { Dictionary } from "@/i18n/getDictionary";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
 
+// Shared by /warehouse/invoices/new and /maintenance/invoices/new.
+// itemsPath is the matching domain's items endpoint ("/warehouse/items" or
+// "/maintenance/parts") used to populate the line-item picker.
 export default function NewInvoiceView({
   dict,
   errorsDict,
+  basePath,
+  itemsPath,
 }: {
   dict: Dictionary["warehouseInvoices"];
   errorsDict: Dictionary["errors"];
+  basePath: string;
+  itemsPath: string;
 }) {
   const router = useRouter();
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
@@ -31,9 +38,10 @@ export default function NewInvoiceView({
       router.replace("/login");
       return;
     }
-    apiFetch<PagedResponse<InventoryItemListItem>>("/warehouse/items?size=100")
+    apiFetch<PagedResponse<InventoryItemListItem>>(`${itemsPath}?size=100`)
       .then((page) => setItems(page.content))
-      .catch(() => router.replace("/warehouse/invoices"));
+      .catch(() => router.replace(basePath));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   function updateLine(index: number, patch: Partial<LineDraft>) {
@@ -56,7 +64,7 @@ export default function NewInvoiceView({
     setError(null);
     setSubmitting(true);
     try {
-      const created = await apiFetch<InvoiceDetail>("/warehouse/invoices", {
+      const created = await apiFetch<InvoiceDetail>(basePath, {
         method: "POST",
         body: JSON.stringify({
           invoiceNumber,
@@ -72,7 +80,7 @@ export default function NewInvoiceView({
             })),
         }),
       });
-      router.push(`/warehouse/invoices?posted=${created.id}`);
+      router.push(`${basePath}?posted=${created.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);
       setSubmitting(false);

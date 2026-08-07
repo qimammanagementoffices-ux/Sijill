@@ -8,7 +8,17 @@ import { getToken } from "@/lib/auth";
 import type { InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-export default function ItemDirectory({ dict }: { dict: Dictionary["warehouseItems"] }) {
+// Shared by /warehouse/items and /maintenance/parts — same reusable
+// inventory module on the backend (Domain-parameterized), same shape here.
+// basePath is both the page route and the API path since they're
+// identical in both domains ("/warehouse/items", "/maintenance/parts").
+export default function ItemDirectory({
+  dict,
+  basePath,
+}: {
+  dict: Dictionary["warehouseItems"];
+  basePath: string;
+}) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
@@ -17,7 +27,7 @@ export default function ItemDirectory({ dict }: { dict: Dictionary["warehouseIte
 
   function load(pageNumber: number, query: string, lowStock: boolean) {
     apiFetch<PagedResponse<InventoryItemListItem>>(
-      `/warehouse/items?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}`
+      `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}`
     )
       .then(setPage)
       .catch((err) => {
@@ -73,7 +83,7 @@ export default function ItemDirectory({ dict }: { dict: Dictionary["warehouseIte
 
       {canManage && (
         <p>
-          <Link href="/warehouse/items/new">{dict.addNew}</Link>
+          <Link href={`${basePath}/new`}>{dict.addNew}</Link>
         </p>
       )}
 
@@ -95,7 +105,7 @@ export default function ItemDirectory({ dict }: { dict: Dictionary["warehouseIte
             {page.content.map((item) => (
               <tr key={item.id}>
                 <td>
-                  <Link href={`/warehouse/items/${item.id}`}>{item.code}</Link>
+                  <Link href={`${basePath}/${item.id}`}>{item.code}</Link>
                 </td>
                 <td>{item.nameAr}</td>
                 <td>{item.category ? item.category.ar : ""}</td>

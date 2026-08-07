@@ -2,7 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
-import type { CategoryDto, InventoryItemDetail } from "@/lib/types";
+import type {
+  CategoryDto,
+  InventoryItemDetail,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Props = {
@@ -11,10 +14,11 @@ type Props = {
   mode: "create" | "edit";
   initial?: InventoryItemDetail;
   categories: CategoryDto[];
+  basePath: string;
   onSubmitted: (item: InventoryItemDetail) => void;
 };
 
-export default function ItemForm({ dict, errorsDict, mode, initial, categories, onSubmitted }: Props) {
+export default function ItemForm({ dict, errorsDict, mode, initial, categories, basePath, onSubmitted }: Props) {
   const [code, setCode] = useState(initial?.code ?? "");
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? "");
   const [nameEn, setNameEn] = useState(initial?.nameEn ?? "");
@@ -30,7 +34,7 @@ export default function ItemForm({ dict, errorsDict, mode, initial, categories, 
     setSubmitting(true);
     try {
       if (mode === "create") {
-        const created = await apiFetch<InventoryItemDetail>("/warehouse/items", {
+        const created = await apiFetch<InventoryItemDetail>(basePath, {
           method: "POST",
           body: JSON.stringify({
             code,
@@ -45,7 +49,7 @@ export default function ItemForm({ dict, errorsDict, mode, initial, categories, 
         });
         onSubmitted(created);
       } else if (initial) {
-        const updated = await apiFetch<InventoryItemDetail>(`/warehouse/items/${initial.id}`, {
+        const updated = await apiFetch<InventoryItemDetail>(`${basePath}/${initial.id}`, {
           method: "PUT",
           body: JSON.stringify({
             nameAr,

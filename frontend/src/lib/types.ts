@@ -140,3 +140,63 @@ export type NeedRequestDetail = {
   actions: NeedRequestActionDto[];
   version: number;
 };
+
+// --- Maintenance (Phase 4) ---
+
+export type FaultTypeDto = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  suggestedCategory: LocalizedRef | null;
+  version: number;
+};
+
+export type MaintenancePriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+export type MaintenanceRequestStatusValue =
+  | "PENDING"
+  | "APPROVED"
+  | "POSTPONED"
+  | "REJECTED"
+  | "IN_PROGRESS"
+  | "CLOSED";
+
+export type PartUsedDto = {
+  inventoryItemId: string;
+  itemCode: string;
+  itemNameAr: string;
+  itemNameEn: string;
+  quantity: number;
+};
+
+export type MaintenanceRequestActionDto = {
+  actorName: string;
+  action: string;
+  reason: string | null;
+  createdAt: string;
+};
+
+export type MaintenanceRequestListItem = {
+  id: string;
+  requesterName: string;
+  department: LocalizedRef | null;
+  faultType: LocalizedRef | null;
+  priority: MaintenancePriority;
+  status: MaintenanceRequestStatusValue;
+  suggestedStartDate: string | null;
+};
+
+export type MaintenanceRequestDetail = {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  department: LocalizedRef | null;
+  faultType: LocalizedRef | null;
+  location: string | null;
+  priority: MaintenancePriority;
+  description: string | null;
+  status: MaintenanceRequestStatusValue;
+  suggestedStartDate: string | null;
+  partsUsed: PartUsedDto[];
+  actions: MaintenanceRequestActionDto[];
+  version: number;
+};

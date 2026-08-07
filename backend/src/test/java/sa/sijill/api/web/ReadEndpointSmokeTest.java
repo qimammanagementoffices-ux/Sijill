@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.domain.MaintenancePriority;
 import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.*;
 
@@ -47,9 +48,11 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private NeedRequestRepository needRequestRepository;
+    @Autowired private MaintenanceRequestRepository maintenanceRequestRepository;
     @Autowired private PurchaseInvoiceRepository purchaseInvoiceRepository;
     @Autowired private InventoryItemRepository inventoryItemRepository;
     @Autowired private CategoryRepository categoryRepository;
+    @Autowired private FaultTypeRepository faultTypeRepository;
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private JobTitleRepository jobTitleRepository;
 
@@ -58,9 +61,11 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
     void cleanUp() {
         auditLogRepository.deleteAll();
         needRequestRepository.deleteAll();
+        maintenanceRequestRepository.deleteAll();
         purchaseInvoiceRepository.deleteAll();
         inventoryItemRepository.deleteAll();
         categoryRepository.deleteAll();
+        faultTypeRepository.deleteAll();
         employeeRepository.deleteAll();
         jobTitleRepository.deleteAll();
     }
@@ -168,5 +173,75 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lines[0].itemCode").value("SMOKE-001"));
+
+        // --- Maintenance domain (Phase 4) — same LAZY-association risk. ---
+        String faultCategoryBody = mockMvc.perform(post("/api/v1/maintenance/categories")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpsertLocalizedEntityRequest("كهرباء", "Electrical", null))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String faultCategoryId = objectMapper.readTree(faultCategoryBody).get("id").asText();
+
+        String faultTypeBody = mockMvc.perform(post("/api/v1/maintenance/fault-types")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpsertFaultTypeRequest(
+                                "عطل كهربائي", "Electrical fault", UUID.fromString(faultCategoryId), null))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String faultTypeId = objectMapper.readTree(faultTypeBody).get("id").asText();
+
+        var part = new CreateInventoryItemRequest("SMOKE-MPART-001", "قطعة", "Part", null, "pcs", null, null, 0);
+        String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(part)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String partId = objectMapper.readTree(partBody).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/maintenance/parts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        var maintenanceInvoice = new CreateInvoiceRequest(
+                "SMOKE-MINV-1",
+                LocalDate.now(),
+                "Vendor",
+                new BigDecimal("15"),
+                List.of(new InvoiceLineRequest(UUID.fromString(partId), 2, new BigDecimal("5.00"))));
+        mockMvc.perform(post("/api/v1/maintenance/invoices")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(maintenanceInvoice)));
+
+        mockMvc.perform(get("/api/v1/maintenance/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].lines[0].itemCode").value("SMOKE-MPART-001"));
+
+        var maintenanceRequest = new SubmitMaintenanceRequestRequest(
+                null, UUID.fromString(faultTypeId), "Room 1", MaintenancePriority.MEDIUM, "smoke test fault");
+        String maintenanceRequestBody = mockMvc.perform(post("/api/v1/maintenance/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(maintenanceRequest)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode createdMaintenanceRequest = objectMapper.readTree(maintenanceRequestBody);
+
+        mockMvc.perform(get("/api/v1/maintenance/requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].requesterName").exists())
+                .andExpect(jsonPath("$.content[0].faultType.en").value("Electrical fault"));
+
+        mockMvc.perform(get("/api/v1/maintenance/requests/" + createdMaintenanceRequest.get("id").asText())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.faultType.en").value("Electrical fault"));
     }
 }

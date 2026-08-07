@@ -8,7 +8,14 @@ import { getToken } from "@/lib/auth";
 import type { InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-export default function InvoiceList({ dict }: { dict: Dictionary["warehouseInvoices"] }) {
+// Shared by /warehouse/invoices and /maintenance/invoices.
+export default function InvoiceList({
+  dict,
+  basePath,
+}: {
+  dict: Dictionary["warehouseInvoices"];
+  basePath: string;
+}) {
   const router = useRouter();
   const [page, setPage] = useState<PagedResponse<InvoiceDetail> | null>(null);
   const [canPost, setCanPost] = useState(false);
@@ -18,7 +25,7 @@ export default function InvoiceList({ dict }: { dict: Dictionary["warehouseInvoi
       router.replace("/login");
       return;
     }
-    apiFetch<PagedResponse<InvoiceDetail>>("/warehouse/invoices")
+    apiFetch<PagedResponse<InvoiceDetail>>(basePath)
       .then(setPage)
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -28,6 +35,7 @@ export default function InvoiceList({ dict }: { dict: Dictionary["warehouseInvoi
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanPost(me.permissions.includes("wh.invoices.edit")))
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   if (!page) return null;
@@ -38,7 +46,7 @@ export default function InvoiceList({ dict }: { dict: Dictionary["warehouseInvoi
 
       {canPost && (
         <p>
-          <Link href="/warehouse/invoices/new">{dict.addNew}</Link>
+          <Link href={`${basePath}/new`}>{dict.addNew}</Link>
         </p>
       )}
 
