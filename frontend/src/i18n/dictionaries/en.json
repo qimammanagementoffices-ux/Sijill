@@ -24,10 +24,53 @@
   },
   "dashboard": {
     "welcomeMessage": "Welcome",
-    "logout": "Log out"
+    "logout": "Log out",
+    "employeesNav": "Employees",
+    "departmentsNav": "Departments",
+    "jobTitlesNav": "Job titles"
   },
   "errors": {
     "generic": "Something went wrong. Please try again."
+  },
+  "employees": {
+    "title": "Employees",
+    "searchPlaceholder": "Search by name, phone, or employee number",
+    "search": "Search",
+    "addNew": "Add employee",
+    "columnEmployeeNumber": "Employee #",
+    "columnName": "Name",
+    "columnPhone": "Phone",
+    "columnJobTitle": "Job title",
+    "columnDepartments": "Departments",
+    "columnStatus": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "noResults": "No employees found",
+    "nameLabel": "Name",
+    "phoneLabel": "Phone number",
+    "pinLabel": "PIN",
+    "pinConfirmLabel": "Confirm PIN",
+    "emailLabel": "Email",
+    "nationalIdLabel": "National ID",
+    "joinedDateLabel": "Joined date",
+    "jobTitleLabel": "Job title",
+    "departmentsLabel": "Departments",
+    "permissionsLabel": "Permissions",
+    "submitCreate": "Create employee",
+    "submitUpdate": "Save changes",
+    "deactivate": "Deactivate",
+    "deactivateConfirm": "Deactivate this employee? They will no longer be able to log in.",
+    "resetPin": "Reset PIN",
+    "resetPinSubmit": "Set new PIN",
+    "conflictNotice": "This record changed since you loaded it. Reload the page and try again."
+  },
+  "structure": {
+    "departmentsTitle": "Departments",
+    "jobTitlesTitle": "Job titles",
+    "nameArLabel": "Arabic name",
+    "nameEnLabel": "English name",
+    "addNew": "Add",
+    "save": "Save"
   },
   "publicAsset": {
     "notFound": "This item could not be found"

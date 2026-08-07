@@ -21,6 +21,7 @@ frontend/tsconfig.tsbuildinfo
 .idea/
 *.iml
 .vscode/
+.vs/
 
 # Local backups (never commit real snapshots)
 infra/backups/

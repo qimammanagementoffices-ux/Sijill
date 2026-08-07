@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/apiClient";
 import { clearToken, getToken } from "@/lib/auth";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -14,9 +15,10 @@ type EmployeeSummary = {
   permissions: string[];
 };
 
-// Minimal authenticated shell for Phase 2a — no feature UI yet. Employee
-// directory / permission grid land in Phase 2b; warehouse/maintenance/assets
-// are later phases per the master spec's build sequence.
+// Minimal authenticated shell — nav grows here as later phases add features
+// (warehouse/maintenance/assets). Phase 2b adds the employee-management
+// links, shown only when the logged-in employee actually holds the
+// relevant permission (server still enforces this regardless).
 export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] }) {
   const router = useRouter();
   const [employee, setEmployee] = useState<EmployeeSummary | null>(null);
@@ -38,12 +40,37 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
 
   if (!employee) return null;
 
+  const canViewEmployees =
+    employee.permissions.includes("emp.view") || employee.permissions.includes("emp.manage");
+  const canManageStructure = employee.permissions.includes("emp.structure");
+
   return (
     <main style={{ maxWidth: 480, margin: "10vh auto", padding: "0 1rem" }}>
       <h1>
         {dict.welcomeMessage}, {employee.name}
       </h1>
       <p>{employee.employeeNumber}</p>
+
+      <nav>
+        <ul>
+          {canViewEmployees && (
+            <li>
+              <Link href="/employees">{dict.employeesNav}</Link>
+            </li>
+          )}
+          {canManageStructure && (
+            <li>
+              <Link href="/departments">{dict.departmentsNav}</Link>
+            </li>
+          )}
+          {canManageStructure && (
+            <li>
+              <Link href="/job-titles">{dict.jobTitlesNav}</Link>
+            </li>
+          )}
+        </ul>
+      </nav>
+
       <button type="button" onClick={handleLogout}>
         {dict.logout}
       </button>

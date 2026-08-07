@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/apiClient";
+import { getToken } from "@/lib/auth";
+import EmployeeForm from "@/components/EmployeeForm";
+import type { EmployeeDetail, LocalizedEntityDto, PermissionDto } from "@/lib/types";
+import type { Dictionary } from "@/i18n/getDictionary";
+
+export default function EmployeeEditView({
+  id,
+  dict,
+  errorsDict,
+}: {
+  id: string;
+  dict: Dictionary["employees"];
+  errorsDict: Dictionary["errors"];
+}) {
+  const router = useRouter();
+  const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
+  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [jobTitles, setJobTitles] = useState<LocalizedEntityDto[] | null>(null);
+  const [allPermissions, setAllPermissions] = useState<PermissionDto[] | null>(null);
+  const [conflict, setConflict] = useState(false);
+
+  function loadAll() {
+    Promise.all([
+      apiFetch<EmployeeDetail>(`/employees/${id}`),
+      apiFetch<LocalizedEntityDto[]>("/departments"),
+      apiFetch<LocalizedEntityDto[]>("/job-titles"),
+      apiFetch<PermissionDto[]>("/permissions"),
+    ])
+      .then(([e, d, j, p]) => {
+        setEmployee(e);
+        setDepartments(d);
+        setJobTitles(j);
+        setAllPermissions(p);
+      })
+      .catch(() => router.replace("/employees"));
+  }
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, id]);
+
+  async function handleDeactivate() {
+    if (!window.confirm(dict.deactivateConfirm)) return;
+    await apiFetch<void>(`/employees/${id}/deactivate`, { method: "POST" });
+    loadAll();
+  }
+
+  async function handleResetPin() {
+    const pin = window.prompt(dict.pinLabel);
+    if (!pin) return;
+    const pinConfirm = window.prompt(dict.pinConfirmLabel);
+    if (pinConfirm !== pin) return;
+    await apiFetch<void>(`/employees/${id}/pin`, {
+      method: "PUT",
+      body: JSON.stringify({ pin, pinConfirm }),
+    });
+  }
+
+  if (!employee || !departments || !jobTitles || !allPermissions) return null;
+
+  return (
+    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
+      <h1>{employee.name}</h1>
+      {conflict && <p role="alert">{dict.conflictNotice}</p>}
+      <EmployeeForm
+        key={employee.version}
+        dict={dict}
+        errorsDict={errorsDict}
+        mode="edit"
+        initial={employee}
+        departments={departments}
+        jobTitles={jobTitles}
+        allPermissions={allPermissions}
+        onSubmitted={setEmployee}
+        onConflict={() => setConflict(true)}
+      />
+      <button type="button" onClick={handleResetPin}>
+        {dict.resetPin}
+      </button>
+      {employee.active && (
+        <button type="button" onClick={handleDeactivate}>
+          {dict.deactivate}
+        </button>
+      )}
+    </main>
+  );
+}
