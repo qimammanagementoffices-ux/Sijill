@@ -4,5 +4,5 @@ import ItemDirectory from "@/components/ItemDirectory";
 
 export default async function WarehouseItemsPage() {
   const dict = await getDictionary(defaultLocale);
-  return <ItemDirectory dict={dict.warehouseItems} basePath="/warehouse/items" />;
+  return <ItemDirectory dict={dict.warehouseItems} commonDict={dict.common} basePath="/warehouse/items" />;
 }

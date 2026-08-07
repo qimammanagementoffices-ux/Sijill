@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import AttachmentUploader from "@/components/AttachmentUploader";
+import { exportToXlsx } from "@/lib/exportXlsx";
+import PrintReportHeader from "@/components/PrintReportHeader";
 import type { RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -13,9 +15,11 @@ type Edited = { roomNumber: string; nameAr: string; nameEn: string; building: st
 export default function RoomAdmin({
   dict,
   attachmentsDict,
+  commonDict,
 }: {
   dict: Dictionary["rooms"];
   attachmentsDict: Dictionary["attachments"];
+  commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
@@ -95,12 +99,35 @@ export default function RoomAdmin({
     }
   }
 
+  async function handleExport() {
+    await exportToXlsx(
+      dict.title,
+      dict.title,
+      [
+        { header: dict.roomNumberLabel, value: (r: RoomDto) => r.roomNumber },
+        { header: dict.nameArLabel, value: (r: RoomDto) => r.nameAr },
+        { header: dict.buildingLabel, value: (r: RoomDto) => r.building ?? "" },
+        { header: dict.floorLabel, value: (r: RoomDto) => r.floor ?? "" },
+      ],
+      rooms ?? []
+    );
+  }
+
   if (!rooms) return null;
 
   return (
     <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
+      <PrintReportHeader title={dict.title} dict={commonDict} />
       {error && <p role="alert">{error}</p>}
+
+      <p className="no-print">
+        <button type="button" onClick={handleExport}>
+          {commonDict.exportXlsx}
+        </button>
+        <button type="button" onClick={() => window.print()}>
+          {commonDict.print}
+        </button>
+      </p>
 
       <ul>
         {rooms.map((room) => {
@@ -155,7 +182,7 @@ export default function RoomAdmin({
         })}
       </ul>
 
-      <form onSubmit={handleCreate}>
+      <form className="no-print" onSubmit={handleCreate}>
         <label>
           {dict.roomNumberLabel}
           <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} required />
