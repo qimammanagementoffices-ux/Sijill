@@ -26,6 +26,7 @@ server:
     context-path: /
 
 app:
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
   jwt:
     signing-secret: ${JWT_SIGNING_SECRET}
     access-token-expiry-minutes: ${JWT_ACCESS_TOKEN_EXPIRY_MINUTES:60}

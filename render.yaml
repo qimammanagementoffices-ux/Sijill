@@ -35,6 +35,8 @@ services:
         fromDatabase:
           name: sijill-postgres
           property: password
+      - key: FRONTEND_ORIGIN
+        value: https://sijill-frontend.onrender.com
       - key: JWT_SIGNING_SECRET
         generateValue: true
       - key: JWT_ACCESS_TOKEN_EXPIRY_MINUTES

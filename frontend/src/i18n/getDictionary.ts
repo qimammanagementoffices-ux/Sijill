@@ -16,6 +16,11 @@ export type Dictionary = {
     welcomeTitle: string;
     welcomeSubtitle: string;
     createAdmin: string;
+    nameLabel: string;
+    phoneLabel: string;
+    pinLabel: string;
+    pinConfirmLabel: string;
+    submit: string;
   };
   login: {
     title: string;
@@ -23,6 +28,13 @@ export type Dictionary = {
     pinLabel: string;
     submit: string;
     genericError: string;
+  };
+  dashboard: {
+    welcomeMessage: string;
+    logout: string;
+  };
+  errors: {
+    generic: string;
   };
   publicAsset: {
     notFound: string;
