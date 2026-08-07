@@ -48,3 +48,16 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   return res.json() as Promise<T>;
 }
+
+// For binary responses (e.g. QR code PNGs) — apiFetch always parses JSON,
+// which would fail on image bytes.
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, `Request failed: ${res.status}`);
+  }
+  return res.blob();
+}

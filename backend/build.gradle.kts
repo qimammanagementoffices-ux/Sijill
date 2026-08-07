@@ -37,6 +37,10 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.28.11"))
     implementation("software.amazon.awssdk:s3")
 
+    // QR code generation for asset labels
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:javase:3.5.3")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
