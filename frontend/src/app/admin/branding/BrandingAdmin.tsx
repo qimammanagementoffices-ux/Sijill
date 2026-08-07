@@ -55,7 +55,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         body: JSON.stringify({
           preset,
           primaryColor: color,
-          logoAttachmentId: null,
+          logoAttachmentId: branding.logoAttachmentId,
           version: branding.version,
         }),
       });

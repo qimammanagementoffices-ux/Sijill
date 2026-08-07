@@ -21,11 +21,15 @@ public class BrandingService {
 
     private final BrandingSettingRepository brandingSettingRepository;
     private final AttachmentRepository attachmentRepository;
+    private final AttachmentService attachmentService;
 
     public BrandingService(
-            BrandingSettingRepository brandingSettingRepository, AttachmentRepository attachmentRepository) {
+            BrandingSettingRepository brandingSettingRepository,
+            AttachmentRepository attachmentRepository,
+            AttachmentService attachmentService) {
         this.brandingSettingRepository = brandingSettingRepository;
         this.attachmentRepository = attachmentRepository;
+        this.attachmentService = attachmentService;
     }
 
     public BrandingSetting get() {
@@ -39,19 +43,35 @@ public class BrandingService {
             throw new StaleVersionException(BrandingDto.from(setting));
         }
         validateColor(request.primaryColor());
+
+        UUID previousLogoId = setting.getLogoAttachment() == null ? null : setting.getLogoAttachment().getId();
         setting.setPreset(request.preset());
         setting.setPrimaryColor(request.primaryColor());
         setting.setLogoAttachment(resolveAttachment(request.logoAttachmentId()));
-        return brandingSettingRepository.save(setting);
+        BrandingSetting saved = brandingSettingRepository.save(setting);
+
+        // Clear the old logo from storage once nothing references it —
+        // otherwise every replaced logo just accumulates as an orphaned
+        // object in the bucket forever.
+        if (previousLogoId != null && !previousLogoId.equals(request.logoAttachmentId())) {
+            attachmentService.delete(previousLogoId);
+        }
+        return saved;
     }
 
     @Transactional
     public BrandingSetting reset() {
         BrandingSetting setting = get();
+        UUID previousLogoId = setting.getLogoAttachment() == null ? null : setting.getLogoAttachment().getId();
         setting.setPreset(DEFAULT_PRESET);
         setting.setPrimaryColor(DEFAULT_COLOR);
         setting.setLogoAttachment(null);
-        return brandingSettingRepository.save(setting);
+        BrandingSetting saved = brandingSettingRepository.save(setting);
+
+        if (previousLogoId != null) {
+            attachmentService.delete(previousLogoId);
+        }
+        return saved;
     }
 
     private Attachment resolveAttachment(UUID attachmentId) {
