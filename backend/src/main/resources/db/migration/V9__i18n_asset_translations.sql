@@ -71,5 +71,4 @@ insert into translation (key, value_ar, value_en, value_hi) values
     ('assetRequests.statusRejected', 'مرفوض', 'Rejected', 'अस्वीकृत'),
     ('assetRequests.statusClosed', 'مغلق', 'Closed', 'बंद'),
 
-    ('publicAsset.notFound', 'لم يتم العثور على الأصل', 'Asset not found', 'संपत्ति नहीं मिली'),
     ('publicAsset.title', 'معلومات الأصل', 'Asset information', 'संपत्ति जानकारी');
