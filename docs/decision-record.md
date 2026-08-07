@@ -74,7 +74,7 @@ Scope: schema-critical decisions only. These four items change entity shape, tab
 
 **Recommendation:**
 
-- Add explicit keys rather than an implicit "is_admin" flag, to stay consistent with the existing fine-grained model: `sys.branding`, `sys.backup`, `sys.audit.view`.
+- Add explicit keys rather than an implicit "is_admin" flag, to stay consistent with the existing fine-grained model: `sys.branding`, `sys.backup`, `sys.audit.view`. `sys.translations` (admin UI translation table) added later, same pattern, seeded via `V5__seed_sys_translations_permission.sql`.
 - Do **not** introduce a separate boolean `isAdmin` field on `Employee` — "admin" becomes simply "an employee who holds a sufficiently broad set of these keys," consistent with how every other capability in the spec works. The onboarding first-admin creation step grants the first employee all keys.
 - Exports (XLSX/print) inherit the view permission of the domain being exported (e.g., exporting the warehouse inventory list requires `wh.view`; no separate export permission needed) — exports aren't a new capability, just a different rendering of data the user can already view.
 

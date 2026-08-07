@@ -47,6 +47,7 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
     employee.permissions.includes("wh.view") || employee.permissions.includes("wh.request");
   const canViewInvoices = employee.permissions.includes("wh.invoices");
   const canManageWarehouseItems = employee.permissions.includes("wh.items");
+  const canManageTranslations = employee.permissions.includes("sys.translations");
 
   return (
     <main style={{ maxWidth: 480, margin: "10vh auto", padding: "0 1rem" }}>
@@ -90,6 +91,11 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
           {canManageWarehouseItems && (
             <li>
               <Link href="/warehouse/categories">{dict.warehouseCategoriesNav}</Link>
+            </li>
+          )}
+          {canManageTranslations && (
+            <li>
+              <Link href="/admin/translations">{dict.translationsNav}</Link>
             </li>
           )}
         </ul>

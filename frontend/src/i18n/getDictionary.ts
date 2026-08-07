@@ -39,6 +39,7 @@ export type Dictionary = {
     warehouseInvoicesNav: string;
     warehouseRequestsNav: string;
     warehouseCategoriesNav: string;
+    translationsNav: string;
   };
   errors: {
     generic: string;
@@ -156,13 +157,50 @@ export type Dictionary = {
   publicAsset: {
     notFound: string;
   };
+  adminTranslations: {
+    title: string;
+    searchPlaceholder: string;
+    search: string;
+    columnKey: string;
+    columnEn: string;
+    columnAr: string;
+    columnHi: string;
+    save: string;
+    conflictNotice: string;
+  };
 };
 
-const dictionaries: Record<Locale, () => Promise<Dictionary>> = {
-  ar: () => import("./dictionaries/ar.json").then((m) => m.default),
-  en: () => import("./dictionaries/en.json").then((m) => m.default),
-};
+// DB-backed now (Phase i18n): GET /api/v1/i18n/dictionary?locale=xx returns
+// a flat { "employees.title": "...", ... } map — see
+// backend/src/main/java/sa/sijill/api/web/TranslationController.java. Keys
+// are dot-namespaced to mirror this file's nested Dictionary shape exactly,
+// so every existing dict.employees.title-style call site across the app
+// keeps working unchanged; only this function's internals changed.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+
+function setPath(target: Record<string, unknown>, path: string[], value: string) {
+  let node = target;
+  for (let i = 0; i < path.length - 1; i++) {
+    const segment = path[i]!;
+    if (typeof node[segment] !== "object" || node[segment] === null) {
+      node[segment] = {};
+    }
+    node = node[segment] as Record<string, unknown>;
+  }
+  node[path[path.length - 1]!] = value;
+}
 
 export async function getDictionary(locale: Locale): Promise<Dictionary> {
-  return dictionaries[locale]();
+  const res = await fetch(`${API_URL}/i18n/dictionary?locale=${locale}`, {
+    next: { revalidate: 60 },
+  });
+
+  const flat: Record<string, string> = res.ok ? await res.json() : {};
+  const nested: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(flat)) {
+    setPath(nested, key.split("."), value);
+  }
+
+  return nested as Dictionary;
 }
