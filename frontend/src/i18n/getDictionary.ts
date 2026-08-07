@@ -40,6 +40,11 @@ export type Dictionary = {
     warehouseRequestsNav: string;
     warehouseCategoriesNav: string;
     translationsNav: string;
+    maintenancePartsNav: string;
+    maintenanceInvoicesNav: string;
+    maintenanceRequestsNav: string;
+    maintenanceCategoriesNav: string;
+    maintenanceFaultTypesNav: string;
   };
   errors: {
     generic: string;
@@ -153,6 +158,51 @@ export type Dictionary = {
     statusPostponed: string;
     statusRejected: string;
     statusClosed: string;
+  };
+  faultTypes: {
+    title: string;
+    addNew: string;
+    nameArLabel: string;
+    nameEnLabel: string;
+    suggestedCategoryLabel: string;
+    save: string;
+  };
+  maintenanceRequests: {
+    title: string;
+    addNew: string;
+    noResults: string;
+    columnRequester: string;
+    columnDepartment: string;
+    columnFaultType: string;
+    columnPriority: string;
+    columnStatus: string;
+    columnSuggestedStart: string;
+    statusFilterAll: string;
+    faultTypeLabel: string;
+    locationLabel: string;
+    priorityLabel: string;
+    descriptionLabel: string;
+    submit: string;
+    approve: string;
+    reject: string;
+    postpone: string;
+    start: string;
+    finish: string;
+    partsUsedLabel: string;
+    addPart: string;
+    itemLabel: string;
+    quantityLabel: string;
+    reasonLabel: string;
+    statusPending: string;
+    statusApproved: string;
+    statusPostponed: string;
+    statusRejected: string;
+    statusInProgress: string;
+    statusClosed: string;
+    priorityLow: string;
+    priorityMedium: string;
+    priorityHigh: string;
+    priorityUrgent: string;
   };
   publicAsset: {
     notFound: string;

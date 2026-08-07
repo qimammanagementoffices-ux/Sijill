@@ -2,14 +2,14 @@ import { getDictionary } from "@/i18n/getDictionary";
 import { defaultLocale } from "@/i18n/config";
 import NewItemView from "@/components/NewItemView";
 
-export default async function NewItemPage() {
+export default async function NewMaintenancePartPage() {
   const dict = await getDictionary(defaultLocale);
   return (
     <NewItemView
       dict={dict.warehouseItems}
       errorsDict={dict.errors}
-      itemBasePath="/warehouse/items"
-      categoriesPath="/warehouse/categories"
+      itemBasePath="/maintenance/parts"
+      categoriesPath="/maintenance/categories"
     />
   );
 }
