@@ -64,8 +64,8 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         maintenanceRequestRepository.deleteAll();
         purchaseInvoiceRepository.deleteAll();
         inventoryItemRepository.deleteAll();
-        categoryRepository.deleteAll();
         faultTypeRepository.deleteAll();
+        categoryRepository.deleteAll();
         employeeRepository.deleteAll();
         jobTitleRepository.deleteAll();
     }
