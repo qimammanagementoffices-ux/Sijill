@@ -23,7 +23,13 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # Pinned to match backend/Dockerfile's build stage (gradle:8.10-jdk21-alpine).
+      # Spring Boot Gradle plugin 3.3.2's bootJar task calls a CopyProcessingSpec
+      # API that Gradle 9+ removed, so the action's default (latest Gradle)
+      # breaks the build — see run 31168076239 for the failure.
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10"
 
       - name: Build and test
         run: gradle build --no-daemon
