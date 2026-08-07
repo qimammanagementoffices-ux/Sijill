@@ -13,6 +13,20 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(StaleVersionException.class)
+    public ResponseEntity<Map<String, Object>> handleStaleVersion(StaleVersionException ex) {
+        String traceId = UUID.randomUUID().toString();
+        return ResponseEntity.status(ex.getStatus())
+                .body(Map.of(
+                        "error",
+                        Map.of(
+                                "code", ex.getCode(),
+                                "message", ex.getMessage(),
+                                "fields", ex.getFields(),
+                                "traceId", traceId),
+                        "current", ex.getCurrent()));
+    }
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApiException(ApiException ex) {
         String traceId = UUID.randomUUID().toString();

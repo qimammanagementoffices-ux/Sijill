@@ -32,9 +32,52 @@ export type Dictionary = {
   dashboard: {
     welcomeMessage: string;
     logout: string;
+    employeesNav: string;
+    departmentsNav: string;
+    jobTitlesNav: string;
   };
   errors: {
     generic: string;
+  };
+  employees: {
+    title: string;
+    searchPlaceholder: string;
+    search: string;
+    addNew: string;
+    columnEmployeeNumber: string;
+    columnName: string;
+    columnPhone: string;
+    columnJobTitle: string;
+    columnDepartments: string;
+    columnStatus: string;
+    active: string;
+    inactive: string;
+    noResults: string;
+    nameLabel: string;
+    phoneLabel: string;
+    pinLabel: string;
+    pinConfirmLabel: string;
+    emailLabel: string;
+    nationalIdLabel: string;
+    joinedDateLabel: string;
+    jobTitleLabel: string;
+    departmentsLabel: string;
+    permissionsLabel: string;
+    submitCreate: string;
+    submitUpdate: string;
+    deactivate: string;
+    deactivateConfirm: string;
+    resetPin: string;
+    resetPinSubmit: string;
+    conflictNotice: string;
+  };
+  structure: {
+    departmentsTitle: string;
+    jobTitlesTitle: string;
+    nameArLabel: string;
+    nameEnLabel: string;
+    addNew: string;
+    save: string;
   };
   publicAsset: {
     notFound: string;

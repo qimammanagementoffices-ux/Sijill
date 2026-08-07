@@ -24,10 +24,53 @@
   },
   "dashboard": {
     "welcomeMessage": "مرحبًا",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "employeesNav": "الموظفون",
+    "departmentsNav": "الأقسام",
+    "jobTitlesNav": "المسميات الوظيفية"
   },
   "errors": {
     "generic": "حدث خطأ ما. حاول مرة أخرى."
+  },
+  "employees": {
+    "title": "الموظفون",
+    "searchPlaceholder": "ابحث بالاسم أو رقم الجوال أو الرقم الوظيفي",
+    "search": "بحث",
+    "addNew": "إضافة موظف",
+    "columnEmployeeNumber": "الرقم الوظيفي",
+    "columnName": "الاسم",
+    "columnPhone": "رقم الجوال",
+    "columnJobTitle": "المسمى الوظيفي",
+    "columnDepartments": "الأقسام",
+    "columnStatus": "الحالة",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "noResults": "لا يوجد موظفون",
+    "nameLabel": "الاسم",
+    "phoneLabel": "رقم الجوال",
+    "pinLabel": "الرمز السري",
+    "pinConfirmLabel": "تأكيد الرمز السري",
+    "emailLabel": "البريد الإلكتروني",
+    "nationalIdLabel": "رقم الهوية",
+    "joinedDateLabel": "تاريخ الالتحاق",
+    "jobTitleLabel": "المسمى الوظيفي",
+    "departmentsLabel": "الأقسام",
+    "permissionsLabel": "الصلاحيات",
+    "submitCreate": "إنشاء الموظف",
+    "submitUpdate": "حفظ التغييرات",
+    "deactivate": "إلغاء التفعيل",
+    "deactivateConfirm": "هل تريد إلغاء تفعيل هذا الموظف؟ لن يتمكن بعدها من تسجيل الدخول.",
+    "resetPin": "إعادة تعيين الرمز السري",
+    "resetPinSubmit": "تعيين رمز جديد",
+    "conflictNotice": "تم تعديل هذا السجل من جهة أخرى. أعد تحميل الصفحة وحاول مرة أخرى."
+  },
+  "structure": {
+    "departmentsTitle": "الأقسام",
+    "jobTitlesTitle": "المسميات الوظيفية",
+    "nameArLabel": "الاسم بالعربية",
+    "nameEnLabel": "الاسم بالإنجليزية",
+    "addNew": "إضافة",
+    "save": "حفظ"
   },
   "publicAsset": {
     "notFound": "لم يتم العثور على هذا العنصر"

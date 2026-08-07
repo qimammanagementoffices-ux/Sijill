@@ -18,15 +18,11 @@ import sa.sijill.api.web.dto.FirstAdminRequest;
 @Service
 public class OnboardingService {
 
-    // PIN length is not pinned to an exact value by the master spec; 4-6
-    // numeric digits is the working default (typical PIN convention).
-    private static final int MIN_PIN_LENGTH = 4;
-    private static final int MAX_PIN_LENGTH = 6;
-
     private final EmployeeRepository employeeRepository;
     private final PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final PhoneNormalizer phoneNormalizer;
+    private final PinValidator pinValidator;
     private final AuditService auditService;
 
     public OnboardingService(
@@ -34,11 +30,13 @@ public class OnboardingService {
             PermissionRepository permissionRepository,
             PasswordEncoder passwordEncoder,
             PhoneNormalizer phoneNormalizer,
+            PinValidator pinValidator,
             AuditService auditService) {
         this.employeeRepository = employeeRepository;
         this.permissionRepository = permissionRepository;
         this.passwordEncoder = passwordEncoder;
         this.phoneNormalizer = phoneNormalizer;
+        this.pinValidator = pinValidator;
         this.auditService = auditService;
     }
 
@@ -57,7 +55,7 @@ public class OnboardingService {
         }
 
         String phone = phoneNormalizer.normalize(request.phone());
-        validatePin(request.pin(), request.pinConfirm());
+        pinValidator.validate(request.pin(), request.pinConfirm());
 
         Employee employee = new Employee();
         employee.setEmployeeNumber(generateEmployeeNumber());
@@ -74,18 +72,6 @@ public class OnboardingService {
         Employee saved = employeeRepository.save(employee);
         auditService.record(saved, "FIRST_ADMIN_CREATED", "Employee", saved.getId());
         return saved;
-    }
-
-    private void validatePin(String pin, String pinConfirm) {
-        if (pin == null || !pin.matches("\\d{" + MIN_PIN_LENGTH + "," + MAX_PIN_LENGTH + "}")) {
-            throw ApiException.validation(
-                    "PIN must be " + MIN_PIN_LENGTH + "-" + MAX_PIN_LENGTH + " digits",
-                    Map.of("pin", "must be numeric, " + MIN_PIN_LENGTH + "-" + MAX_PIN_LENGTH + " digits"));
-        }
-        if (!pin.equals(pinConfirm)) {
-            throw ApiException.validation(
-                    "PIN confirmation does not match", Map.of("pinConfirm", "must match pin"));
-        }
     }
 
     private String generateEmployeeNumber() {
