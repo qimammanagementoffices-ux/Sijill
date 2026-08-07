@@ -57,6 +57,11 @@ services:
         sync: false
       - key: OBJECT_STORAGE_SECRET_KEY
         sync: false
+      # Public read URL prefix for the bucket, distinct from the S3 API
+      # endpoint above — e.g. for Supabase Storage:
+      # https://<project-ref>.supabase.co/storage/v1/object/public
+      - key: OBJECT_STORAGE_PUBLIC_URL_BASE
+        sync: false
       - key: TRANSLATION_HELPER_ENABLED
         value: "false"
       - key: BACKUP_RETENTION_DAYS
