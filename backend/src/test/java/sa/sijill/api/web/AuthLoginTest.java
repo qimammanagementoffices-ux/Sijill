@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -19,6 +18,11 @@ import sa.sijill.api.web.dto.LoginRequest;
 // Dirties the context after this class so the in-memory LoginRateLimiter
 // singleton (deliberately not DB state, so @Transactional rollback doesn't
 // touch it) can't leak rate-limit counters into other test classes.
+//
+// Each test also uses its own phone number — the rate limiter is keyed by
+// phone and isn't reset between test methods within this class either
+// (only DB state rolls back), so two tests sharing a phone can trip one
+// another's counter depending on JUnit's (unspecified) method order.
 @Transactional
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AuthLoginTest extends AbstractIntegrationTest {
@@ -26,9 +30,8 @@ class AuthLoginTest extends AbstractIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
-    @BeforeEach
-    void createAdmin() throws Exception {
-        var request = new FirstAdminRequest("Admin Name", "0512345678", "1234", "1234");
+    private void createAdmin(String phone) throws Exception {
+        var request = new FirstAdminRequest("Admin Name", phone, "1234", "1234");
         mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -37,7 +40,8 @@ class AuthLoginTest extends AbstractIntegrationTest {
 
     @Test
     void correctCredentialsIssueToken() throws Exception {
-        var login = new LoginRequest("0512345678", "1234");
+        createAdmin("0511111111");
+        var login = new LoginRequest("0511111111", "1234");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
@@ -47,7 +51,8 @@ class AuthLoginTest extends AbstractIntegrationTest {
 
     @Test
     void wrongPinReturnsGenericUnauthenticated() throws Exception {
-        var login = new LoginRequest("0512345678", "0000");
+        createAdmin("0522222222");
+        var login = new LoginRequest("0522222222", "0000");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
@@ -58,7 +63,7 @@ class AuthLoginTest extends AbstractIntegrationTest {
 
     @Test
     void unknownPhoneReturnsSameGenericMessageAsWrongPin() throws Exception {
-        var login = new LoginRequest("0599999999", "1234");
+        var login = new LoginRequest("0533333333", "1234");
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(login)))
@@ -68,7 +73,8 @@ class AuthLoginTest extends AbstractIntegrationTest {
 
     @Test
     void rapidFailedAttemptsAreRateLimited() throws Exception {
-        var login = new LoginRequest("0512345678", "0000");
+        createAdmin("0544444444");
+        var login = new LoginRequest("0544444444", "0000");
         for (int i = 0; i < 5; i++) {
             mockMvc.perform(post("/api/v1/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
