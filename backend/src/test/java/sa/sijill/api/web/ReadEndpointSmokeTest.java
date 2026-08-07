@@ -11,12 +11,15 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.*;
 
 /**
@@ -30,11 +33,37 @@ import sa.sijill.api.web.dto.*;
  * GET /warehouse/invoices in production (see the fix on
  * PurchaseInvoiceLine.inventoryItem and siblings — changed LAZY to EAGER).
  * This test exercises the real per-request transaction boundary.
+ *
+ * Because nothing here rolls back, this class MUST clean up everything it
+ * creates in @AfterEach — onboarding is a use-once-ever operation
+ * (needsOnboarding() is just "does any employee exist"), so leaving an
+ * employee behind permanently breaks every other test class's
+ * createAdminAndGetToken() helper with a 409 instead of 200. This bit us
+ * once already; don't remove the cleanup.
  */
 class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private NeedRequestRepository needRequestRepository;
+    @Autowired private PurchaseInvoiceRepository purchaseInvoiceRepository;
+    @Autowired private InventoryItemRepository inventoryItemRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private EmployeeRepository employeeRepository;
+    @Autowired private JobTitleRepository jobTitleRepository;
+
+    @AfterEach
+    @Transactional
+    void cleanUp() {
+        auditLogRepository.deleteAll();
+        needRequestRepository.deleteAll();
+        purchaseInvoiceRepository.deleteAll();
+        inventoryItemRepository.deleteAll();
+        categoryRepository.deleteAll();
+        employeeRepository.deleteAll();
+        jobTitleRepository.deleteAll();
+    }
 
     @Test
     void listEndpointsRenderNestedAssociationsWithoutLazyInitializationException() throws Exception {
