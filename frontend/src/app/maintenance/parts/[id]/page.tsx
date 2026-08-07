@@ -8,6 +8,7 @@ export default async function MaintenancePartDetailPage({ params }: { params: { 
     <ItemEditView
       id={params.id}
       dict={dict.warehouseItems}
+      attachmentsDict={dict.attachments}
       errorsDict={dict.errors}
       itemBasePath="/maintenance/parts"
       categoriesPath="/maintenance/categories"

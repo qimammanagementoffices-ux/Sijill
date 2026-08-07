@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiFetchBlob, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
+import AttachmentUploader from "@/components/AttachmentUploader";
 import type {
   AssetDetail,
   AssetStatusValue,
@@ -15,7 +16,15 @@ import type {
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-export default function AssetDetailView({ id, dict }: { id: string; dict: Dictionary["assets"] }) {
+export default function AssetDetailView({
+  id,
+  dict,
+  attachmentsDict,
+}: {
+  id: string;
+  dict: Dictionary["assets"];
+  attachmentsDict: Dictionary["attachments"];
+}) {
   const router = useRouter();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -240,6 +249,8 @@ export default function AssetDetailView({ id, dict }: { id: string; dict: Dictio
           <button type="submit">{dict.transferButton}</button>
         </form>
       )}
+
+      <AttachmentUploader ownerType="ASSET" ownerId={asset.id} dict={attachmentsDict} canManage={canManage} />
 
       <h2>{dict.transferHistory}</h2>
       {transfers && transfers.length > 0 && (

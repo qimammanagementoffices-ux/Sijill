@@ -4,14 +4,23 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
+import AttachmentUploader from "@/components/AttachmentUploader";
 import type { RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Edited = { roomNumber: string; nameAr: string; nameEn: string; building: string; floor: string };
 
-export default function RoomAdmin({ dict }: { dict: Dictionary["rooms"] }) {
+export default function RoomAdmin({
+  dict,
+  attachmentsDict,
+}: {
+  dict: Dictionary["rooms"];
+  attachmentsDict: Dictionary["attachments"];
+}) {
   const router = useRouter();
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [canManage, setCanManage] = useState(false);
+  const [photosOpenFor, setPhotosOpenFor] = useState<string | null>(null);
   const [newRoomNumber, setNewRoomNumber] = useState("");
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
@@ -32,6 +41,9 @@ export default function RoomAdmin({ dict }: { dict: Dictionary["rooms"] }) {
       return;
     }
     load();
+    apiFetch<{ permissions: string[] }>("/auth/me")
+      .then((me) => setCanManage(me.permissions.includes("as.manage")))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -129,6 +141,15 @@ export default function RoomAdmin({ dict }: { dict: Dictionary["rooms"] }) {
               <button type="button" onClick={() => handleUpdate(room)}>
                 {dict.save}
               </button>
+              <button
+                type="button"
+                onClick={() => setPhotosOpenFor(photosOpenFor === room.id ? null : room.id)}
+              >
+                {attachmentsDict.title}
+              </button>
+              {photosOpenFor === room.id && (
+                <AttachmentUploader ownerType="ROOM" ownerId={room.id} dict={attachmentsDict} canManage={canManage} />
+              )}
             </li>
           );
         })}

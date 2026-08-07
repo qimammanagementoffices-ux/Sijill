@@ -4,5 +4,5 @@ import AssetDetailView from "./AssetDetailView";
 
 export default async function AssetDetailPage({ params }: { params: { id: string } }) {
   const dict = await getDictionary(defaultLocale);
-  return <AssetDetailView id={params.id} dict={dict.assets} />;
+  return <AssetDetailView id={params.id} dict={dict.assets} attachmentsDict={dict.attachments} />;
 }

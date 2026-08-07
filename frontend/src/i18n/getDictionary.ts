@@ -49,6 +49,7 @@ export type Dictionary = {
     assetsNav: string;
     assetCategoriesNav: string;
     assetRequestsNav: string;
+    brandingNav: string;
   };
   errors: {
     generic: string;
@@ -207,6 +208,25 @@ export type Dictionary = {
     priorityMedium: string;
     priorityHigh: string;
     priorityUrgent: string;
+  };
+  attachments: {
+    title: string;
+    upload: string;
+    delete: string;
+    deleteConfirm: string;
+    uploading: string;
+    noAttachments: string;
+    unsupportedType: string;
+    tooLarge: string;
+  };
+  branding: {
+    title: string;
+    presetLabel: string;
+    colorLabel: string;
+    logoLabel: string;
+    save: string;
+    reset: string;
+    resetConfirm: string;
   };
   rooms: {
     title: string;

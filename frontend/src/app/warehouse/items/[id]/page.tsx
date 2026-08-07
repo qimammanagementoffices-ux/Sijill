@@ -8,6 +8,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     <ItemEditView
       id={params.id}
       dict={dict.warehouseItems}
+      attachmentsDict={dict.attachments}
       errorsDict={dict.errors}
       itemBasePath="/warehouse/items"
       categoriesPath="/warehouse/categories"

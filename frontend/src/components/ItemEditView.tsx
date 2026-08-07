@@ -5,18 +5,21 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import ItemForm from "@/components/ItemForm";
+import AttachmentUploader from "@/components/AttachmentUploader";
 import type { CategoryDto, InventoryItemDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 export default function ItemEditView({
   id,
   dict,
+  attachmentsDict,
   errorsDict,
   itemBasePath,
   categoriesPath,
 }: {
   id: string;
   dict: Dictionary["warehouseItems"];
+  attachmentsDict: Dictionary["attachments"];
   errorsDict: Dictionary["errors"];
   itemBasePath: string;
   categoriesPath: string;
@@ -24,6 +27,7 @@ export default function ItemEditView({
   const router = useRouter();
   const [item, setItem] = useState<InventoryItemDetail | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
+  const [canManage, setCanManage] = useState(false);
 
   function load() {
     Promise.all([
@@ -43,6 +47,9 @@ export default function ItemEditView({
       return;
     }
     load();
+    apiFetch<{ permissions: string[] }>("/auth/me")
+      .then((me) => setCanManage(me.permissions.includes("wh.items")))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, id]);
 
@@ -73,6 +80,7 @@ export default function ItemEditView({
           {dict.deactivate}
         </button>
       )}
+      <AttachmentUploader ownerType="INVENTORY_ITEM" ownerId={item.id} dict={attachmentsDict} canManage={canManage} />
     </main>
   );
 }

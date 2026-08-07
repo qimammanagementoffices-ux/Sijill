@@ -53,6 +53,7 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
   const canViewAssets =
     employee.permissions.includes("as.view") || employee.permissions.includes("as.request");
   const canManageAssets = employee.permissions.includes("as.manage");
+  const canManageBranding = employee.permissions.includes("sys.branding");
 
   return (
     <main style={{ maxWidth: 480, margin: "10vh auto", padding: "0 1rem" }}>
@@ -146,6 +147,11 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
           {canViewAssets && (
             <li>
               <Link href="/asset-requests">{dict.assetRequestsNav}</Link>
+            </li>
+          )}
+          {canManageBranding && (
+            <li>
+              <Link href="/admin/branding">{dict.brandingNav}</Link>
             </li>
           )}
         </ul>

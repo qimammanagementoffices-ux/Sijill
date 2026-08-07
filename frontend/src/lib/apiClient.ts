@@ -61,3 +61,20 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   }
   return res.blob();
 }
+
+// For multipart file uploads — apiFetch always sends Content-Type:
+// application/json, which would break the browser's automatic boundary
+// header for FormData.
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, body?.error?.message ?? `Request failed: ${res.status}`, body?.error?.code);
+  }
+  return res.json() as Promise<T>;
+}

@@ -12,6 +12,7 @@ type PublicAssetDto = {
   category: LocalizedRef | null;
   room: LocalizedRef | null;
   status: string;
+  photoUrl: string | null;
 };
 
 export default function PublicAssetView({ token, dict }: { token: string; dict: Dictionary["publicAsset"] }) {
@@ -41,6 +42,7 @@ export default function PublicAssetView({ token, dict }: { token: string; dict: 
   return (
     <main style={{ maxWidth: 500, margin: "10vh auto", padding: "0 1rem" }}>
       <h1>{dict.title}</h1>
+      {asset.photoUrl && <img src={asset.photoUrl} alt={asset.nameEn} style={{ maxWidth: "100%" }} />}
       <p>{asset.assetNumber}</p>
       <p>{asset.nameAr}</p>
       <p>{asset.nameEn}</p>
