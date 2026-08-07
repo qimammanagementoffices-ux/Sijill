@@ -23,7 +23,9 @@ import sa.sijill.api.security.RestAuthenticationEntryPoint;
  * Default posture stays "protected unless explicitly allowlisted" per
  * docs/api-conventions.md. Public routes: health check, system status (so the
  * frontend can decide onboarding vs. login before any auth exists), and the
- * onboarding/login POST endpoints. Everything else requires a valid JWT;
+ * onboarding/login POST endpoints, and the public QR asset view (D2 in
+ * docs/decision-record.md — token-addressed, allowlisted fields only, via
+ * a dedicated PublicAssetDto projection). Everything else requires a valid JWT;
  * fine-grained permission checks are added per-endpoint via
  * @PreAuthorize("hasAuthority('...')") starting in Phase 2b.
  */
@@ -67,7 +69,8 @@ public class SecurityConfig {
                                 "/api/v1/system/status",
                                 "/api/v1/auth/login",
                                 "/api/v1/onboarding/first-admin",
-                                "/api/v1/i18n/dictionary")
+                                "/api/v1/i18n/dictionary",
+                                "/api/v1/public/assets/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

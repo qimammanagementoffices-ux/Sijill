@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.domain.AssetStatus;
 import sa.sijill.api.domain.MaintenancePriority;
 import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.*;
@@ -49,10 +50,14 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private NeedRequestRepository needRequestRepository;
     @Autowired private MaintenanceRequestRepository maintenanceRequestRepository;
+    @Autowired private AssetTransferRepository assetTransferRepository;
+    @Autowired private AssetRequestRepository assetRequestRepository;
+    @Autowired private AssetRepository assetRepository;
     @Autowired private PurchaseInvoiceRepository purchaseInvoiceRepository;
     @Autowired private InventoryItemRepository inventoryItemRepository;
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private FaultTypeRepository faultTypeRepository;
+    @Autowired private RoomRepository roomRepository;
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private JobTitleRepository jobTitleRepository;
 
@@ -62,9 +67,13 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         auditLogRepository.deleteAll();
         needRequestRepository.deleteAll();
         maintenanceRequestRepository.deleteAll();
+        assetTransferRepository.deleteAll();
+        assetRequestRepository.deleteAll();
+        assetRepository.deleteAll();
         purchaseInvoiceRepository.deleteAll();
         inventoryItemRepository.deleteAll();
         faultTypeRepository.deleteAll();
+        roomRepository.deleteAll();
         categoryRepository.deleteAll();
         employeeRepository.deleteAll();
         jobTitleRepository.deleteAll();
@@ -243,5 +252,86 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.faultType.en").value("Electrical fault"));
+
+        // --- Assets (Phase 5) — same LAZY-association risk. ---
+        String roomBody = mockMvc.perform(post("/api/v1/rooms")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", "Main", "1", null))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String roomId = objectMapper.readTree(roomBody).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/rooms").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        String assetCategoryBody = mockMvc.perform(post("/api/v1/assets/categories")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpsertLocalizedEntityRequest("إلكترونيات", "Electronics", null))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String assetCategoryId = objectMapper.readTree(assetCategoryBody).get("id").asText();
+
+        String assetBody = mockMvc.perform(post("/api/v1/assets")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateAssetRequest(
+                                "SMOKE-AST-001",
+                                "جهاز عرض",
+                                "Projector",
+                                UUID.fromString(assetCategoryId),
+                                UUID.fromString(roomId),
+                                null,
+                                AssetStatus.ACTIVE,
+                                null,
+                                null,
+                                null,
+                                null))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode createdAsset = objectMapper.readTree(assetBody);
+        String assetId = createdAsset.get("id").asText();
+        String publicToken = createdAsset.get("publicToken").asText();
+
+        mockMvc.perform(get("/api/v1/assets").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/assets/" + assetId).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.category.en").value("Electronics"))
+                .andExpect(jsonPath("$.room.en").value("Smoke Room"));
+
+        mockMvc.perform(get("/api/v1/public/assets/" + publicToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assetNumber").value("SMOKE-AST-001"));
+
+        var submitAssetRequest = new SubmitAssetRequestRequest(UUID.fromString(assetId), "smoke test");
+        String assetRequestBody = mockMvc.perform(post("/api/v1/asset-requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submitAssetRequest)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode createdAssetRequest = objectMapper.readTree(assetRequestBody);
+
+        mockMvc.perform(get("/api/v1/asset-requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].requesterName").exists());
+
+        mockMvc.perform(get("/api/v1/asset-requests/" + createdAssetRequest.get("id").asText())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assetNumber").value("SMOKE-AST-001"));
+
+        mockMvc.perform(get("/api/v1/assets/" + assetId + "/transfers")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
     }
 }

@@ -200,3 +200,84 @@ export type MaintenanceRequestDetail = {
   actions: MaintenanceRequestActionDto[];
   version: number;
 };
+
+// --- Assets (Phase 5) ---
+
+export type RoomDto = {
+  id: string;
+  roomNumber: string;
+  nameAr: string;
+  nameEn: string;
+  building: string | null;
+  floor: string | null;
+  active: boolean;
+  version: number;
+};
+
+export type AssetStatusValue = "ACTIVE" | "MAINTENANCE" | "RETIRED";
+
+export type AssetListItem = {
+  id: string;
+  assetNumber: string;
+  nameAr: string;
+  nameEn: string;
+  category: LocalizedRef | null;
+  room: LocalizedRef | null;
+  custodianName: string | null;
+  status: AssetStatusValue;
+};
+
+export type AssetDetail = {
+  id: string;
+  assetNumber: string;
+  nameAr: string;
+  nameEn: string;
+  category: LocalizedRef | null;
+  room: LocalizedRef | null;
+  custodianId: string | null;
+  custodianName: string | null;
+  status: AssetStatusValue;
+  acquisitionDate: string | null;
+  acquisitionCost: number | null;
+  vendor: string | null;
+  notes: string | null;
+  publicToken: string;
+  version: number;
+};
+
+export type AssetTransferDto = {
+  fromRoom: LocalizedRef | null;
+  toRoom: LocalizedRef | null;
+  fromEmployeeName: string | null;
+  toEmployeeName: string | null;
+  actorName: string;
+  reason: string | null;
+  createdAt: string;
+};
+
+export type AssetRequestActionDto = { actorName: string; action: string; reason: string | null; createdAt: string };
+
+export type AssetRequestListItem = {
+  id: string;
+  requesterName: string;
+  assetNumber: string;
+  assetNameAr: string;
+  assetNameEn: string;
+  status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
+  suggestedStartDate: string | null;
+};
+
+export type AssetRequestDetail = {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  assetId: string;
+  assetNumber: string;
+  assetNameAr: string;
+  assetNameEn: string;
+  reason: string | null;
+  status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
+  suggestedStartDate: string | null;
+  actions: AssetRequestActionDto[];
+  version: number;
+};

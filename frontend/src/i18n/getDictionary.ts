@@ -45,6 +45,10 @@ export type Dictionary = {
     maintenanceRequestsNav: string;
     maintenanceCategoriesNav: string;
     maintenanceFaultTypesNav: string;
+    roomsNav: string;
+    assetsNav: string;
+    assetCategoriesNav: string;
+    assetRequestsNav: string;
   };
   errors: {
     generic: string;
@@ -204,8 +208,75 @@ export type Dictionary = {
     priorityHigh: string;
     priorityUrgent: string;
   };
+  rooms: {
+    title: string;
+    addNew: string;
+    roomNumberLabel: string;
+    nameArLabel: string;
+    nameEnLabel: string;
+    buildingLabel: string;
+    floorLabel: string;
+    save: string;
+  };
+  assets: {
+    title: string;
+    addNew: string;
+    noResults: string;
+    columnAssetNumber: string;
+    columnName: string;
+    columnCategory: string;
+    columnRoom: string;
+    columnCustodian: string;
+    columnStatus: string;
+    assetNumberLabel: string;
+    nameArLabel: string;
+    nameEnLabel: string;
+    categoryLabel: string;
+    roomLabel: string;
+    custodianLabel: string;
+    statusLabel: string;
+    acquisitionDateLabel: string;
+    acquisitionCostLabel: string;
+    vendorLabel: string;
+    notesLabel: string;
+    submitCreate: string;
+    submitUpdate: string;
+    statusActive: string;
+    statusMaintenance: string;
+    statusRetired: string;
+    downloadQr: string;
+    transferHistory: string;
+    transferButton: string;
+    custodyReportTitle: string;
+    custodyReportPrint: string;
+    custodyReportGeneratedAt: string;
+    custodyReportTotalCount: string;
+  };
+  assetRequests: {
+    title: string;
+    addNew: string;
+    noResults: string;
+    columnRequester: string;
+    columnAsset: string;
+    columnStatus: string;
+    columnSuggestedStart: string;
+    statusFilterAll: string;
+    assetLabel: string;
+    reasonLabel: string;
+    submit: string;
+    approve: string;
+    reject: string;
+    postpone: string;
+    finish: string;
+    statusPending: string;
+    statusApproved: string;
+    statusPostponed: string;
+    statusRejected: string;
+    statusClosed: string;
+  };
   publicAsset: {
     notFound: string;
+    title: string;
   };
   adminTranslations: {
     title: string;
