@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: sijill-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sijill
+      POSTGRES_USER: sijill
+      POSTGRES_PASSWORD: sijill_local_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - sijill-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sijill -d sijill"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: sijill-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: sijill_minio
+      MINIO_ROOT_PASSWORD: sijill_minio_local_dev
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    volumes:
+      - sijill-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sijill-postgres-data:
+  sijill-minio-data:

@@ -1,0 +1,25 @@
+# Env
+.env
+.env.local
+.env.*.local
+
+# Backend
+backend/build/
+backend/.gradle/
+backend/out/
+*.class
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Local backups (never commit real snapshots)
+infra/backups/

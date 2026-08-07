@@ -1,0 +1,23 @@
+{
+  "common": {
+    "appName": "Sijill",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "onboarding": {
+    "welcomeTitle": "Welcome to Sijill",
+    "welcomeSubtitle": "The system hasn't been set up yet. Create the first admin account to get started.",
+    "createAdmin": "Create admin account"
+  },
+  "login": {
+    "title": "Sign in",
+    "phoneLabel": "Phone number",
+    "pinLabel": "PIN",
+    "submit": "Sign in",
+    "genericError": "Invalid phone number or PIN"
+  },
+  "publicAsset": {
+    "notFound": "This item could not be found"
+  }
+}
