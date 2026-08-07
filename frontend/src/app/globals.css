@@ -1,0 +1,18 @@
+/* Shared print layout — A4 page, hides interactive chrome (nav, buttons,
+   forms) so only the report content prints. Used by every printable report
+   per master spec §7's "print-ready A4 HTML/PDF reports" requirement. */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  body {
+    background: white;
+  }
+}

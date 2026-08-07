@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
+import { exportToXlsx } from "@/lib/exportXlsx";
+import PrintReportHeader from "@/components/PrintReportHeader";
 import type { InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -14,9 +16,11 @@ import type { Dictionary } from "@/i18n/getDictionary";
 // identical in both domains ("/warehouse/items", "/maintenance/parts").
 export default function ItemDirectory({
   dict,
+  commonDict,
   basePath,
 }: {
   dict: Dictionary["warehouseItems"];
+  commonDict: Dictionary["common"];
   basePath: string;
 }) {
   const router = useRouter();
@@ -54,13 +58,40 @@ export default function ItemDirectory({
     load(0, q, lowStockOnly);
   }
 
+  async function handleExport() {
+    const all = await apiFetch<PagedResponse<InventoryItemListItem>>(
+      `${basePath}?q=${encodeURIComponent(q)}&lowStockOnly=${lowStockOnly}&size=10000`
+    );
+    await exportToXlsx(
+      dict.title,
+      dict.title,
+      [
+        { header: dict.columnCode, value: (i: InventoryItemListItem) => i.code },
+        { header: dict.columnName, value: (i: InventoryItemListItem) => i.nameAr },
+        { header: dict.columnCategory, value: (i: InventoryItemListItem) => i.category?.ar ?? "" },
+        { header: dict.columnQuantity, value: (i: InventoryItemListItem) => i.quantity },
+        { header: dict.columnMinQuantity, value: (i: InventoryItemListItem) => i.minQuantity },
+      ],
+      all.content
+    );
+  }
+
   if (!page) return null;
 
   return (
     <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
+      <PrintReportHeader title={dict.title} dict={commonDict} />
 
-      <form onSubmit={handleSearch}>
+      <p className="no-print">
+        <button type="button" onClick={handleExport}>
+          {commonDict.exportXlsx}
+        </button>
+        <button type="button" onClick={() => window.print()}>
+          {commonDict.print}
+        </button>
+      </p>
+
+      <form className="no-print" onSubmit={handleSearch}>
         <input
           type="text"
           value={q}
@@ -82,7 +113,7 @@ export default function ItemDirectory({
       </form>
 
       {canManage && (
-        <p>
+        <p className="no-print">
           <Link href={`${basePath}/new`}>{dict.addNew}</Link>
         </p>
       )}
@@ -119,7 +150,7 @@ export default function ItemDirectory({
       )}
 
       {page.totalPages > 1 && (
-        <p>
+        <p className="no-print">
           {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
             <button key={i} type="button" onClick={() => load(i, q, lowStockOnly)} disabled={i === page.page}>
               {i + 1}

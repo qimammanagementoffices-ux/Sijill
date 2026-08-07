@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { defaultLocale, localeDirection } from "@/i18n/config";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Sijill",

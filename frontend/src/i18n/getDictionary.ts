@@ -11,6 +11,9 @@ export type Dictionary = {
     loading: string;
     save: string;
     cancel: string;
+    exportXlsx: string;
+    print: string;
+    generatedAt: string;
   };
   onboarding: {
     welcomeTitle: string;

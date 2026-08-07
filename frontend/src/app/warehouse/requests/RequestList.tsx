@@ -5,12 +5,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
+import { exportToXlsx } from "@/lib/exportXlsx";
+import PrintReportHeader from "@/components/PrintReportHeader";
 import type { NeedRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUSES = ["PENDING", "APPROVED", "POSTPONED", "REJECTED", "CLOSED"] as const;
 
-export default function RequestList({ dict }: { dict: Dictionary["warehouseRequests"] }) {
+export default function RequestList({
+  dict,
+  commonDict,
+}: {
+  dict: Dictionary["warehouseRequests"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [page, setPage] = useState<PagedResponse<NeedRequestListItem> | null>(null);
@@ -45,13 +53,39 @@ export default function RequestList({ dict }: { dict: Dictionary["warehouseReque
     }[s];
   }
 
+  async function handleExport() {
+    const query = status ? `?status=${status}&size=10000` : "?size=10000";
+    const all = await apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests${query}`);
+    await exportToXlsx(
+      dict.title,
+      dict.title,
+      [
+        { header: dict.columnRequester, value: (r: NeedRequestListItem) => r.requesterName },
+        { header: dict.columnDepartment, value: (r: NeedRequestListItem) => r.department?.ar ?? "" },
+        { header: dict.columnStatus, value: (r: NeedRequestListItem) => statusLabel(r.status) ?? r.status },
+        { header: dict.columnSuggestedStart, value: (r: NeedRequestListItem) => r.suggestedStartDate ?? "" },
+      ],
+      all.content
+    );
+  }
+
   if (!page) return null;
 
   return (
     <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
+      <PrintReportHeader title={dict.title} dict={commonDict} />
+
+      <p className="no-print">
+        <button type="button" onClick={handleExport}>
+          {commonDict.exportXlsx}
+        </button>
+        <button type="button" onClick={() => window.print()}>
+          {commonDict.print}
+        </button>
+      </p>
 
       <select
+        className="no-print"
         value={status}
         onChange={(e) => {
           setStatus(e.target.value);
@@ -66,7 +100,7 @@ export default function RequestList({ dict }: { dict: Dictionary["warehouseReque
         ))}
       </select>
 
-      <p>
+      <p className="no-print">
         <Link href="/warehouse/requests/new">{dict.addNew}</Link>
       </p>
 

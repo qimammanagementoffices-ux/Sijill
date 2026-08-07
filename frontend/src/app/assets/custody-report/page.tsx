@@ -4,5 +4,5 @@ import CustodyReportView from "./CustodyReportView";
 
 export default async function CustodyReportPage() {
   const dict = await getDictionary(defaultLocale);
-  return <CustodyReportView dict={dict.assets} />;
+  return <CustodyReportView dict={dict.assets} commonDict={dict.common} />;
 }

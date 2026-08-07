@@ -5,10 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
+import { exportToXlsx } from "@/lib/exportXlsx";
+import PrintReportHeader from "@/components/PrintReportHeader";
 import type { AssetListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-export default function AssetDirectory({ dict }: { dict: Dictionary["assets"] }) {
+export default function AssetDirectory({
+  dict,
+  commonDict,
+}: {
+  dict: Dictionary["assets"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState<PagedResponse<AssetListItem> | null>(null);
@@ -49,23 +57,49 @@ export default function AssetDirectory({ dict }: { dict: Dictionary["assets"] })
     }[status];
   }
 
+  async function handleExport() {
+    const all = await apiFetch<PagedResponse<AssetListItem>>(`/assets?q=${encodeURIComponent(q)}&size=10000`);
+    await exportToXlsx(
+      dict.title,
+      dict.title,
+      [
+        { header: dict.columnAssetNumber, value: (a: AssetListItem) => a.assetNumber },
+        { header: dict.columnName, value: (a: AssetListItem) => a.nameAr },
+        { header: dict.columnCategory, value: (a: AssetListItem) => a.category?.ar ?? "" },
+        { header: dict.columnRoom, value: (a: AssetListItem) => a.room?.ar ?? "" },
+        { header: dict.columnCustodian, value: (a: AssetListItem) => a.custodianName ?? "" },
+        { header: dict.columnStatus, value: (a: AssetListItem) => a.status },
+      ],
+      all.content
+    );
+  }
+
   if (!page) return null;
 
   return (
     <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
+      <PrintReportHeader title={dict.title} dict={commonDict} />
 
-      <form onSubmit={handleSearch}>
+      <p className="no-print">
+        <button type="button" onClick={handleExport}>
+          {commonDict.exportXlsx}
+        </button>
+        <button type="button" onClick={() => window.print()}>
+          {commonDict.print}
+        </button>
+      </p>
+
+      <form className="no-print" onSubmit={handleSearch}>
         <input type="text" value={q} onChange={(e) => setQ(e.target.value)} />
         <button type="submit">{dict.title}</button>
       </form>
 
       {canManage && (
-        <p>
+        <p className="no-print">
           <Link href="/assets/new">{dict.addNew}</Link>
         </p>
       )}
-      <p>
+      <p className="no-print">
         <Link href="/assets/custody-report">{dict.custodyReportTitle}</Link>
       </p>
 
@@ -101,7 +135,7 @@ export default function AssetDirectory({ dict }: { dict: Dictionary["assets"] })
       )}
 
       {page.totalPages > 1 && (
-        <p>
+        <p className="no-print">
           {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
             <button key={i} type="button" onClick={() => load(i, q)} disabled={i === page.page}>
               {i + 1}
