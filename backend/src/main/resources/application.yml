@@ -37,6 +37,10 @@ app:
     bucket: ${OBJECT_STORAGE_BUCKET}
     access-key: ${OBJECT_STORAGE_ACCESS_KEY}
     secret-key: ${OBJECT_STORAGE_SECRET_KEY}
+    # Public read URL prefix for the bucket — Supabase Storage serves public
+    # buckets at {project}/storage/v1/object/public/{bucket}/{key}, distinct
+    # from the S3 API endpoint used for uploads/deletes.
+    public-url-base: ${OBJECT_STORAGE_PUBLIC_URL_BASE}
   translation:
     enabled: ${TRANSLATION_HELPER_ENABLED:false}
     provider: ${TRANSLATION_PROVIDER:}

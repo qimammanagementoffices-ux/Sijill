@@ -8,15 +8,22 @@ import sa.sijill.api.domain.AssetStatus;
 // localized name, category, status, room. No cost/vendor/notes/custodian/
 // history/photos-gallery.
 public record PublicAssetDto(
-        String assetNumber, String nameAr, String nameEn, LocalizedRef category, LocalizedRef room, AssetStatus status) {
+        String assetNumber,
+        String nameAr,
+        String nameEn,
+        LocalizedRef category,
+        LocalizedRef room,
+        AssetStatus status,
+        String photoUrl) {
 
-    public static PublicAssetDto from(Asset asset) {
+    public static PublicAssetDto from(Asset asset, String photoUrl) {
         return new PublicAssetDto(
                 asset.getAssetNumber(),
                 asset.getNameAr(),
                 asset.getNameEn(),
                 asset.getCategory() == null ? null : LocalizedRef.from(asset.getCategory()),
                 asset.getRoom() == null ? null : LocalizedRef.from(asset.getRoom()),
-                asset.getStatus());
+                asset.getStatus(),
+                photoUrl);
     }
 }

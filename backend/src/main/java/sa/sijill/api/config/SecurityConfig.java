@@ -72,6 +72,8 @@ public class SecurityConfig {
                                 "/api/v1/i18n/dictionary",
                                 "/api/v1/public/assets/**")
                         .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/branding")
+                        .permitAll()
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

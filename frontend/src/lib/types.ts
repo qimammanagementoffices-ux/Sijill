@@ -267,6 +267,29 @@ export type AssetRequestListItem = {
   suggestedStartDate: string | null;
 };
 
+// --- Media / branding (Phase 6a) ---
+
+export type AttachmentOwnerType = "INVENTORY_ITEM" | "ROOM" | "ASSET" | "BRANDING";
+
+export type AttachmentDto = {
+  id: string;
+  ownerType: AttachmentOwnerType;
+  ownerId: string;
+  url: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedByName: string | null;
+  createdAt: string;
+};
+
+export type BrandingDto = {
+  preset: string;
+  primaryColor: string;
+  logoUrl: string | null;
+  version: number;
+};
+
 export type AssetRequestDetail = {
   id: string;
   requesterId: string;

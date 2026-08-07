@@ -41,5 +41,15 @@ public abstract class AbstractIntegrationTest {
         // HS256 requires >= 32 bytes; this is a fixed test-only secret, never used outside CI/local tests.
         registry.add("JWT_SIGNING_SECRET", () -> "test-signing-secret-please-do-not-use-in-prod-32bytes+");
         registry.add("FRONTEND_ORIGIN", () -> "http://localhost:3000");
+        // No real object storage in CI/local tests — dummy values so the
+        // S3Client bean constructs (no network call happens until a request
+        // is actually made). Tests that need a successful upload/delete
+        // round-trip are out of scope here; see AttachmentUploadTest for
+        // what's covered instead (validation, permissions).
+        registry.add("OBJECT_STORAGE_ENDPOINT", () -> "http://localhost:9999");
+        registry.add("OBJECT_STORAGE_BUCKET", () -> "test-bucket");
+        registry.add("OBJECT_STORAGE_ACCESS_KEY", () -> "test-access-key");
+        registry.add("OBJECT_STORAGE_SECRET_KEY", () -> "test-secret-key");
+        registry.add("OBJECT_STORAGE_PUBLIC_URL_BASE", () -> "http://localhost:9999/public");
     }
 }
