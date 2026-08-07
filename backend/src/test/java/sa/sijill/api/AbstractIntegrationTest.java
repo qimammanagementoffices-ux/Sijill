@@ -7,20 +7,29 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
+/**
+ * Testcontainers "singleton container" pattern: started once in a static
+ * initializer and never explicitly stopped (Ryuk/JVM shutdown reap it).
+ * Deliberately NOT using @Testcontainers/@Container here — that annotation
+ * combo stops the container in each test class's afterAll, and since this
+ * field is inherited by every subclass, the first subclass to finish would
+ * kill the container out from under every later test class (a well-known
+ * gotcha with static containers declared in a shared base class).
+ */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 public abstract class AbstractIntegrationTest {
 
-    @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("sijill_test")
             .withUsername("sijill_test")
             .withPassword("sijill_test");
+
+    static {
+        POSTGRES.start();
+    }
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
