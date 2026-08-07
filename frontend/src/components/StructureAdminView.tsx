@@ -15,7 +15,7 @@ export default function StructureAdminView({
   title,
 }: {
   dict: Dictionary["structure"];
-  entity: "departments" | "job-titles";
+  entity: "departments" | "job-titles" | "warehouse/categories";
   title: string;
 }) {
   const router = useRouter();

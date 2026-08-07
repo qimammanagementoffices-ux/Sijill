@@ -1,0 +1,147 @@
+package sa.sijill.api.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import sa.sijill.api.domain.Category;
+import sa.sijill.api.domain.Domain;
+import sa.sijill.api.domain.Employee;
+import sa.sijill.api.domain.InventoryItem;
+import sa.sijill.api.error.ApiException;
+import sa.sijill.api.error.StaleVersionException;
+import sa.sijill.api.repository.CategoryRepository;
+import sa.sijill.api.repository.InventoryItemRepository;
+import sa.sijill.api.web.dto.AdjustQuantityRequest;
+import sa.sijill.api.web.dto.CreateInventoryItemRequest;
+import sa.sijill.api.web.dto.InventoryItemDetail;
+import sa.sijill.api.web.dto.UpdateInventoryItemRequest;
+
+@Service
+public class InventoryItemService {
+
+    private final InventoryItemRepository inventoryItemRepository;
+    private final CategoryRepository categoryRepository;
+    private final AuditService auditService;
+    private final ObjectMapper objectMapper;
+
+    public InventoryItemService(
+            InventoryItemRepository inventoryItemRepository,
+            CategoryRepository categoryRepository,
+            AuditService auditService,
+            ObjectMapper objectMapper) {
+        this.inventoryItemRepository = inventoryItemRepository;
+        this.categoryRepository = categoryRepository;
+        this.auditService = auditService;
+        this.objectMapper = objectMapper;
+    }
+
+    public Page<InventoryItem> search(Domain domain, String q, boolean lowStockOnly, Pageable pageable) {
+        return inventoryItemRepository.search(domain, q, lowStockOnly, pageable);
+    }
+
+    public InventoryItem get(UUID id) {
+        return inventoryItemRepository.findById(id).orElseThrow(() -> ApiException.notFound("Item not found"));
+    }
+
+    @Transactional
+    public InventoryItem create(Domain domain, CreateInventoryItemRequest request, Employee actor) {
+        if (request.code() == null || request.code().isBlank()) {
+            throw ApiException.validation("Code is required", Map.of("code", "must not be blank"));
+        }
+        if (request.nameAr() == null || request.nameAr().isBlank() || request.nameEn() == null || request.nameEn().isBlank()) {
+            throw ApiException.validation("Name is required", Map.of("nameAr", "must not be blank"));
+        }
+        if (inventoryItemRepository.existsByDomainAndCode(domain, request.code())) {
+            throw ApiException.validation("Item code already in use", Map.of("code", "already in use"));
+        }
+
+        InventoryItem item = new InventoryItem();
+        item.setDomain(domain);
+        item.setCode(request.code());
+        item.setNameAr(request.nameAr());
+        item.setNameEn(request.nameEn());
+        item.setCategory(resolveCategory(request.categoryId()));
+        item.setUnit(request.unit());
+        item.setWeight(request.weight());
+        item.setDateAdded(request.dateAdded() != null ? request.dateAdded() : java.time.LocalDate.now());
+        item.setMinQuantity(request.minQuantity());
+        item.setQuantity(0);
+        item.setActive(true);
+
+        InventoryItem saved = inventoryItemRepository.save(item);
+        auditService.record(actor, "INVENTORY_ITEM_CREATED", "InventoryItem", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public InventoryItem update(UUID id, UpdateInventoryItemRequest request, Employee actor) {
+        InventoryItem item = get(id);
+        if (item.getVersion() != request.version()) {
+            throw new StaleVersionException(InventoryItemDetail.from(item));
+        }
+        if (request.nameAr() == null || request.nameAr().isBlank() || request.nameEn() == null || request.nameEn().isBlank()) {
+            throw ApiException.validation("Name is required", Map.of("nameAr", "must not be blank"));
+        }
+
+        item.setNameAr(request.nameAr());
+        item.setNameEn(request.nameEn());
+        item.setCategory(resolveCategory(request.categoryId()));
+        item.setUnit(request.unit());
+        item.setWeight(request.weight());
+        item.setMinQuantity(request.minQuantity());
+
+        InventoryItem saved = inventoryItemRepository.save(item);
+        auditService.record(actor, "INVENTORY_ITEM_UPDATED", "InventoryItem", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public void deactivate(UUID id, Employee actor) {
+        InventoryItem item = get(id);
+        item.setActive(false);
+        inventoryItemRepository.save(item);
+        auditService.record(actor, "INVENTORY_ITEM_DEACTIVATED", "InventoryItem", item.getId());
+    }
+
+    @Transactional
+    public InventoryItem adjustQuantity(UUID id, AdjustQuantityRequest request, Employee actor) {
+        if (request.reason() == null || request.reason().isBlank()) {
+            throw ApiException.validation("Reason is required", Map.of("reason", "must not be blank"));
+        }
+        InventoryItem item = get(id);
+        int previousQuantity = item.getQuantity();
+        int newQuantity = previousQuantity + request.delta();
+        if (newQuantity < 0) {
+            throw ApiException.validation(
+                    "Adjustment would result in negative quantity", Map.of("delta", "too large"));
+        }
+        item.setQuantity(newQuantity);
+        InventoryItem saved = inventoryItemRepository.save(item);
+        auditService.record(
+                actor,
+                "INVENTORY_ITEM_QUANTITY_ADJUSTED",
+                "InventoryItem",
+                saved.getId(),
+                toJson(Map.of("quantity", previousQuantity)),
+                toJson(Map.of("quantity", newQuantity, "reason", request.reason())));
+        return saved;
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private Category resolveCategory(UUID categoryId) {
+        if (categoryId == null) return null;
+        return categoryRepository.findById(categoryId).orElseThrow(() -> ApiException.validation(
+                "Category not found", Map.of("categoryId", "does not exist")));
+    }
+}

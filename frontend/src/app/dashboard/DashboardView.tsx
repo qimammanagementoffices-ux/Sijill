@@ -43,6 +43,10 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
   const canViewEmployees =
     employee.permissions.includes("emp.view") || employee.permissions.includes("emp.manage");
   const canManageStructure = employee.permissions.includes("emp.structure");
+  const canViewWarehouse =
+    employee.permissions.includes("wh.view") || employee.permissions.includes("wh.request");
+  const canViewInvoices = employee.permissions.includes("wh.invoices");
+  const canManageWarehouseItems = employee.permissions.includes("wh.items");
 
   return (
     <main style={{ maxWidth: 480, margin: "10vh auto", padding: "0 1rem" }}>
@@ -66,6 +70,26 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
           {canManageStructure && (
             <li>
               <Link href="/job-titles">{dict.jobTitlesNav}</Link>
+            </li>
+          )}
+          {canViewWarehouse && (
+            <li>
+              <Link href="/warehouse/items">{dict.warehouseItemsNav}</Link>
+            </li>
+          )}
+          {canViewInvoices && (
+            <li>
+              <Link href="/warehouse/invoices">{dict.warehouseInvoicesNav}</Link>
+            </li>
+          )}
+          {canViewWarehouse && (
+            <li>
+              <Link href="/warehouse/requests">{dict.warehouseRequestsNav}</Link>
+            </li>
+          )}
+          {canManageWarehouseItems && (
+            <li>
+              <Link href="/warehouse/categories">{dict.warehouseCategoriesNav}</Link>
             </li>
           )}
         </ul>
