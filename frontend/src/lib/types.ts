@@ -286,6 +286,7 @@ export type AttachmentDto = {
 export type BrandingDto = {
   preset: string;
   primaryColor: string;
+  logoAttachmentId: string | null;
   logoUrl: string | null;
   version: number;
 };
