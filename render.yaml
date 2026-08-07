@@ -13,10 +13,20 @@ services:
     plan: free
     healthCheckPath: /actuator/health
     envVars:
-      - key: DATABASE_URL
+      # Render's `connectionString` property is a plain postgres:// URI, not the
+      # jdbc:postgresql:// form Spring/Hikari requires — build it from parts instead.
+      - key: PGHOST
         fromDatabase:
           name: sijill-postgres
-          property: connectionString
+          property: host
+      - key: PGPORT
+        fromDatabase:
+          name: sijill-postgres
+          property: port
+      - key: PGDATABASE
+        fromDatabase:
+          name: sijill-postgres
+          property: database
       - key: DATABASE_USERNAME
         fromDatabase:
           name: sijill-postgres
