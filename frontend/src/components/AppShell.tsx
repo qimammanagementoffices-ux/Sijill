@@ -155,7 +155,9 @@ export default function AppShell({
       <aside className={`sidebar no-print${navOpen ? " open" : ""}`}>
         <div className="brand">
           <BrandSeal logoUrl={branding.logoUrl} className="brand-seal" />
-          <h1 className="disp">{branding.platformName || dict.appName}</h1>
+          <h1 className="disp">
+            {[branding.platformName || dict.appName, branding.schoolName].filter(Boolean).join(" — ")}
+          </h1>
           <p>{branding.subtitle || dict.appTagline}</p>
         </div>
         <nav className="nav">
