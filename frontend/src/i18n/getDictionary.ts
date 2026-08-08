@@ -1,5 +1,5 @@
 import "server-only";
-import type { Locale } from "./config";
+import { defaultLocale } from "./config";
 
 // One dictionary type shared by every locale file. Add keys here first,
 // then fill them in every locale — this is what keeps ar/en (and later
@@ -421,12 +421,24 @@ function setPath(target: Record<string, unknown>, path: string[], value: string)
   node[path[path.length - 1]!] = value;
 }
 
-export async function getDictionary(locale: Locale): Promise<Dictionary> {
+async function fetchFlatDictionary(locale: string): Promise<Record<string, string>> {
   const res = await fetch(`${API_URL}/i18n/dictionary?locale=${locale}`, {
     next: { revalidate: 60 },
   });
+  return res.ok ? res.json() : {};
+}
 
-  const flat: Record<string, string> = res.ok ? await res.json() : {};
+// Accepts any locale string, not just the built-in Locale union -- admin-
+// added languages (Phase 9) have codes the frontend never hardcodes.
+export async function getDictionary(locale: string): Promise<Dictionary> {
+  let flat = await fetchFlatDictionary(locale);
+  // An empty map means the locale has no rows (deleted, or a stale cookie
+  // from before it existed) -- every dict.section.key access downstream
+  // assumes a fully populated object, so falling back here avoids a blank/
+  // crashing page rather than surfacing the gap key-by-key.
+  if (Object.keys(flat).length === 0 && locale !== defaultLocale) {
+    flat = await fetchFlatDictionary(defaultLocale);
+  }
   const nested: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(flat)) {

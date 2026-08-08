@@ -1,8 +1,8 @@
 import { getDictionary } from "@/i18n/getDictionary";
-import { defaultLocale } from "@/i18n/config";
+import { getRequestLocale } from "@/i18n/getRequestLocale";
 import InvoiceList from "@/components/InvoiceList";
 
 export default async function MaintenanceInvoicesPage() {
-  const dict = await getDictionary(defaultLocale);
+  const dict = await getDictionary(await getRequestLocale());
   return <InvoiceList dict={dict.warehouseInvoices} commonDict={dict.common} basePath="/maintenance/invoices" />;
 }

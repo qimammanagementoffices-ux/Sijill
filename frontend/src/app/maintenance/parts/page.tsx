@@ -1,8 +1,8 @@
 import { getDictionary } from "@/i18n/getDictionary";
-import { defaultLocale } from "@/i18n/config";
+import { getRequestLocale } from "@/i18n/getRequestLocale";
 import ItemDirectory from "@/components/ItemDirectory";
 
 export default async function MaintenancePartsPage() {
-  const dict = await getDictionary(defaultLocale);
+  const dict = await getDictionary(await getRequestLocale());
   return <ItemDirectory dict={dict.warehouseItems} commonDict={dict.common} basePath="/maintenance/parts" />;
 }

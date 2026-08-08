@@ -1,8 +1,8 @@
 import { getDictionary } from "@/i18n/getDictionary";
-import { defaultLocale } from "@/i18n/config";
+import { getRequestLocale } from "@/i18n/getRequestLocale";
 import RequestDetailView from "./RequestDetailView";
 
 export default async function RequestDetailPage({ params }: { params: { id: string } }) {
-  const dict = await getDictionary(defaultLocale);
+  const dict = await getDictionary(await getRequestLocale());
   return <RequestDetailView id={params.id} dict={dict.warehouseRequests} />;
 }

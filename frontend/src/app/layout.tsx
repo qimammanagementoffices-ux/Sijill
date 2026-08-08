@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { defaultLocale, localeDirection } from "@/i18n/config";
 import { getDictionary } from "@/i18n/getDictionary";
+import { getRequestLocale } from "@/i18n/getRequestLocale";
+import { getAvailableLocales } from "@/i18n/locales";
 import MaintenanceGate from "@/components/MaintenanceGate";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 import type { MaintenanceDto } from "@/lib/types";
 import "./globals.css";
 
@@ -34,20 +37,20 @@ async function getMaintenanceStatus(): Promise<MaintenanceDto> {
 // backend (this cascades to every route below this layout).
 export const dynamic = "force-dynamic";
 
-// Locale is fixed to the default for now — a locale switcher/route segment
-// is a Phase 6 i18n item, not Phase 1. Direction must still be correct
-// from day one since every layout decision downstream assumes it.
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const dir = localeDirection[defaultLocale];
-  const [branding, maintenance, dict] = await Promise.all([
+  const [branding, maintenance, locale, availableLocales] = await Promise.all([
     getBranding(),
     getMaintenanceStatus(),
-    getDictionary(defaultLocale),
+    getRequestLocale(),
+    getAvailableLocales(),
   ]);
+  const dict = await getDictionary(locale);
+  const dir = availableLocales.find((l) => l.code === locale)?.direction ?? localeDirection[defaultLocale];
   return (
-    <html lang={defaultLocale} dir={dir} style={{ ["--brand-primary" as string]: branding.primaryColor }}>
+    <html lang={locale} dir={dir} style={{ ["--brand-primary" as string]: branding.primaryColor }}>
       <body>
         <MaintenanceGate status={maintenance} dict={dict.siteMaintenancePage}>
+          <LocaleSwitcher locales={availableLocales} current={locale} />
           {children}
         </MaintenanceGate>
       </body>

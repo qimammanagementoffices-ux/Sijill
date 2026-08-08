@@ -1,8 +1,8 @@
 import { getDictionary } from "@/i18n/getDictionary";
-import { defaultLocale } from "@/i18n/config";
+import { getRequestLocale } from "@/i18n/getRequestLocale";
 import EmployeeEditView from "./EmployeeEditView";
 
 export default async function EmployeeDetailPage({ params }: { params: { id: string } }) {
-  const dict = await getDictionary(defaultLocale);
+  const dict = await getDictionary(await getRequestLocale());
   return <EmployeeEditView id={params.id} dict={dict.employees} errorsDict={dict.errors} />;
 }

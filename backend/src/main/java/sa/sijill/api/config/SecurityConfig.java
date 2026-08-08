@@ -87,6 +87,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/onboarding/first-admin",
                                 "/api/v1/i18n/dictionary",
+                                "/api/v1/i18n/locales",
                                 "/api/v1/public/assets/**")
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/branding", "/api/v1/maintenance")

@@ -33,6 +33,7 @@ public class MaintenanceModeFilter extends OncePerRequestFilter {
             "/api/v1/auth/login",
             "/api/v1/auth/me",
             "/api/v1/i18n/dictionary",
+            "/api/v1/i18n/locales",
             "/api/v1/branding",
             "/api/v1/maintenance");
 
