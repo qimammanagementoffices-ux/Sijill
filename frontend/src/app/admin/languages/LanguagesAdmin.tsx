@@ -88,7 +88,9 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
     <main style={{ maxWidth: 800, margin: "5vh auto", padding: "0 1rem" }}>
       <h1>{dict.title}</h1>
       {error && <p role="alert">{error}</p>}
-      <p>{dict.builtInNote}</p>
+      <p>
+        {dict.builtInNote} <Link href="/admin/translations">{dict.editBuiltIn}</Link>
+      </p>
 
       <table>
         <thead>
@@ -105,9 +107,7 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
               <td>{c}</td>
               <td>—</td>
               <td>{c === "ar" ? dict.directionRtl : dict.directionLtr}</td>
-              <td>
-                <Link href="/admin/translations">{dict.editBuiltIn}</Link>
-              </td>
+              <td></td>
             </tr>
           ))}
           {languages.map((l) => (
