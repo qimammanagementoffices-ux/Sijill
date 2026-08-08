@@ -31,16 +31,19 @@ export default function MaintenanceRequestList({
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [page, setPage] = useState<PagedResponse<MaintenanceRequestListItem> | null>(null);
+  const [filtering, setFiltering] = useState(false);
 
   function load(statusFilter: string) {
     const query = statusFilter ? `?status=${statusFilter}` : "";
+    setFiltering(true);
     apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests${query}`)
       .then(setPage)
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
         }
-      });
+      })
+      .finally(() => setFiltering(false));
   }
 
   useEffect(() => {
@@ -118,6 +121,7 @@ export default function MaintenanceRequestList({
                 </option>
               ))}
             </select>
+            {filtering && <span className="spinner" />}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>

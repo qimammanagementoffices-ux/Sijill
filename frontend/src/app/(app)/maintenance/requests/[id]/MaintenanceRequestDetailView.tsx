@@ -156,6 +156,13 @@ export default function MaintenanceRequestDetailView({
           </div>
         )}
 
+        {request.status === "IN_PROGRESS" && !parts && (
+          <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+            <h3 style={{ marginTop: 0 }}>{dict.partsUsedLabel}</h3>
+            <span className="spinner" />
+          </div>
+        )}
+
         {request.status === "IN_PROGRESS" && parts && (
           <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
             <h3 style={{ marginTop: 0 }}>{dict.partsUsedLabel}</h3>
