@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { CategoryDto, FaultTypeDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 type Edited = { nameAr: string; nameEn: string; suggestedCategoryId: string };
 
@@ -82,42 +83,107 @@ export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"
     }
   }
 
-  if (!faultTypes || !categories) return null;
+  if (!faultTypes || !categories) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
-      {error && <p role="alert">{error}</p>}
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.title}</h1>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
 
-      <ul>
-        {faultTypes.map((faultType) => {
-          const edited = editing[faultType.id] ?? {
-            nameAr: faultType.nameAr,
-            nameEn: faultType.nameEn,
-            suggestedCategoryId: faultType.suggestedCategory?.id ?? "",
-          };
-          return (
-            <li key={faultType.id}>
-              <input
-                type="text"
-                value={edited.nameAr}
-                onChange={(e) =>
-                  setEditing({ ...editing, [faultType.id]: { ...edited, nameAr: e.target.value } })
-                }
-              />
-              <input
-                type="text"
-                value={edited.nameEn}
-                onChange={(e) =>
-                  setEditing({ ...editing, [faultType.id]: { ...edited, nameEn: e.target.value } })
-                }
-              />
-              <select
-                value={edited.suggestedCategoryId}
-                onChange={(e) =>
-                  setEditing({ ...editing, [faultType.id]: { ...edited, suggestedCategoryId: e.target.value } })
-                }
-              >
+      <div className="panel">
+        {faultTypes.length === 0 ? (
+          <div className="empty">
+            <b>{dict.title}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.nameArLabel}</th>
+                  <th>{dict.nameEnLabel}</th>
+                  <th>{dict.suggestedCategoryLabel}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {faultTypes.map((faultType) => {
+                  const edited = editing[faultType.id] ?? {
+                    nameAr: faultType.nameAr,
+                    nameEn: faultType.nameEn,
+                    suggestedCategoryId: faultType.suggestedCategory?.id ?? "",
+                  };
+                  return (
+                    <tr key={faultType.id}>
+                      <td>
+                        <input
+                          type="text"
+                          value={edited.nameAr}
+                          onChange={(e) =>
+                            setEditing({ ...editing, [faultType.id]: { ...edited, nameAr: e.target.value } })
+                          }
+                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={edited.nameEn}
+                          onChange={(e) =>
+                            setEditing({ ...editing, [faultType.id]: { ...edited, nameEn: e.target.value } })
+                          }
+                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          value={edited.suggestedCategoryId}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              [faultType.id]: { ...edited, suggestedCategoryId: e.target.value },
+                            })
+                          }
+                        >
+                          <option value="">—</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.nameAr} / {c.nameEn}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(faultType)}>
+                          {dict.save}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+          <form onSubmit={handleCreate} className="form-grid">
+            <div className="field">
+              <label>{dict.nameArLabel}</label>
+              <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>{dict.nameEnLabel}</label>
+              <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
+            </div>
+            <div className="field span2">
+              <label>{dict.suggestedCategoryLabel}</label>
+              <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)}>
                 <option value="">—</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -125,36 +191,15 @@ export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"
                   </option>
                 ))}
               </select>
-              <button type="button" onClick={() => handleUpdate(faultType)}>
-                {dict.save}
+            </div>
+            <div className="field span2">
+              <button type="submit" className="btn btn-primary btn-sm">
+                {dict.addNew}
               </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <form onSubmit={handleCreate}>
-        <label>
-          {dict.nameArLabel}
-          <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
-        </label>
-        <label>
-          {dict.nameEnLabel}
-          <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
-        </label>
-        <label>
-          {dict.suggestedCategoryLabel}
-          <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)}>
-            <option value="">—</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nameAr} / {c.nameEn}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit">{dict.addNew}</button>
-      </form>
-    </main>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }

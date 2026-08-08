@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import SectionLoading from "@/components/SectionLoading";
 import type { RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -113,98 +114,167 @@ export default function RoomAdmin({
     );
   }
 
-  if (!rooms) return null;
+  if (!rooms) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <PrintReportHeader title={dict.title} dict={commonDict} />
-      {error && <p role="alert">{error}</p>}
+    <>
+      <div className="no-print">
+        <div className="eyebrow">{dict.title}</div>
+        <h1 className="section-title disp">{dict.title}</h1>
+      </div>
+      <div className="print-only">
+        <PrintReportHeader title={dict.title} dict={commonDict} />
+      </div>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
 
-      <p className="no-print">
-        <button type="button" onClick={handleExport}>
-          {commonDict.exportXlsx}
-        </button>
-        <button type="button" onClick={() => window.print()}>
-          {commonDict.print}
-        </button>
-      </p>
+      <div className="panel">
+        <div className="panel-head no-print" style={{ justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              {commonDict.exportXlsx}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              {commonDict.print}
+            </button>
+          </div>
+        </div>
 
-      <ul>
-        {rooms.map((room) => {
-          const edited = editing[room.id] ?? {
-            roomNumber: room.roomNumber,
-            nameAr: room.nameAr,
-            nameEn: room.nameEn,
-            building: room.building ?? "",
-            floor: room.floor ?? "",
-          };
-          return (
-            <li key={room.id}>
-              <input
-                type="text"
-                value={edited.roomNumber}
-                onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, roomNumber: e.target.value } })}
-              />
-              <input
-                type="text"
-                value={edited.nameAr}
-                onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameAr: e.target.value } })}
-              />
-              <input
-                type="text"
-                value={edited.nameEn}
-                onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameEn: e.target.value } })}
-              />
-              <input
-                type="text"
-                value={edited.building}
-                onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, building: e.target.value } })}
-              />
-              <input
-                type="text"
-                value={edited.floor}
-                onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, floor: e.target.value } })}
-              />
-              <button type="button" onClick={() => handleUpdate(room)}>
-                {dict.save}
+        {rooms.length === 0 ? (
+          <div className="empty">
+            <b>{dict.title}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.roomNumberLabel}</th>
+                  <th>{dict.nameArLabel}</th>
+                  <th>{dict.nameEnLabel}</th>
+                  <th>{dict.buildingLabel}</th>
+                  <th>{dict.floorLabel}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rooms.map((room) => {
+                  const edited = editing[room.id] ?? {
+                    roomNumber: room.roomNumber,
+                    nameAr: room.nameAr,
+                    nameEn: room.nameEn,
+                    building: room.building ?? "",
+                    floor: room.floor ?? "",
+                  };
+                  return (
+                    <>
+                      <tr key={room.id}>
+                        <td>
+                          <input
+                            type="text"
+                            value={edited.roomNumber}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, roomNumber: e.target.value } })}
+                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 90 }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={edited.nameAr}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameAr: e.target.value } })}
+                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={edited.nameEn}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameEn: e.target.value } })}
+                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={edited.building}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, building: e.target.value } })}
+                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 90 }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={edited.floor}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, floor: e.target.value } })}
+                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 70 }}
+                          />
+                        </td>
+                        <td style={{ display: "flex", gap: 6 }}>
+                          <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(room)}>
+                            {dict.save}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setPhotosOpenFor(photosOpenFor === room.id ? null : room.id)}
+                          >
+                            {attachmentsDict.title}
+                          </button>
+                        </td>
+                      </tr>
+                      {photosOpenFor === room.id && (
+                        <tr>
+                          <td colSpan={6} style={{ background: "var(--paper-dim)" }}>
+                            <AttachmentUploader
+                              ownerType="ROOM"
+                              ownerId={room.id}
+                              dict={attachmentsDict}
+                              canManage={canManage}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="panel-body no-print" style={{ borderTop: "1px solid var(--line-soft)" }}>
+          <form onSubmit={handleCreate} className="form-grid">
+            <div className="field">
+              <label>{dict.roomNumberLabel}</label>
+              <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>{dict.nameArLabel}</label>
+              <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>{dict.nameEnLabel}</label>
+              <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>{dict.buildingLabel}</label>
+              <input type="text" value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>{dict.floorLabel}</label>
+              <input type="text" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} />
+            </div>
+            <div className="field span2">
+              <button type="submit" className="btn btn-primary btn-sm">
+                {dict.addNew}
               </button>
-              <button
-                type="button"
-                onClick={() => setPhotosOpenFor(photosOpenFor === room.id ? null : room.id)}
-              >
-                {attachmentsDict.title}
-              </button>
-              {photosOpenFor === room.id && (
-                <AttachmentUploader ownerType="ROOM" ownerId={room.id} dict={attachmentsDict} canManage={canManage} />
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
-      <form className="no-print" onSubmit={handleCreate}>
-        <label>
-          {dict.roomNumberLabel}
-          <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} required />
-        </label>
-        <label>
-          {dict.nameArLabel}
-          <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
-        </label>
-        <label>
-          {dict.nameEnLabel}
-          <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
-        </label>
-        <label>
-          {dict.buildingLabel}
-          <input type="text" value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} />
-        </label>
-        <label>
-          {dict.floorLabel}
-          <input type="text" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} />
-        </label>
-        <button type="submit">{dict.addNew}</button>
-      </form>
-    </main>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }

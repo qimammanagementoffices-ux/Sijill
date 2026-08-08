@@ -7,10 +7,19 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import SectionLoading from "@/components/SectionLoading";
 import type { MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUSES = ["PENDING", "APPROVED", "POSTPONED", "REJECTED", "IN_PROGRESS", "CLOSED"] as const;
+const STATUS_STAMP_CLASS: Record<string, string> = {
+  PENDING: "s-pending",
+  APPROVED: "s-approved",
+  POSTPONED: "s-postponed",
+  REJECTED: "s-rejected",
+  IN_PROGRESS: "s-progress",
+  CLOSED: "s-closed",
+};
 
 export default function MaintenanceRequestList({
   dict,
@@ -80,69 +89,93 @@ export default function MaintenanceRequestList({
     );
   }
 
-  if (!page) return null;
+  if (!page) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <PrintReportHeader title={dict.title} dict={commonDict} />
+    <>
+      <div className="no-print">
+        <div className="eyebrow">{dict.title}</div>
+        <h1 className="section-title disp">{dict.title}</h1>
+      </div>
+      <div className="print-only">
+        <PrintReportHeader title={dict.title} dict={commonDict} />
+      </div>
 
-      <p className="no-print">
-        <button type="button" onClick={handleExport}>
-          {commonDict.exportXlsx}
-        </button>
-        <button type="button" onClick={() => window.print()}>
-          {commonDict.print}
-        </button>
-      </p>
+      <div className="panel">
+        <div className="panel-head no-print">
+          <div className="filter-row">
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                load(e.target.value);
+              }}
+            >
+              <option value="">{dict.statusFilterAll}</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {statusLabel(s)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              {commonDict.exportXlsx}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              {commonDict.print}
+            </button>
+            <Link href="/maintenance/requests/new" className="btn btn-primary btn-sm">
+              {dict.addNew}
+            </Link>
+          </div>
+        </div>
 
-      <select
-        className="no-print"
-        value={status}
-        onChange={(e) => {
-          setStatus(e.target.value);
-          load(e.target.value);
-        }}
-      >
-        <option value="">{dict.statusFilterAll}</option>
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {statusLabel(s)}
-          </option>
-        ))}
-      </select>
-
-      <p className="no-print">
-        <Link href="/maintenance/requests/new">{dict.addNew}</Link>
-      </p>
-
-      {page.content.length === 0 ? (
-        <p>{dict.noResults}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.columnRequester}</th>
-              <th>{dict.columnFaultType}</th>
-              <th>{dict.columnPriority}</th>
-              <th>{dict.columnStatus}</th>
-              <th>{dict.columnSuggestedStart}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.content.map((request) => (
-              <tr key={request.id}>
-                <td>
-                  <Link href={`/maintenance/requests/${request.id}`}>{request.requesterName}</Link>
-                </td>
-                <td>{request.faultType ? request.faultType.ar : ""}</td>
-                <td>{priorityLabel(request.priority)}</td>
-                <td>{statusLabel(request.status)}</td>
-                <td>{request.suggestedStartDate}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+        {page.content.length === 0 ? (
+          <div className="empty">
+            <b>{dict.noResults}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.columnRequester}</th>
+                  <th>{dict.columnFaultType}</th>
+                  <th>{dict.columnPriority}</th>
+                  <th>{dict.columnStatus}</th>
+                  <th>{dict.columnSuggestedStart}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {page.content.map((request) => (
+                  <tr
+                    key={request.id}
+                    className="clickable"
+                    onClick={() => router.push(`/maintenance/requests/${request.id}`)}
+                  >
+                    <td>
+                      <Link href={`/maintenance/requests/${request.id}`}>{request.requesterName}</Link>
+                    </td>
+                    <td>{request.faultType ? request.faultType.ar : ""}</td>
+                    <td>
+                      <span className="chip chip-sm">{priorityLabel(request.priority)}</span>
+                    </td>
+                    <td>
+                      <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
+                        <span className="dot" />
+                        {statusLabel(request.status)}
+                      </span>
+                    </td>
+                    <td className="mono">{request.suggestedStartDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

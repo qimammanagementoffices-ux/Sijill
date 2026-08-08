@@ -7,8 +7,15 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import SectionLoading from "@/components/SectionLoading";
 import type { AssetListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+
+const STATUS_CHIP_CLASS: Record<string, string> = {
+  ACTIVE: "s-approved",
+  MAINTENANCE: "s-pending",
+  RETIRED: "s-postponed",
+};
 
 export default function AssetDirectory({
   dict,
@@ -74,75 +81,105 @@ export default function AssetDirectory({
     );
   }
 
-  if (!page) return null;
+  if (!page) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <PrintReportHeader title={dict.title} dict={commonDict} />
+    <>
+      <div className="no-print">
+        <div className="eyebrow">{dict.title}</div>
+        <h1 className="section-title disp">{dict.title}</h1>
+      </div>
+      <div className="print-only">
+        <PrintReportHeader title={dict.title} dict={commonDict} />
+      </div>
 
-      <p className="no-print">
-        <button type="button" onClick={handleExport}>
-          {commonDict.exportXlsx}
-        </button>
-        <button type="button" onClick={() => window.print()}>
-          {commonDict.print}
-        </button>
-      </p>
-
-      <form className="no-print" onSubmit={handleSearch}>
-        <input type="text" value={q} onChange={(e) => setQ(e.target.value)} />
-        <button type="submit">{dict.title}</button>
-      </form>
-
-      {canManage && (
-        <p className="no-print">
-          <Link href="/assets/new">{dict.addNew}</Link>
-        </p>
-      )}
-      <p className="no-print">
-        <Link href="/assets/custody-report">{dict.custodyReportTitle}</Link>
-      </p>
-
-      {page.content.length === 0 ? (
-        <p>{dict.noResults}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.columnAssetNumber}</th>
-              <th>{dict.columnName}</th>
-              <th>{dict.columnCategory}</th>
-              <th>{dict.columnRoom}</th>
-              <th>{dict.columnCustodian}</th>
-              <th>{dict.columnStatus}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.content.map((asset) => (
-              <tr key={asset.id}>
-                <td>
-                  <Link href={`/assets/${asset.id}`}>{asset.assetNumber}</Link>
-                </td>
-                <td>{asset.nameAr}</td>
-                <td>{asset.category ? asset.category.ar : ""}</td>
-                <td>{asset.room ? asset.room.ar : ""}</td>
-                <td>{asset.custodianName ?? ""}</td>
-                <td>{statusLabel(asset.status)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {page.totalPages > 1 && (
-        <p className="no-print">
-          {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
-            <button key={i} type="button" onClick={() => load(i, q)} disabled={i === page.page}>
-              {i + 1}
+      <div className="panel">
+        <div className="panel-head no-print">
+          <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 260 }}
+            />
+            <button type="submit" className="btn btn-outline btn-sm">
+              {dict.title}
             </button>
-          ))}
-        </p>
-      )}
-    </main>
+          </form>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              {commonDict.exportXlsx}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              {commonDict.print}
+            </button>
+            <Link href="/assets/custody-report" className="btn btn-outline btn-sm">
+              {dict.custodyReportTitle}
+            </Link>
+            {canManage && (
+              <Link href="/assets/new" className="btn btn-primary btn-sm">
+                {dict.addNew}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {page.content.length === 0 ? (
+          <div className="empty">
+            <b>{dict.noResults}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.columnAssetNumber}</th>
+                  <th>{dict.columnName}</th>
+                  <th>{dict.columnCategory}</th>
+                  <th>{dict.columnRoom}</th>
+                  <th>{dict.columnCustodian}</th>
+                  <th>{dict.columnStatus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {page.content.map((asset) => (
+                  <tr key={asset.id} className="clickable" onClick={() => router.push(`/assets/${asset.id}`)}>
+                    <td className="mono">
+                      <Link href={`/assets/${asset.id}`}>{asset.assetNumber}</Link>
+                    </td>
+                    <td>{asset.nameAr}</td>
+                    <td>{asset.category ? asset.category.ar : ""}</td>
+                    <td>{asset.room ? asset.room.ar : ""}</td>
+                    <td>{asset.custodianName ?? ""}</td>
+                    <td>
+                      <span className={`chip ${STATUS_CHIP_CLASS[asset.status] ?? ""}`}>
+                        <span className="chip-dot" />
+                        {statusLabel(asset.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {page.totalPages > 1 && (
+          <div className="panel-note no-print" style={{ display: "flex", gap: 6, paddingTop: 14 }}>
+            {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
+              <button
+                key={i}
+                type="button"
+                className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
+                onClick={() => load(i, q)}
+                disabled={i === page.page}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
