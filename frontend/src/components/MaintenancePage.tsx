@@ -60,12 +60,9 @@ export default function MaintenancePage({
       <h1>{dict.title}</h1>
       <p>{message}</p>
       {left && (
-        <p>
-          {dict.reopenLabel}: {left.days}
-          {dict.reopenUnitDays} {left.hours}
-          {dict.reopenUnitHours} {left.minutes}
-          {dict.reopenUnitMinutes} {left.seconds}
-          {dict.reopenUnitSeconds}
+        <p className="maintenance-countdown">
+          {dict.reopenLabel}: {left.days} {dict.reopenUnitDays} {left.hours} {dict.reopenUnitHours}{" "}
+          {left.minutes} {dict.reopenUnitMinutes} {left.seconds} {dict.reopenUnitSeconds}
         </p>
       )}
     </main>

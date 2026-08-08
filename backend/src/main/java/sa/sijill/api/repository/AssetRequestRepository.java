@@ -21,4 +21,6 @@ public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID
             @Param("status") AssetRequestStatus status,
             @Param("requesterId") UUID requesterId,
             Pageable pageable);
+
+    long countByStatus(AssetRequestStatus status);
 }

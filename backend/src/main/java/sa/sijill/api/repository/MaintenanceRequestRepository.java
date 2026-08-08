@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import sa.sijill.api.domain.MaintenancePriority;
 import sa.sijill.api.domain.MaintenanceRequest;
 import sa.sijill.api.domain.MaintenanceRequestStatus;
 
@@ -21,4 +22,8 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
             @Param("status") MaintenanceRequestStatus status,
             @Param("requesterId") UUID requesterId,
             Pageable pageable);
+
+    long countByStatus(MaintenanceRequestStatus status);
+
+    long countByPriorityAndStatusNot(MaintenancePriority priority, MaintenanceRequestStatus status);
 }

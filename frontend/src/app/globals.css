@@ -206,6 +206,61 @@ body.lang-en .brand h1 {
   padding: 14px 14px 4px;
   letter-spacing: 1px;
 }
+.nav-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  color: #cbd3ea;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  text-align: inherit;
+  width: 100%;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.nav-group-head .ic {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  opacity: 0.85;
+}
+.nav-group-head:hover {
+  background: rgba(237, 231, 214, 0.08);
+  color: #fff;
+}
+.nav-group-head.active {
+  background: #ede7d6;
+  color: var(--ink);
+  font-weight: 700;
+}
+.nav-group-head.active .ic {
+  opacity: 1;
+}
+.nav-group-chevron {
+  margin-inline-start: auto;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+.nav-group-head.open .nav-group-chevron {
+  transform: rotate(180deg);
+}
+.nav-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 4px 0;
+}
+.nav-group-body .nav-item {
+  padding-inline-start: 40px;
+  font-size: 13px;
+}
 .sidebar-foot {
   padding: 14px 18px 20px;
   border-top: 1px solid rgba(237, 231, 214, 0.14);
@@ -530,6 +585,9 @@ tbody td {
   padding: 10px;
   border-bottom: 1px solid var(--line-soft);
   vertical-align: middle;
+}
+.table-center td {
+  text-align: center;
 }
 tbody tr:last-child td {
   border-bottom: none;
@@ -856,6 +914,12 @@ img[data-viewable] {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.perm-group-head .ic {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  color: var(--ink-soft);
 }
 .perm-list {
   padding: 8px 14px 12px;
@@ -1185,6 +1249,19 @@ body.lang-en .modal-head h3 {
   padding: 3px 8px;
   border-radius: 6px;
   color: var(--ink-soft);
+}
+
+.maintenance-countdown {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 ::-webkit-scrollbar {

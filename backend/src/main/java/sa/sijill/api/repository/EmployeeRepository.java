@@ -26,4 +26,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
                 or lower(e.employeeNumber) like lower(concat('%', :q, '%')))
             """)
     Page<Employee> search(@Param("q") String q, Pageable pageable);
+
+    long countByActiveTrue();
 }

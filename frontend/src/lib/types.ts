@@ -56,6 +56,7 @@ export type PagedResponse<T> = {
 };
 
 export type PermissionDto = { key: string; description: string };
+export type PermissionOverviewDto = { key: string; employeeCount: number };
 
 export type LocalizedEntityDto = { id: string; nameAr: string; nameEn: string; version: number };
 

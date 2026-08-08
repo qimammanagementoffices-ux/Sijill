@@ -10,6 +10,7 @@ import type { LocaleInfo } from "@/i18n/locales";
 import type { BrandingDto } from "@/lib/types";
 import LocaleSwitcher from "./LocaleSwitcher";
 import BrandSeal from "./BrandSeal";
+import { IconUsers, IconBox, IconWrench, IconBuilding, IconChevronDown } from "./NavIcons";
 
 type EmployeeSummary = {
   id: string;
@@ -41,6 +42,8 @@ export default function AppShell({
   const pathname = usePathname();
   const [employee, setEmployee] = useState<EmployeeSummary | null>(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [userToggledGroup, setUserToggledGroup] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -89,16 +92,35 @@ export default function AppShell({
   const canManageBackups = employee.permissions.includes("sys.backup");
   const canManageSiteMaintenance = employee.permissions.includes("sys.maintenance");
 
-  const navGroups: { eyebrow?: string; items: { href: string; label: string }[] }[] = [
-    { items: [{ href: "/dashboard", label: dict.dashboardNav }] },
+  const canManagePermissions = employee.permissions.includes("emp.manage");
+
+  // The four operational areas collapse into an accordion (icon + label,
+  // click to reveal their sub-pages) rather than always showing every link
+  // flat -- matches the reference site's sidebar. Dashboard and the admin
+  // settings group stay flat since they aren't "areas" in the same sense.
+  const collapsibleGroups: {
+    key: string;
+    icon: (props: { className?: string }) => React.ReactElement;
+    label: string;
+    items: { href: string; label: string }[];
+  }[] = [
     {
+      key: "emp",
+      icon: IconUsers,
+      label: dict.employeesGroupNav,
       items: [
         ...(canViewEmployees ? [{ href: "/employees", label: dict.employeesNav }] : []),
         ...(canManageStructure ? [{ href: "/departments", label: dict.departmentsNav }] : []),
         ...(canManageStructure ? [{ href: "/job-titles", label: dict.jobTitlesNav }] : []),
+        ...(canManagePermissions
+          ? [{ href: "/employees/permissions-overview", label: dict.permissionsOverviewNav }]
+          : []),
       ],
     },
     {
+      key: "wh",
+      icon: IconBox,
+      label: dict.warehouseGroupNav,
       items: [
         ...(canViewWarehouse ? [{ href: "/warehouse/items", label: dict.warehouseItemsNav }] : []),
         ...(canViewInvoices ? [{ href: "/warehouse/invoices", label: dict.warehouseInvoicesNav }] : []),
@@ -107,6 +129,9 @@ export default function AppShell({
       ],
     },
     {
+      key: "mt",
+      icon: IconWrench,
+      label: dict.maintenanceGroupNav,
       items: [
         ...(canViewWarehouse ? [{ href: "/maintenance/parts", label: dict.maintenancePartsNav }] : []),
         ...(canViewInvoices ? [{ href: "/maintenance/invoices", label: dict.maintenanceInvoicesNav }] : []),
@@ -118,6 +143,9 @@ export default function AppShell({
       ],
     },
     {
+      key: "as",
+      icon: IconBuilding,
+      label: dict.assetsGroupNav,
       items: [
         ...(canViewAssets ? [{ href: "/rooms", label: dict.roomsNav }] : []),
         ...(canViewAssets ? [{ href: "/assets", label: dict.assetsNav }] : []),
@@ -125,27 +153,30 @@ export default function AppShell({
         ...(canViewAssets ? [{ href: "/asset-requests", label: dict.assetRequestsNav }] : []),
       ],
     },
-    {
-      eyebrow: dict.adminEyebrow,
-      items: [
-        ...(canManageTranslations ? [{ href: "/admin/translations", label: dict.translationsNav }] : []),
-        ...(canManageTranslations ? [{ href: "/admin/languages", label: dict.languagesNav }] : []),
-        ...(canManageBranding ? [{ href: "/admin/branding", label: dict.brandingNav }] : []),
-        ...(canManageBackups ? [{ href: "/admin/backups", label: dict.backupsNav }] : []),
-        ...(canManageSiteMaintenance ? [{ href: "/admin/site-maintenance", label: dict.siteMaintenanceNav }] : []),
-      ],
-    },
   ].filter((g) => g.items.length > 0);
+
+  const adminItems = [
+    ...(canManageTranslations ? [{ href: "/admin/translations", label: dict.translationsNav }] : []),
+    ...(canManageTranslations ? [{ href: "/admin/languages", label: dict.languagesNav }] : []),
+    ...(canManageBranding ? [{ href: "/admin/branding", label: dict.brandingNav }] : []),
+    ...(canManageBackups ? [{ href: "/admin/backups", label: dict.backupsNav }] : []),
+    ...(canManageSiteMaintenance ? [{ href: "/admin/site-maintenance", label: dict.siteMaintenanceNav }] : []),
+  ];
 
   // Pick the single longest href that matches the current path (e.g. on
   // /assets/categories, prefer that exact nav entry over the broader
   // /assets one it would otherwise also match via startsWith) rather than
   // letting every ancestor route light up at once.
-  const activeHref = navGroups
-    .flatMap((g) => g.items)
-    .map((item) => item.href)
+  const allHrefs = [
+    "/dashboard",
+    ...collapsibleGroups.flatMap((g) => g.items.map((item) => item.href)),
+    ...adminItems.map((item) => item.href),
+  ];
+  const activeHref = allHrefs
     .filter((href) => pathname === href || pathname?.startsWith(href + "/"))
     .sort((a, b) => b.length - a.length)[0];
+
+  const activeGroupKey = collapsibleGroups.find((g) => g.items.some((item) => item.href === activeHref))?.key;
 
   const initial = employee.name.trim().charAt(0).toUpperCase() || "?";
 
@@ -161,10 +192,48 @@ export default function AppShell({
           <p>{branding.subtitle || dict.appTagline}</p>
         </div>
         <nav className="nav">
-          {navGroups.map((group, i) => (
-            <div key={i}>
-              {group.eyebrow && <div className="nav-label-eyebrow">{group.eyebrow}</div>}
-              {group.items.map((item) => (
+          <Link href="/dashboard" className={`nav-item${activeHref === "/dashboard" ? " active" : ""}`}>
+            {dict.dashboardNav}
+          </Link>
+
+          {collapsibleGroups.length > 0 && <div className="nav-label-eyebrow">{dict.mainSectionsEyebrow}</div>}
+          {collapsibleGroups.map((group) => {
+            const isOpen = userToggledGroup ? openGroup === group.key : activeGroupKey === group.key;
+            return (
+              <div key={group.key}>
+                <button
+                  type="button"
+                  className={`nav-group-head${isOpen ? " open" : ""}${activeGroupKey === group.key && !isOpen ? " active" : ""}`}
+                  onClick={() => {
+                    setUserToggledGroup(true);
+                    setOpenGroup((prev) => (prev === group.key ? null : group.key));
+                  }}
+                >
+                  <group.icon className="ic" />
+                  {group.label}
+                  <IconChevronDown className="nav-group-chevron" />
+                </button>
+                {isOpen && (
+                  <div className="nav-group-body">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`nav-item${item.href === activeHref ? " active" : ""}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {adminItems.length > 0 && (
+            <div>
+              <div className="nav-label-eyebrow">{dict.adminEyebrow}</div>
+              {adminItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -174,7 +243,7 @@ export default function AppShell({
                 </Link>
               ))}
             </div>
-          ))}
+          )}
         </nav>
         <div className="sidebar-foot">{employee.employeeNumber}</div>
       </aside>

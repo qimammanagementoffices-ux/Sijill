@@ -2,6 +2,15 @@
 
 import type { PermissionDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import { IconUsers, IconBox, IconWrench, IconBuilding, IconGear } from "@/components/NavIcons";
+
+const GROUP_ICON: Record<string, (props: { className?: string }) => JSX.Element> = {
+  emp: IconUsers,
+  wh: IconBox,
+  mt: IconWrench,
+  as: IconBuilding,
+  sys: IconGear,
+};
 
 // Groups the flat permission catalogue by its dot-prefix (emp./wh./mt./as./sys.)
 // for a readable checkbox grid, per master spec §4's permission key catalogue.
@@ -58,9 +67,13 @@ export default function PermissionGrid({
       {Array.from(groups.entries()).map(([prefix, permissions]) => {
         const pages = permissions.filter((p) => !p.key.includes(".act."));
         const actions = permissions.filter((p) => p.key.includes(".act."));
+        const Icon = GROUP_ICON[prefix];
         return (
           <div key={prefix} className="perm-group">
-            <div className="perm-group-head">{permissionDict[`group_${prefix}`] ?? prefix}</div>
+            <div className="perm-group-head">
+              {Icon && <Icon className="ic" />}
+              {permissionDict[`group_${prefix}`] ?? prefix}
+            </div>
             <div className="perm-list">
               {pages.length > 0 && (
                 <>

@@ -41,6 +41,11 @@ export type Dictionary = {
     appName: string;
     appTagline: string;
     dashboardNav: string;
+    mainSectionsEyebrow: string;
+    employeesGroupNav: string;
+    warehouseGroupNav: string;
+    maintenanceGroupNav: string;
+    assetsGroupNav: string;
     adminEyebrow: string;
     welcomeMessage: string;
     logout: string;
@@ -65,6 +70,26 @@ export type Dictionary = {
     backupsNav: string;
     siteMaintenanceNav: string;
     languagesNav: string;
+    permissionsOverviewNav: string;
+  };
+  dashboardStats: {
+    warehouseTitle: string;
+    warehouseSubtitle: string;
+    warehouseItemCount: string;
+    warehouseTotalQuantity: string;
+    warehouseLowStock: string;
+    warehousePendingRequests: string;
+    maintenanceTitle: string;
+    maintenanceSubtitle: string;
+    maintenanceOpen: string;
+    maintenanceInProgress: string;
+    maintenanceCompleted: string;
+    maintenanceUrgent: string;
+    assetsTitle: string;
+    assetsSubtitle: string;
+    assetsRooms: string;
+    assetsAssets: string;
+    assetsPendingRequests: string;
   };
   errors: {
     generic: string;
@@ -116,6 +141,10 @@ export type Dictionary = {
   // unlike every other dict section here. Singular "permission" to match
   // the translation key prefix ("permission.emp_view", ...).
   permission: Record<string, string>;
+  permissionsOverview: {
+    title: string;
+    nav: string;
+  };
   warehouseItems: {
     title: string;
     searchPlaceholder: string;

@@ -4,5 +4,5 @@ import DashboardView from "./DashboardView";
 
 export default async function DashboardPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <DashboardView dict={dict.dashboard} />;
+  return <DashboardView dict={dict.dashboard} statsDict={dict.dashboardStats} />;
 }

@@ -200,7 +200,7 @@ export default function BackupAdmin({
           </div>
         ) : (
           <div className="table-scroll">
-            <table>
+            <table className="table-center">
               <thead>
                 <tr>
                   <th>{dict.columnFilename}</th>
@@ -219,7 +219,7 @@ export default function BackupAdmin({
                       <span className="chip chip-sm">{triggeredByLabel(b.triggeredBy)}</span>
                     </td>
                     <td className="mono">{new Date(b.createdAt).toLocaleString()}</td>
-                    <td style={{ display: "flex", gap: 6 }}>
+                    <td style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                       <button type="button" className="btn btn-outline btn-sm" onClick={() => handleDownload(b)}>
                         {dict.download}
                       </button>

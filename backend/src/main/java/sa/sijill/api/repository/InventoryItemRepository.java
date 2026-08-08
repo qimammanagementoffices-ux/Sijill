@@ -27,4 +27,12 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
             @Param("q") String q,
             @Param("lowStockOnly") boolean lowStockOnly,
             Pageable pageable);
+
+    long countByDomain(Domain domain);
+
+    @Query("select coalesce(sum(i.quantity), 0) from InventoryItem i where i.domain = :domain")
+    long sumQuantityByDomain(@Param("domain") Domain domain);
+
+    @Query("select count(i) from InventoryItem i where i.domain = :domain and i.quantity <= i.minQuantity")
+    long countLowStockByDomain(@Param("domain") Domain domain);
 }

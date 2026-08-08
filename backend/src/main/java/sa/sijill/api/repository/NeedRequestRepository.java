@@ -19,4 +19,6 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
             """)
     Page<NeedRequest> search(
             @Param("status") NeedRequestStatus status, @Param("requesterId") UUID requesterId, Pageable pageable);
+
+    long countByStatus(NeedRequestStatus status);
 }
