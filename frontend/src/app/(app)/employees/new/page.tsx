@@ -3,6 +3,9 @@ import { getRequestLocale } from "@/i18n/getRequestLocale";
 import NewEmployeeView from "./NewEmployeeView";
 
 export default async function NewEmployeePage() {
-  const dict = await getDictionary(await getRequestLocale());
-  return <NewEmployeeView dict={dict.employees} errorsDict={dict.errors} permissionDict={dict.permission} />;
+  const locale = await getRequestLocale();
+  const dict = await getDictionary(locale);
+  return (
+    <NewEmployeeView dict={dict.employees} errorsDict={dict.errors} permissionDict={dict.permission} locale={locale} />
+  );
 }

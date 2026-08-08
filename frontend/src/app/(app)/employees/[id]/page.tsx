@@ -3,7 +3,8 @@ import { getRequestLocale } from "@/i18n/getRequestLocale";
 import EmployeeEditView from "./EmployeeEditView";
 
 export default async function EmployeeDetailPage({ params }: { params: { id: string } }) {
-  const dict = await getDictionary(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const dict = await getDictionary(locale);
   return (
     <EmployeeEditView
       id={params.id}
@@ -11,6 +12,7 @@ export default async function EmployeeDetailPage({ params }: { params: { id: str
       errorsDict={dict.errors}
       commonDict={dict.common}
       permissionDict={dict.permission}
+      locale={locale}
     />
   );
 }

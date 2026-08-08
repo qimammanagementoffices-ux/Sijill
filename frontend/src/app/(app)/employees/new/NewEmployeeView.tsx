@@ -13,10 +13,12 @@ export default function NewEmployeeView({
   dict,
   errorsDict,
   permissionDict,
+  locale,
 }: {
   dict: Dictionary["employees"];
   errorsDict: Dictionary["errors"];
   permissionDict: Dictionary["permission"];
+  locale: string;
 }) {
   const router = useRouter();
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
@@ -51,6 +53,7 @@ export default function NewEmployeeView({
         dict={dict}
         errorsDict={errorsDict}
         permissionDict={permissionDict}
+        locale={locale}
         mode="create"
         departments={departments}
         jobTitles={jobTitles}

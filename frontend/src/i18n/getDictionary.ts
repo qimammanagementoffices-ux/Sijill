@@ -89,6 +89,7 @@ export type Dictionary = {
     joinedDateLabel: string;
     jobTitleLabel: string;
     departmentsLabel: string;
+    departmentsHint: string;
     permissionsLabel: string;
     submitCreate: string;
     submitUpdate: string;

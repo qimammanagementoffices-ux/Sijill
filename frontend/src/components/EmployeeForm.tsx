@@ -14,6 +14,7 @@ type Props = {
   dict: Dictionary["employees"];
   errorsDict: Dictionary["errors"];
   permissionDict: Dictionary["permission"];
+  locale: string;
   mode: "create" | "edit";
   initial?: EmployeeDetail;
   departments: LocalizedEntityDto[];
@@ -27,6 +28,7 @@ export default function EmployeeForm({
   dict,
   errorsDict,
   permissionDict,
+  locale,
   mode,
   initial,
   departments,
@@ -35,6 +37,7 @@ export default function EmployeeForm({
   onSubmitted,
   onConflict,
 }: Props) {
+  const localizedName = (entity: LocalizedEntityDto) => (locale === "ar" ? entity.nameAr : entity.nameEn);
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [pin, setPin] = useState("");
@@ -176,7 +179,7 @@ export default function EmployeeForm({
                 <option value="">—</option>
                 {jobTitles.map((jt) => (
                   <option key={jt.id} value={jt.id}>
-                    {jt.nameAr} / {jt.nameEn}
+                    {localizedName(jt)}
                   </option>
                 ))}
               </select>
@@ -185,11 +188,14 @@ export default function EmployeeForm({
 
           <div className="field span2" style={{ marginTop: 18 }}>
             <label>{dict.departmentsLabel}</label>
+            <p className="panel-note" style={{ padding: 0, margin: "-4px 0 8px" }}>
+              {dict.departmentsHint}
+            </p>
             <div className="check-list">
               {departments.map((d) => (
                 <label key={d.id} className="check-row">
                   <input type="checkbox" checked={departmentIds.has(d.id)} onChange={() => toggleDepartment(d.id)} />
-                  {d.nameAr} / {d.nameEn}
+                  {localizedName(d)}
                 </label>
               ))}
             </div>
