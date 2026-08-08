@@ -6,8 +6,18 @@ import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { InventoryItemListItem, MaintenanceRequestDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 type PartDraft = { inventoryItemId: string; quantity: string };
+
+const STATUS_STAMP_CLASS: Record<string, string> = {
+  PENDING: "s-pending",
+  APPROVED: "s-approved",
+  POSTPONED: "s-postponed",
+  REJECTED: "s-rejected",
+  IN_PROGRESS: "s-progress",
+  CLOSED: "s-closed",
+};
 
 export default function MaintenanceRequestDetailView({
   id,
@@ -76,7 +86,7 @@ export default function MaintenanceRequestDetailView({
     load();
   }
 
-  if (!request) return null;
+  if (!request) return <SectionLoading />;
 
   const statusLabel = {
     PENDING: dict.statusPending,
@@ -95,114 +105,130 @@ export default function MaintenanceRequestDetailView({
   }[request.priority];
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{request.requesterName}</h1>
-      <p>{statusLabel}</p>
-      <p>
-        {dict.faultTypeLabel}: {request.faultType ? request.faultType.ar : "—"}
-      </p>
-      <p>
-        {dict.locationLabel}: {request.location ?? "—"}
-      </p>
-      <p>
-        {dict.priorityLabel}: {priorityLabel}
-      </p>
-      <p>{request.description}</p>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{request.requesterName}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+        <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
+          <span className="dot" />
+          {statusLabel}
+        </span>
+        <span className="chip chip-sm">{priorityLabel}</span>
+      </div>
 
-      {request.partsUsed.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.itemLabel}</th>
-              <th>{dict.quantityLabel}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {request.partsUsed.map((p) => (
-              <tr key={p.inventoryItemId}>
-                <td>{p.itemNameAr}</td>
-                <td>{p.quantity}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {request.status === "IN_PROGRESS" && parts && (
-        <div>
-          <h2>{dict.partsUsedLabel}</h2>
-          {partDrafts.map((draft, index) => (
-            <div key={index}>
-              <select
-                value={draft.inventoryItemId}
-                onChange={(e) => updatePartDraft(index, { inventoryItemId: e.target.value })}
-              >
-                <option value="">—</option>
-                {parts.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.code} — {item.nameAr}
-                  </option>
-                ))}
-              </select>
-              <label>
-                {dict.quantityLabel}
-                <input
-                  type="number"
-                  min={1}
-                  value={draft.quantity}
-                  onChange={(e) => updatePartDraft(index, { quantity: e.target.value })}
-                />
-              </label>
-              {partDrafts.length > 1 && (
-                <button type="button" onClick={() => removePartDraft(index)}>
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
-          <button type="button" onClick={addPartDraft}>
-            {dict.addPart}
-          </button>
+      <div className="panel">
+        <div className="panel-body">
+          <div className="form-grid full">
+            <p style={{ margin: 0 }}>
+              <strong>{dict.faultTypeLabel}:</strong> {request.faultType ? request.faultType.ar : "—"}
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>{dict.locationLabel}:</strong> {request.location ?? "—"}
+            </p>
+            <p style={{ margin: 0 }}>{request.description}</p>
+          </div>
         </div>
-      )}
 
-      {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (
-        <label>
-          {dict.reasonLabel}
-          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
-        </label>
-      )}
+        {request.partsUsed.length > 0 && (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.itemLabel}</th>
+                  <th>{dict.quantityLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {request.partsUsed.map((p) => (
+                  <tr key={p.inventoryItemId}>
+                    <td>{p.itemNameAr}</td>
+                    <td className="qty-num">{p.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      <p>
-        {(request.status === "PENDING" || request.status === "POSTPONED") &&
-          permissions.includes("mt.act.approve") && (
-            <button type="button" onClick={() => act("approve")}>
-              {dict.approve}
+        {request.status === "IN_PROGRESS" && parts && (
+          <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+            <h3 style={{ marginTop: 0 }}>{dict.partsUsedLabel}</h3>
+            {partDrafts.map((draft, index) => (
+              <div key={index} className="form-grid" style={{ marginBottom: 10, alignItems: "end" }}>
+                <div className="field">
+                  <select value={draft.inventoryItemId} onChange={(e) => updatePartDraft(index, { inventoryItemId: e.target.value })}>
+                    <option value="">—</option>
+                    {parts.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code} — {item.nameAr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label>{dict.quantityLabel}</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={draft.quantity}
+                      onChange={(e) => updatePartDraft(index, { quantity: e.target.value })}
+                    />
+                  </div>
+                  {partDrafts.length > 1 && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => removePartDraft(index)}>
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button type="button" className="btn btn-outline btn-sm" onClick={addPartDraft}>
+              {dict.addPart}
             </button>
-          )}
-        {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
-          permissions.includes("mt.act.reject") && (
-            <button type="button" onClick={() => act("reject")}>
-              {dict.reject}
-            </button>
-          )}
-        {(request.status === "PENDING" || request.status === "APPROVED") &&
-          permissions.includes("mt.act.postpone") && (
-            <button type="button" onClick={() => act("postpone")}>
-              {dict.postpone}
-            </button>
-          )}
-        {request.status === "APPROVED" && permissions.includes("mt.act.start") && (
-          <button type="button" onClick={() => act("start")}>
-            {dict.start}
-          </button>
+          </div>
         )}
-        {request.status === "IN_PROGRESS" && permissions.includes("mt.act.finish") && (
-          <button type="button" onClick={finish}>
-            {dict.finish}
-          </button>
+
+        {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (
+          <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+            <div className="field" style={{ maxWidth: 360 }}>
+              <label>{dict.reasonLabel}</label>
+              <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+          </div>
         )}
-      </p>
-    </main>
+
+        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {(request.status === "PENDING" || request.status === "POSTPONED") &&
+            permissions.includes("mt.act.approve") && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => act("approve")}>
+                {dict.approve}
+              </button>
+            )}
+          {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
+            permissions.includes("mt.act.reject") && (
+              <button type="button" className="btn btn-seal btn-sm" onClick={() => act("reject")}>
+                {dict.reject}
+              </button>
+            )}
+          {(request.status === "PENDING" || request.status === "APPROVED") &&
+            permissions.includes("mt.act.postpone") && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => act("postpone")}>
+                {dict.postpone}
+              </button>
+            )}
+          {request.status === "APPROVED" && permissions.includes("mt.act.start") && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => act("start")}>
+              {dict.start}
+            </button>
+          )}
+          {request.status === "IN_PROGRESS" && permissions.includes("mt.act.finish") && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={finish}>
+              {dict.finish}
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

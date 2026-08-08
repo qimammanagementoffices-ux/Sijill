@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { FaultTypeDto, MaintenanceRequestDetail, MaintenancePriority } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 const PRIORITIES: MaintenancePriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
@@ -65,47 +66,59 @@ export default function NewMaintenanceRequestView({
     }
   }
 
-  if (!faultTypes) return null;
+  if (!faultTypes) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.addNew}</h1>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.addNew}</h1>
       <form onSubmit={handleSubmit}>
-        <label>
-          {dict.faultTypeLabel}
-          <select value={faultTypeId} onChange={(e) => setFaultTypeId(e.target.value)}>
-            <option value="">—</option>
-            {faultTypes.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nameAr} / {f.nameEn}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {dict.locationLabel}
-          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
-        </label>
-        <label>
-          {dict.priorityLabel}
-          <select value={priority} onChange={(e) => setPriority(e.target.value as MaintenancePriority)}>
-            {PRIORITIES.map((p) => (
-              <option key={p} value={p}>
-                {priorityLabel(p)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {dict.descriptionLabel}
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-        </label>
+        <div className="panel">
+          <div className="panel-body">
+            <div className="form-grid">
+              <div className="field">
+                <label>{dict.faultTypeLabel}</label>
+                <select value={faultTypeId} onChange={(e) => setFaultTypeId(e.target.value)}>
+                  <option value="">—</option>
+                  {faultTypes.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nameAr} / {f.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{dict.locationLabel}</label>
+                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>{dict.priorityLabel}</label>
+                <select value={priority} onChange={(e) => setPriority(e.target.value as MaintenancePriority)}>
+                  {PRIORITIES.map((p) => (
+                    <option key={p} value={p}>
+                      {priorityLabel(p)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field span2">
+                <label>{dict.descriptionLabel}</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </div>
 
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
+        {error && (
+          <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting && <span className="spinner" />}
           {dict.submit}
         </button>
       </form>
-    </main>
+    </>
   );
 }
