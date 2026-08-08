@@ -30,7 +30,6 @@ app:
   jwt:
     signing-secret: ${JWT_SIGNING_SECRET}
     access-token-expiry-minutes: ${JWT_ACCESS_TOKEN_EXPIRY_MINUTES:60}
-    refresh-token-expiry-days: ${JWT_REFRESH_TOKEN_EXPIRY_DAYS:14}
   object-storage:
     endpoint: ${OBJECT_STORAGE_ENDPOINT}
     region: ${OBJECT_STORAGE_REGION:us-east-1}

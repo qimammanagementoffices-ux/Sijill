@@ -242,8 +242,20 @@ export type Dictionary = {
     columnCreatedAt: string;
     triggeredScheduled: string;
     triggeredManual: string;
+    triggeredPreRestore: string;
     download: string;
     noBackups: string;
+    restore: string;
+    restoreConfirmTitle: string;
+    restoreConfirmWarning: string;
+    pinLabel: string;
+    restoreConfirm: string;
+    restoreCancel: string;
+    restoring: string;
+    restoreSuccess: string;
+    restoreFailed: string;
+    restoreRateLimited: string;
+    restoreInvalidPin: string;
   };
   rooms: {
     title: string;

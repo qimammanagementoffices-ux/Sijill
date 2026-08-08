@@ -11,17 +11,27 @@ type AuthResponse = {
   employee: { id: string; employeeNumber: string; name: string; phone: string; permissions: string[] };
 };
 
+// Same key BackupAdmin.tsx writes to before forcing a post-restore logout.
+const RESTORE_FLASH_KEY = "sijill.restoredFlash";
+
 export default function LoginForm({ dict }: { dict: Dictionary["login"] }) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
 
   // Already holding a valid-looking session? Skip straight past the form.
   useEffect(() => {
     if (getToken()) {
       router.replace("/dashboard");
+      return;
+    }
+    const message = window.sessionStorage.getItem(RESTORE_FLASH_KEY);
+    if (message) {
+      setFlash(message);
+      window.sessionStorage.removeItem(RESTORE_FLASH_KEY);
     }
   }, [router]);
 
@@ -45,6 +55,7 @@ export default function LoginForm({ dict }: { dict: Dictionary["login"] }) {
 
   return (
     <form onSubmit={handleSubmit}>
+      {flash && <p role="status">{flash}</p>}
       <label>
         {dict.phoneLabel}
         <input

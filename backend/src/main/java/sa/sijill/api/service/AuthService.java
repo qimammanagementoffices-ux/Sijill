@@ -56,4 +56,12 @@ public class AuthService {
 
         return jwtService.issueAccessToken(employee.get().getId());
     }
+
+    // For re-confirming a sensitive action against the already-authenticated
+    // caller's own PIN (e.g. backup restore) — not a login, so no phone
+    // lookup or rate limiting here; callers gate rate limiting themselves
+    // since the limiter key/semantics differ per action.
+    public boolean verifyPin(Employee actor, String pin) {
+        return pin != null && passwordEncoder.matches(pin, actor.getPinHash());
+    }
 }

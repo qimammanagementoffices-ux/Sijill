@@ -4,7 +4,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -75,6 +77,39 @@ public class GlobalExceptionHandler {
                         Map.of(
                                 "code", "UNAUTHENTICATED",
                                 "message", "Authentication required",
+                                "fields", Map.of(),
+                                "traceId", traceId)));
+    }
+
+    // A concurrent writer committed first and bumped the row's @Version —
+    // without this handler the exception falls through to the catch-all
+    // below and surfaces as a raw 500. Mapped to 409 so callers can retry.
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        String traceId = UUID.randomUUID().toString();
+        return ResponseEntity.status(409)
+                .body(Map.of(
+                        "error",
+                        Map.of(
+                                "code", "CONFLICT",
+                                "message", "This record was updated concurrently, please retry",
+                                "fields", Map.of(),
+                                "traceId", traceId)));
+    }
+
+    // Covers check-then-insert races against a unique DB constraint (e.g.
+    // two concurrent requests creating the same asset number) — same
+    // reasoning as the optimistic-lock handler above: a clean 409 instead
+    // of a raw 500 for what is, from the caller's perspective, a conflict.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String traceId = UUID.randomUUID().toString();
+        return ResponseEntity.status(409)
+                .body(Map.of(
+                        "error",
+                        Map.of(
+                                "code", "CONFLICT",
+                                "message", "This action conflicts with existing data",
                                 "fields", Map.of(),
                                 "traceId", traceId)));
     }

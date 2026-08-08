@@ -2,6 +2,7 @@ package sa.sijill.api.service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.domain.BackupSnapshot;
 import sa.sijill.api.domain.BackupTrigger;
+import sa.sijill.api.domain.Employee;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.BackupSnapshotRepository;
 
@@ -24,6 +26,7 @@ public class BackupService {
 
     private final BackupSnapshotRepository backupSnapshotRepository;
     private final StorageService storageService;
+    private final RestoreBookkeeper restoreBookkeeper;
     private final String pgHost;
     private final String pgPort;
     private final String pgDatabase;
@@ -34,6 +37,7 @@ public class BackupService {
     public BackupService(
             BackupSnapshotRepository backupSnapshotRepository,
             StorageService storageService,
+            RestoreBookkeeper restoreBookkeeper,
             @Value("${PGHOST}") String pgHost,
             @Value("${PGPORT}") String pgPort,
             @Value("${PGDATABASE}") String pgDatabase,
@@ -42,6 +46,7 @@ public class BackupService {
             @Value("${app.backup.retention-days:30}") int retentionDays) {
         this.backupSnapshotRepository = backupSnapshotRepository;
         this.storageService = storageService;
+        this.restoreBookkeeper = restoreBookkeeper;
         this.pgHost = pgHost;
         this.pgPort = pgPort;
         this.pgDatabase = pgDatabase;
@@ -60,6 +65,51 @@ public class BackupService {
 
     @Transactional
     public BackupSnapshot runBackup(BackupTrigger triggeredBy) {
+        BackupSnapshot saved = captureSnapshot(triggeredBy);
+        pruneOldSnapshots();
+        return saved;
+    }
+
+    // Restore is destructive, so it always takes a fresh safety snapshot of
+    // the current (about-to-be-overwritten) state first, tagged PRE_RESTORE,
+    // before pulling the target dump down and running pg_restore against the
+    // live database. The pg_restore subprocess deliberately runs outside any
+    // single @Transactional scope — it opens its own libpq connection, not
+    // one from the JPA/Hikari pool, and --clean will drop/recreate tables
+    // (including employee) out from under any open JPA transaction. Only the
+    // bookkeeping (marking the snapshot restored, the audit entry) needs a
+    // transaction, and it's committed after the subprocess has already
+    // succeeded.
+    public void restore(UUID snapshotId, Employee actor) {
+        BackupSnapshot target = get(snapshotId);
+        captureSnapshot(BackupTrigger.PRE_RESTORE);
+
+        Path tempFile;
+        try {
+            tempFile = Files.createTempFile("sijill-restore-", ".dump");
+        } catch (Exception e) {
+            throw ApiException.internal("Failed to create temp file for restore");
+        }
+
+        try {
+            try (var stream = storageService.downloadPrivateFile(target.getStorageKey())) {
+                Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            runPgRestore(tempFile);
+            restoreBookkeeper.markRestored(snapshotId, actor);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw ApiException.internal("Restore failed: " + e.getMessage());
+        } finally {
+            try {
+                Files.deleteIfExists(tempFile);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private BackupSnapshot captureSnapshot(BackupTrigger triggeredBy) {
         Path tempFile;
         try {
             tempFile = Files.createTempFile("sijill-backup-", ".dump");
@@ -78,10 +128,7 @@ public class BackupService {
             snapshot.setFilename("sijill-" + Instant.now().toEpochMilli() + ".dump");
             snapshot.setSizeBytes(sizeBytes);
             snapshot.setTriggeredBy(triggeredBy);
-            BackupSnapshot saved = backupSnapshotRepository.save(snapshot);
-
-            pruneOldSnapshots();
-            return saved;
+            return backupSnapshotRepository.save(snapshot);
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
@@ -110,6 +157,30 @@ public class BackupService {
         int exitCode = process.waitFor();
         if (exitCode != 0) {
             throw ApiException.internal("pg_dump exited with code " + exitCode + ": " + output);
+        }
+    }
+
+    private void runPgRestore(Path inputFile) throws Exception {
+        // -Fc dumps aren't restorable into a non-empty database without
+        // --clean --if-exists (they don't wipe existing objects first) —
+        // this drops and recreates every table, including employee, so the
+        // caller's own session/PIN may no longer be valid afterward.
+        ProcessBuilder builder = new ProcessBuilder(
+                "pg_restore",
+                "-h", pgHost,
+                "-p", pgPort,
+                "-U", pgUsername,
+                "--clean",
+                "--if-exists",
+                "-d", pgDatabase,
+                inputFile.toAbsolutePath().toString());
+        builder.environment().put("PGPASSWORD", pgPassword);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes());
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw ApiException.internal("pg_restore exited with code " + exitCode + ": " + output);
         }
     }
 

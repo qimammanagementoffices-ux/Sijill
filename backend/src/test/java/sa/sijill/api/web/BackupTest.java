@@ -79,4 +79,53 @@ class BackupTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
     }
+
+    // Restore (Phase 7): these cover the gating (permission/PIN/rate-limit)
+    // added around BackupService.restore, not a real pg_dump/pg_restore
+    // round-trip — same CI-binary-availability caveat noted at the top of
+    // this file applies to restore's own subprocess call.
+
+    @Test
+    void restoreRequiresSysBackupPermission() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900104");
+        String noPermToken = createEmployeeAndLogin(adminToken, "0599900105", Set.of());
+
+        mockMvc.perform(post("/api/v1/backups/" + UUID.randomUUID() + "/restore")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"1234\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void restoreRequiresCorrectPin() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900106");
+
+        mockMvc.perform(post("/api/v1/backups/" + UUID.randomUUID() + "/restore")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"9999\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void restoreIsRateLimited() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900107");
+
+        // RestoreRateLimiter allows 3 attempts/60s per employee; the wrong
+        // PIN fails each of those with 409, the 4th trips the limiter (429).
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(post("/api/v1/backups/" + UUID.randomUUID() + "/restore")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pin\":\"9999\"}"))
+                    .andExpect(status().isConflict());
+        }
+
+        mockMvc.perform(post("/api/v1/backups/" + UUID.randomUUID() + "/restore")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"9999\"}"))
+                .andExpect(status().isTooManyRequests());
+    }
 }

@@ -1,5 +1,7 @@
 package sa.sijill.api.config;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -60,6 +62,17 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .anonymous(AbstractHttpConfigurer::disable) // no Authentication at all -> clean 401s, not 403s
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // CSP is deliberately not set here: this is a JSON API with
+                // no HTML rendering of its own (the Next.js frontend is a
+                // separate service), so there's no page content for a CSP to
+                // protect — the other three headers below cover the actual
+                // risk surface for an API response.
+                .headers(headers -> headers
+                        .contentTypeOptions(withDefaults())
+                        .frameOptions(frame -> frame.deny())
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000)))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))

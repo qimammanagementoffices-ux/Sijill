@@ -45,8 +45,6 @@ services:
         generateValue: true
       - key: JWT_ACCESS_TOKEN_EXPIRY_MINUTES
         value: "60"
-      - key: JWT_REFRESH_TOKEN_EXPIRY_DAYS
-        value: "14"
       - key: OBJECT_STORAGE_ENDPOINT
         sync: false
       - key: OBJECT_STORAGE_REGION

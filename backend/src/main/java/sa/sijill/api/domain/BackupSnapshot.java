@@ -34,6 +34,13 @@ public class BackupSnapshot {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "restored_at")
+    private Instant restoredAt;
+
+    @ManyToOne
+    @JoinColumn(name = "restored_by")
+    private Employee restoredBy;
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
