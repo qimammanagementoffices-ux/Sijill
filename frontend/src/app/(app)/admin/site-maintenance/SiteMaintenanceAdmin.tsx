@@ -6,6 +6,7 @@ import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { AttachmentDto, MaintenanceDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 // Fixed synthetic owner id for the single maintenance_setting row — same
 // pattern as BrandingAdmin.tsx's BRANDING_OWNER_ID (the row has no UUID id
@@ -133,62 +134,74 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
     }
   }
 
-  if (!setting) return null;
+  if (!setting) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
-      {error && <p role="alert">{error}</p>}
-      {success && <p role="status">{dict.saveSuccess}</p>}
-
-      <label>
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-        {dict.enabledLabel}
-      </label>
-
-      <label>
-        {dict.messageArLabel}
-        <textarea value={messageAr} onChange={(e) => setMessageAr(e.target.value)} dir="rtl" />
-      </label>
-
-      <label>
-        {dict.messageEnLabel}
-        <textarea value={messageEn} onChange={(e) => setMessageEn(e.target.value)} dir="ltr" />
-      </label>
-
-      <label>
-        {dict.messageHiLabel}
-        <textarea value={messageHi} onChange={(e) => setMessageHi(e.target.value)} dir="ltr" />
-      </label>
-
-      <label>
-        {dict.imageLabel}
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleImageUpload}
-          disabled={uploading}
-        />
-      </label>
-      {setting.imageUrl && (
-        <div>
-          <img src={setting.imageUrl} alt="" style={{ maxWidth: 300, display: "block" }} />
-          <button type="button" onClick={handleImageRemove} disabled={uploading}>
-            {dict.removeImage}
-          </button>
-        </div>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.title}</h1>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" style={{ color: "var(--sage)", fontSize: 12.5, marginBottom: 12 }}>
+          {dict.saveSuccess}
+        </p>
       )}
 
-      <label>
-        {dict.reopenAtLabel}
-        <input type="datetime-local" value={reopenAt} onChange={(e) => setReopenAt(e.target.value)} />
-      </label>
+      <div className="panel">
+        <div className="panel-body">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, fontWeight: 700, fontSize: 13 }}>
+            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            {dict.enabledLabel}
+          </label>
 
-      <p>
-        <button type="button" onClick={() => save(undefined)} disabled={uploading}>
-          {dict.save}
-        </button>
-      </p>
-    </main>
+          <div className="form-grid full" style={{ marginBottom: 18 }}>
+            <div className="field">
+              <label>{dict.messageArLabel}</label>
+              <textarea value={messageAr} onChange={(e) => setMessageAr(e.target.value)} dir="rtl" />
+            </div>
+            <div className="field">
+              <label>{dict.messageEnLabel}</label>
+              <textarea value={messageEn} onChange={(e) => setMessageEn(e.target.value)} dir="ltr" />
+            </div>
+            <div className="field">
+              <label>{dict.messageHiLabel}</label>
+              <textarea value={messageHi} onChange={(e) => setMessageHi(e.target.value)} dir="ltr" />
+            </div>
+          </div>
+
+          <div className="field" style={{ marginBottom: 18 }}>
+            <label>{dict.imageLabel}</label>
+            <div className="filebox">
+              <label className="upl">
+                {dict.imageLabel}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} disabled={uploading} />
+              </label>
+              {uploading && <span className="spinner" />}
+            </div>
+            {setting.imageUrl && (
+              <div className="thumb-strip" style={{ marginTop: 10, alignItems: "flex-start" }}>
+                <img src={setting.imageUrl} alt="" style={{ width: 140, height: 140 }} />
+                <button type="button" className="btn btn-outline btn-sm" onClick={handleImageRemove} disabled={uploading}>
+                  {dict.removeImage}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="field" style={{ marginBottom: 18 }}>
+            <label>{dict.reopenAtLabel}</label>
+            <input type="datetime-local" value={reopenAt} onChange={(e) => setReopenAt(e.target.value)} />
+          </div>
+
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => save(undefined)} disabled={uploading}>
+            {dict.save}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

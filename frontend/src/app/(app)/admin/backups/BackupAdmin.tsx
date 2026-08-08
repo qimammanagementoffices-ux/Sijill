@@ -6,6 +6,7 @@ import { apiFetch, apiFetchBlob, ApiError } from "@/lib/apiClient";
 import { getToken, clearToken } from "@/lib/auth";
 import type { BackupSnapshotDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 // Read once by LoginForm on mount to show a one-time "please log in again"
 // message — a restore can replace the employee table under the current
@@ -163,91 +164,102 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
     }
   }
 
-  if (!backups) return null;
+  if (!backups) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
-      {error && <p role="alert">{error}</p>}
-
-      <button type="button" onClick={handleRunNow} disabled={running}>
-        {running ? dict.running : dict.runNow}
-      </button>
-
-      {backups.length === 0 ? (
-        <p>{dict.noBackups}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.columnFilename}</th>
-              <th>{dict.columnSize}</th>
-              <th>{dict.columnTriggeredBy}</th>
-              <th>{dict.columnCreatedAt}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {backups.map((b) => (
-              <tr key={b.id}>
-                <td>{b.filename}</td>
-                <td>{formatSize(b.sizeBytes)}</td>
-                <td>{triggeredByLabel(b.triggeredBy)}</td>
-                <td>{new Date(b.createdAt).toLocaleString()}</td>
-                <td>
-                  <button type="button" onClick={() => handleDownload(b)}>
-                    {dict.download}
-                  </button>
-                  <button type="button" onClick={() => openRestoreModal(b)}>
-                    {dict.restore}
-                  </button>
-                  <button type="button" onClick={() => openDeleteModal(b)}>
-                    {dict.delete}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.title}</h1>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
       )}
 
+      <div className="panel">
+        <div className="panel-head" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={handleRunNow} disabled={running}>
+            {running && <span className="spinner" />}
+            {running ? dict.running : dict.runNow}
+          </button>
+        </div>
+
+        {backups.length === 0 ? (
+          <div className="empty">
+            <b>{dict.noBackups}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.columnFilename}</th>
+                  <th>{dict.columnSize}</th>
+                  <th>{dict.columnTriggeredBy}</th>
+                  <th>{dict.columnCreatedAt}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {backups.map((b) => (
+                  <tr key={b.id}>
+                    <td className="mono">{b.filename}</td>
+                    <td className="mono">{formatSize(b.sizeBytes)}</td>
+                    <td>
+                      <span className="chip chip-sm">{triggeredByLabel(b.triggeredBy)}</span>
+                    </td>
+                    <td className="mono">{new Date(b.createdAt).toLocaleString()}</td>
+                    <td style={{ display: "flex", gap: 6 }}>
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => handleDownload(b)}>
+                        {dict.download}
+                      </button>
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => openRestoreModal(b)}>
+                        {dict.restore}
+                      </button>
+                      <button type="button" className="btn btn-seal btn-sm" onClick={() => openDeleteModal(b)}>
+                        {dict.delete}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {restoreTarget && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <form
-            onSubmit={handleRestoreSubmit}
-            style={{ background: "white", padding: "1.5rem", maxWidth: 400, width: "100%" }}
-          >
-            <h2>{dict.restoreConfirmTitle}</h2>
-            <p>{dict.restoreConfirmWarning}</p>
-            <label>
-              {dict.pinLabel}
-              <input
-                type="password"
-                name="pin"
-                inputMode="numeric"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                required
-                autoFocus
-              />
-            </label>
-            {restoreError && <p role="alert">{restoreError}</p>}
-            <div>
-              <button type="button" onClick={closeRestoreModal} disabled={restoring}>
+        <div className="overlay" role="dialog" aria-modal="true">
+          <form onSubmit={handleRestoreSubmit} className="modal">
+            <div className="modal-head">
+              <h3>{dict.restoreConfirmTitle}</h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginTop: 0 }}>{dict.restoreConfirmWarning}</p>
+              <div className="field">
+                <label>{dict.pinLabel}</label>
+                <input
+                  type="password"
+                  name="pin"
+                  inputMode="numeric"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              {restoreError && (
+                <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginTop: 10 }}>
+                  {restoreError}
+                </p>
+              )}
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={closeRestoreModal} disabled={restoring}>
                 {dict.restoreCancel}
               </button>
-              <button type="submit" disabled={restoring}>
+              <button type="submit" className="btn btn-seal btn-sm" disabled={restoring}>
+                {restoring && <span className="spinner" />}
                 {restoring ? dict.restoring : dict.restoreConfirm}
               </button>
             </div>
@@ -256,48 +268,43 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
       )}
 
       {deleteTarget && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <form
-            onSubmit={handleDeleteSubmit}
-            style={{ background: "white", padding: "1.5rem", maxWidth: 400, width: "100%" }}
-          >
-            <h2>{dict.deleteConfirmTitle}</h2>
-            <p>{dict.deleteConfirm}</p>
-            <label>
-              {dict.pinLabel}
-              <input
-                type="password"
-                name="pin"
-                inputMode="numeric"
-                value={deletePin}
-                onChange={(e) => setDeletePin(e.target.value)}
-                required
-                autoFocus
-              />
-            </label>
-            {deleteError && <p role="alert">{deleteError}</p>}
-            <div>
-              <button type="button" onClick={closeDeleteModal} disabled={deleting}>
+        <div className="overlay" role="dialog" aria-modal="true">
+          <form onSubmit={handleDeleteSubmit} className="modal">
+            <div className="modal-head">
+              <h3>{dict.deleteConfirmTitle}</h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginTop: 0 }}>{dict.deleteConfirm}</p>
+              <div className="field">
+                <label>{dict.pinLabel}</label>
+                <input
+                  type="password"
+                  name="pin"
+                  inputMode="numeric"
+                  value={deletePin}
+                  onChange={(e) => setDeletePin(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              {deleteError && (
+                <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginTop: 10 }}>
+                  {deleteError}
+                </p>
+              )}
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={closeDeleteModal} disabled={deleting}>
                 {dict.restoreCancel}
               </button>
-              <button type="submit" disabled={deleting}>
+              <button type="submit" className="btn btn-seal btn-sm" disabled={deleting}>
+                {deleting && <span className="spinner" />}
                 {deleting ? dict.deleting : dict.delete}
               </button>
             </div>
           </form>
         </div>
       )}
-    </main>
+    </>
   );
 }

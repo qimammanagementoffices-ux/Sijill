@@ -6,6 +6,7 @@ import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { AttachmentDto, BrandingDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 // Fixed synthetic owner id for the single branding row — branding_setting
 // has no UUID id of its own (it's a single-row table keyed by a boolean).
@@ -114,63 +115,87 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setColor(updated.primaryColor);
   }
 
-  if (!branding) return null;
+  if (!branding) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
-      {error && <p role="alert">{error}</p>}
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.title}</h1>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
 
-      <label>
-        {dict.presetLabel}
-        <div>
-          {PRESETS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => {
-                setPreset(p.key);
-                setColor(p.color);
+      <div className="panel">
+        <div className="panel-body">
+          <div className="field" style={{ marginBottom: 18 }}>
+            <label>{dict.presetLabel}</label>
+            <div className="preset-row">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  className={`preset-swatch${preset === p.key ? " active" : ""}`}
+                  onClick={() => {
+                    setPreset(p.key);
+                    setColor(p.color);
+                  }}
+                >
+                  <span className="preset-dots" style={{ background: p.color }} />
+                  <span className="preset-label">{p.key}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field" style={{ marginBottom: 18 }}>
+            <label>{dict.colorLabel}</label>
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => {
+                setColor(e.target.value);
+                setPreset("custom");
               }}
-              style={{
-                background: p.color,
-                width: 32,
-                height: 32,
-                border: preset === p.key ? "3px solid black" : "1px solid #ccc",
-              }}
+              style={{ width: 60, height: 36, border: "1.5px solid var(--line)", borderRadius: 8, padding: 2 }}
             />
-          ))}
+          </div>
+
+          <div
+            style={{
+              background: color,
+              color: "white",
+              padding: "1rem",
+              borderRadius: "var(--radius)",
+              marginBottom: 18,
+              fontWeight: 700,
+            }}
+          >
+            {dict.title}
+          </div>
+
+          <div className="branding-row">
+            {branding.logoUrl && <img src={branding.logoUrl} alt="logo" style={{ maxWidth: 120, borderRadius: 8 }} />}
+            <div className="filebox" style={{ flex: 1 }}>
+              <label className="upl">
+                {dict.logoLabel}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} disabled={uploading} />
+              </label>
+              {uploading && <span className="spinner" />}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={handleSave}>
+              {dict.save}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleReset}>
+              {dict.reset}
+            </button>
+          </div>
         </div>
-      </label>
-
-      <label>
-        {dict.colorLabel}
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => {
-            setColor(e.target.value);
-            setPreset("custom");
-          }}
-        />
-      </label>
-
-      <div style={{ background: color, color: "white", padding: "1rem", marginTop: "1rem" }}>{dict.title}</div>
-
-      <label>
-        {dict.logoLabel}
-        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} disabled={uploading} />
-      </label>
-      {branding.logoUrl && <img src={branding.logoUrl} alt="logo" style={{ maxWidth: 200 }} />}
-
-      <p>
-        <button type="button" onClick={handleSave}>
-          {dict.save}
-        </button>
-        <button type="button" onClick={handleReset}>
-          {dict.reset}
-        </button>
-      </p>
-    </main>
+      </div>
+    </>
   );
 }
