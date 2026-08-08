@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch, apiFetchBlob, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import AttachmentUploader from "@/components/AttachmentUploader";
+import SectionLoading from "@/components/SectionLoading";
 import type {
   AssetDetail,
   AssetStatusValue,
@@ -15,6 +16,12 @@ import type {
   RoomDto,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+
+const STATUS_CHIP_CLASS: Record<string, string> = {
+  ACTIVE: "s-approved",
+  MAINTENANCE: "s-pending",
+  RETIRED: "s-postponed",
+};
 
 export default function AssetDetailView({
   id,
@@ -139,140 +146,180 @@ export default function AssetDetailView({
     URL.revokeObjectURL(url);
   }
 
-  if (!asset || !categories || !rooms) return null;
+  if (!asset || !categories || !rooms) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>
-        {asset.assetNumber} — {asset.nameAr}
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">
+        <span className="mono" style={{ fontSize: 18, color: "var(--slate)" }}>
+          {asset.assetNumber}
+        </span>{" "}
+        — {asset.nameAr}
       </h1>
-      {error && <p role="alert">{error}</p>}
+      <div style={{ marginBottom: 14 }}>
+        <span className={`chip ${STATUS_CHIP_CLASS[asset.status] ?? ""}`}>
+          <span className="chip-dot" />
+          {{ ACTIVE: dict.statusActive, MAINTENANCE: dict.statusMaintenance, RETIRED: dict.statusRetired }[asset.status]}
+        </span>
+      </div>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
 
-      <button type="button" onClick={downloadQr}>
+      <button type="button" className="btn btn-outline btn-sm" style={{ marginBottom: 18 }} onClick={downloadQr}>
         {dict.downloadQr}
       </button>
 
       <form onSubmit={handleUpdate}>
-        <label>
-          {dict.nameArLabel}
-          <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} required disabled={!canManage} />
-        </label>
-        <label>
-          {dict.nameEnLabel}
-          <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} required disabled={!canManage} />
-        </label>
-        <label>
-          {dict.categoryLabel}
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={!canManage}>
-            <option value="">—</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nameAr} / {c.nameEn}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {dict.statusLabel}
-          <select value={status} onChange={(e) => setStatus(e.target.value as AssetStatusValue)} disabled={!canManage}>
-            <option value="ACTIVE">{dict.statusActive}</option>
-            <option value="MAINTENANCE">{dict.statusMaintenance}</option>
-            <option value="RETIRED">{dict.statusRetired}</option>
-          </select>
-        </label>
-        <label>
-          {dict.acquisitionDateLabel}
-          <input
-            type="date"
-            value={acquisitionDate}
-            onChange={(e) => setAcquisitionDate(e.target.value)}
-            disabled={!canManage}
-          />
-        </label>
-        <label>
-          {dict.acquisitionCostLabel}
-          <input
-            type="number"
-            step="0.01"
-            value={acquisitionCost}
-            onChange={(e) => setAcquisitionCost(e.target.value)}
-            disabled={!canManage}
-          />
-        </label>
-        <label>
-          {dict.vendorLabel}
-          <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} disabled={!canManage} />
-        </label>
-        <label>
-          {dict.notesLabel}
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={!canManage} />
-        </label>
-        <p>
-          {dict.roomLabel}: {asset.room ? asset.room.ar : "—"}
-        </p>
-        <p>
-          {dict.custodianLabel}: {asset.custodianName ?? "—"}
-        </p>
-
-        {canManage && <button type="submit">{dict.submitUpdate}</button>}
+        <div className="panel">
+          <div className="panel-body">
+            <div className="form-grid">
+              <div className="field">
+                <label>{dict.nameArLabel}</label>
+                <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} required disabled={!canManage} dir="rtl" />
+              </div>
+              <div className="field">
+                <label>{dict.nameEnLabel}</label>
+                <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} required disabled={!canManage} />
+              </div>
+              <div className="field">
+                <label>{dict.categoryLabel}</label>
+                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={!canManage}>
+                  <option value="">—</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nameAr} / {c.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{dict.statusLabel}</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value as AssetStatusValue)} disabled={!canManage}>
+                  <option value="ACTIVE">{dict.statusActive}</option>
+                  <option value="MAINTENANCE">{dict.statusMaintenance}</option>
+                  <option value="RETIRED">{dict.statusRetired}</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>{dict.acquisitionDateLabel}</label>
+                <input
+                  type="date"
+                  value={acquisitionDate}
+                  onChange={(e) => setAcquisitionDate(e.target.value)}
+                  disabled={!canManage}
+                />
+              </div>
+              <div className="field">
+                <label>{dict.acquisitionCostLabel}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={acquisitionCost}
+                  onChange={(e) => setAcquisitionCost(e.target.value)}
+                  disabled={!canManage}
+                />
+              </div>
+              <div className="field">
+                <label>{dict.vendorLabel}</label>
+                <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} disabled={!canManage} />
+              </div>
+              <div className="field span2">
+                <label>{dict.notesLabel}</label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={!canManage} />
+              </div>
+            </div>
+            <p style={{ fontSize: 12.5, color: "var(--slate)", marginTop: 14, marginBottom: 0 }}>
+              {dict.roomLabel}: {asset.room ? asset.room.ar : "—"} · {dict.custodianLabel}: {asset.custodianName ?? "—"}
+            </p>
+          </div>
+          {canManage && (
+            <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+              <button type="submit" className="btn btn-primary btn-sm">
+                {dict.submitUpdate}
+              </button>
+            </div>
+          )}
+        </div>
       </form>
 
       {canManage && (
         <form onSubmit={handleTransfer}>
-          <h2>{dict.transferButton}</h2>
-          <label>
-            {dict.roomLabel}
-            <select value={transferRoomId} onChange={(e) => setTransferRoomId(e.target.value)}>
-              <option value="">—</option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.roomNumber} — {r.nameAr}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {dict.custodianLabel}
-            <select value={transferEmployeeId} onChange={(e) => setTransferEmployeeId(e.target.value)}>
-              <option value="">—</option>
-              {(employees ?? []).map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {dict.notesLabel}
-            <input type="text" value={transferReason} onChange={(e) => setTransferReason(e.target.value)} />
-          </label>
-          <button type="submit">{dict.transferButton}</button>
+          <div className="panel">
+            <div className="panel-head">
+              <h3>{dict.transferButton}</h3>
+            </div>
+            <div className="panel-body">
+              <div className="form-grid">
+                <div className="field">
+                  <label>{dict.roomLabel}</label>
+                  <select value={transferRoomId} onChange={(e) => setTransferRoomId(e.target.value)}>
+                    <option value="">—</option>
+                    {rooms.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.roomNumber} — {r.nameAr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{dict.custodianLabel}</label>
+                  <select value={transferEmployeeId} onChange={(e) => setTransferEmployeeId(e.target.value)}>
+                    <option value="">—</option>
+                    {(employees ?? []).map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field span2">
+                  <label>{dict.notesLabel}</label>
+                  <input type="text" value={transferReason} onChange={(e) => setTransferReason(e.target.value)} />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-outline btn-sm" style={{ marginTop: 10 }}>
+                {dict.transferButton}
+              </button>
+            </div>
+          </div>
         </form>
       )}
 
-      <AttachmentUploader ownerType="ASSET" ownerId={asset.id} dict={attachmentsDict} canManage={canManage} />
+      <div className="panel">
+        <AttachmentUploader ownerType="ASSET" ownerId={asset.id} dict={attachmentsDict} canManage={canManage} />
+      </div>
 
-      <h2>{dict.transferHistory}</h2>
       {transfers && transfers.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.roomLabel}</th>
-              <th>{dict.custodianLabel}</th>
-              <th>{dict.notesLabel}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transfers.map((t, i) => (
-              <tr key={i}>
-                <td>{t.toRoom ? t.toRoom.ar : "—"}</td>
-                <td>{t.toEmployeeName ?? "—"}</td>
-                <td>{t.reason ?? ""}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>{dict.transferHistory}</h3>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.roomLabel}</th>
+                  <th>{dict.custodianLabel}</th>
+                  <th>{dict.notesLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transfers.map((t, i) => (
+                  <tr key={i}>
+                    <td>{t.toRoom ? t.toRoom.ar : "—"}</td>
+                    <td>{t.toEmployeeName ?? "—"}</td>
+                    <td>{t.reason ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-    </main>
+    </>
   );
 }
