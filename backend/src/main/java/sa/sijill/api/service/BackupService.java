@@ -74,40 +74,115 @@ public class BackupService {
     // the current (about-to-be-overwritten) state first, tagged PRE_RESTORE,
     // before resetting the schema and running pg_restore against the live
     // database (see resetPublicSchema/runPgRestore for why the schema is
-    // reset rather than relying on pg_restore's own --clean). Both
-    // subprocesses deliberately run outside any single @Transactional scope
-    // — they open their own libpq connections, not one from the JPA/Hikari
-    // pool, and they replace the schema (including employee) out from under
-    // any open JPA transaction. Only the bookkeeping (marking the snapshot
-    // restored, the audit entry) needs a transaction, and it's committed
-    // after both subprocesses have already succeeded.
+    // reset rather than relying on pg_restore's own --clean). If pg_restore
+    // itself then fails, the schema is already empty (resetPublicSchema
+    // already committed as its own step) — recoverToPreRestoreState attempts
+    // to restore the just-taken PRE_RESTORE snapshot rather than leave a live
+    // database with zero tables. Both subprocesses deliberately run outside
+    // any single @Transactional scope — they open their own libpq
+    // connections, not one from the JPA/Hikari pool, and they replace the
+    // schema (including employee) out from under any open JPA transaction.
+    // Only the bookkeeping (marking the snapshot restored, the audit entry)
+    // needs a transaction, committed after the subprocesses have already
+    // succeeded — and scheduleRestart() then exits the JVM shortly after,
+    // since Hikari's pool and Hibernate's cached metadata are now stale
+    // against whatever schema just replaced the old one; nothing short of a
+    // fresh process reliably clears that (confirmed live: the app stayed up
+    // but every DB-backed endpoint 500'd until manually restarted).
     public void restore(UUID snapshotId, Employee actor) {
         BackupSnapshot target = get(snapshotId);
-        captureSnapshot(BackupTrigger.PRE_RESTORE);
+        BackupSnapshot preRestoreSnapshot = captureSnapshot(BackupTrigger.PRE_RESTORE);
 
-        Path tempFile;
+        Path targetFile = createTempDumpFile("sijill-restore-");
         try {
-            tempFile = Files.createTempFile("sijill-restore-", ".dump");
-        } catch (Exception e) {
-            throw ApiException.internal("Failed to create temp file for restore");
-        }
-
-        try {
-            try (var stream = storageService.downloadPrivateFile(target.getStorageKey())) {
-                Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            }
+            downloadTo(target, targetFile);
             resetPublicSchema();
-            runPgRestore(tempFile);
+            try {
+                runPgRestore(targetFile);
+            } catch (Exception restoreFailure) {
+                recoverToPreRestoreState(preRestoreSnapshot, restoreFailure);
+                return;
+            }
             restoreBookkeeper.markRestored(snapshotId, actor);
+            scheduleRestart();
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
             throw ApiException.internal("Restore failed: " + e.getMessage());
         } finally {
-            try {
-                Files.deleteIfExists(tempFile);
-            } catch (Exception ignored) {
-            }
+            deleteQuietly(targetFile);
+        }
+    }
+
+    // Best-effort self-heal for when pg_restore fails after the schema has
+    // already been reset — without this, a failed restore leaves the live
+    // database with zero tables, which is a much worse outcome than the
+    // failure that triggered it. Deliberately does NOT go through
+    // RestoreBookkeeper/JPA here: by this point the schema has been reset at
+    // least once already and may be mid-recovery, so this stays on plain
+    // subprocess calls throughout and lets the caller's generic ApiException
+    // handling report whichever error applies.
+    private void recoverToPreRestoreState(BackupSnapshot preRestoreSnapshot, Exception originalFailure) {
+        Path recoveryFile = createTempDumpFile("sijill-restore-recovery-");
+        try {
+            downloadTo(preRestoreSnapshot, recoveryFile);
+            runPgRestore(recoveryFile);
+            scheduleRestart();
+            throw ApiException.internal(
+                    "Restore failed and the database was automatically rolled back to its pre-restore state. Original error: "
+                            + originalFailure.getMessage());
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception recoveryFailure) {
+            throw ApiException.internal("CRITICAL: restore failed and automatic recovery ALSO failed — the database"
+                    + " may be left empty or inconsistent. Manually restore from the pre-restore snapshot ("
+                    + preRestoreSnapshot.getId() + ") immediately. Original error: " + originalFailure.getMessage()
+                    + " | Recovery error: " + recoveryFailure.getMessage());
+        } finally {
+            deleteQuietly(recoveryFile);
+        }
+    }
+
+    // Exits the JVM shortly after this call, once the current HTTP response
+    // has had time to flush to the client — Render restarts a web service's
+    // container when its process exits, which is what actually clears the
+    // stale Hikari pool / Hibernate metadata after an in-place schema swap.
+    // Any other in-flight requests at that moment get dropped, an accepted
+    // tradeoff: a restore already invalidates every other active session's
+    // view of the database regardless of whether the process restarts.
+    private void scheduleRestart() {
+        Thread restarter = new Thread(
+                () -> {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    System.exit(0);
+                },
+                "post-restore-restart");
+        restarter.setDaemon(false);
+        restarter.start();
+    }
+
+    private Path createTempDumpFile(String prefix) {
+        try {
+            return Files.createTempFile(prefix, ".dump");
+        } catch (Exception e) {
+            throw ApiException.internal("Failed to create temp file for restore");
+        }
+    }
+
+    private void downloadTo(BackupSnapshot snapshot, Path destination) throws Exception {
+        try (var stream = storageService.downloadPrivateFile(snapshot.getStorageKey())) {
+            Files.copy(stream, destination, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (Exception ignored) {
         }
     }
 
