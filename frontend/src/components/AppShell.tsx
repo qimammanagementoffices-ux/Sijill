@@ -140,8 +140,8 @@ export default function AppShell({
 
   return (
     <div id="app">
-      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
-      <aside className={`sidebar${navOpen ? " open" : ""}`}>
+      {navOpen && <div className="nav-backdrop no-print" onClick={() => setNavOpen(false)} />}
+      <aside className={`sidebar no-print${navOpen ? " open" : ""}`}>
         <div className="brand">
           <div className="brand-seal">{branding.logoUrl ? <img src={branding.logoUrl} alt="" /> : "س"}</div>
           <h1 className="disp">{branding.platformName || dict.appName}</h1>
@@ -167,7 +167,7 @@ export default function AppShell({
       </aside>
 
       <div className="main">
-        <header className="topbar">
+        <header className="topbar no-print">
           <button type="button" className="menu-btn" onClick={() => setNavOpen((v) => !v)} aria-label="Menu">
             ☰
           </button>
