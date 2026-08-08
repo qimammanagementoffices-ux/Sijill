@@ -33,19 +33,26 @@ export default function PermissionGrid({
   return (
     <div>
       {Array.from(groups.entries()).map(([prefix, permissions]) => (
-        <fieldset key={prefix}>
-          <legend>{prefix}</legend>
-          {permissions.map((permission) => (
-            <label key={permission.key} style={{ display: "block" }}>
-              <input
-                type="checkbox"
-                checked={selected.has(permission.key)}
-                onChange={() => toggle(permission.key)}
-              />
-              {permission.key} — {permission.description}
-            </label>
-          ))}
-        </fieldset>
+        <div key={prefix} className="perm-group">
+          <div className="perm-group-head">{prefix}</div>
+          <div className="perm-list">
+            {permissions.map((permission) => (
+              <div key={permission.key} className="perm-row">
+                <span>
+                  <code className="mono" style={{ fontSize: 11 }}>
+                    {permission.key}
+                  </code>{" "}
+                  — {permission.description}
+                </span>
+                <label className="switch">
+                  <input type="checkbox" checked={selected.has(permission.key)} onChange={() => toggle(permission.key)} />
+                  <span className="track" />
+                  <span className="knob" />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

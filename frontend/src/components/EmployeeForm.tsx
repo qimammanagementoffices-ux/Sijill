@@ -125,92 +125,92 @@ export default function EmployeeForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <label>
-        {dict.nameLabel}
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-      </label>
-      <label>
-        {dict.phoneLabel}
-        <input
-          type="tel"
-          inputMode="numeric"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-        />
-      </label>
-      {mode === "create" && (
-        <>
-          <label>
-            {dict.pinLabel}
-            <input
-              type="password"
-              inputMode="numeric"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            {dict.pinConfirmLabel}
-            <input
-              type="password"
-              inputMode="numeric"
-              value={pinConfirm}
-              onChange={(e) => setPinConfirm(e.target.value)}
-              required
-            />
-          </label>
-        </>
+      <div className="panel">
+        <div className="panel-body">
+          <div className="form-grid">
+            <div className="field">
+              <label>{dict.nameLabel}</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>{dict.phoneLabel}</label>
+              <input type="tel" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            </div>
+            {mode === "create" && (
+              <>
+                <div className="field">
+                  <label>{dict.pinLabel}</label>
+                  <input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} required />
+                </div>
+                <div className="field">
+                  <label>{dict.pinConfirmLabel}</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pinConfirm}
+                    onChange={(e) => setPinConfirm(e.target.value)}
+                    required
+                  />
+                </div>
+              </>
+            )}
+            <div className="field">
+              <label>{dict.emailLabel}</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>{dict.nationalIdLabel}</label>
+              <input type="text" value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
+            </div>
+            {mode === "create" && (
+              <div className="field">
+                <label>{dict.joinedDateLabel}</label>
+                <input type="date" value={joinedDate} onChange={(e) => setJoinedDate(e.target.value)} />
+              </div>
+            )}
+            <div className="field">
+              <label>{dict.jobTitleLabel}</label>
+              <select value={jobTitleId} onChange={(e) => setJobTitleId(e.target.value)}>
+                <option value="">—</option>
+                {jobTitles.map((jt) => (
+                  <option key={jt.id} value={jt.id}>
+                    {jt.nameAr} / {jt.nameEn}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="field span2" style={{ marginTop: 18 }}>
+            <label>{dict.departmentsLabel}</label>
+            <div className="check-list">
+              {departments.map((d) => (
+                <label key={d.id} className="check-row">
+                  <input type="checkbox" checked={departmentIds.has(d.id)} onChange={() => toggleDepartment(d.id)} />
+                  {d.nameAr} / {d.nameEn}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h3>{dict.permissionsLabel}</h3>
+        </div>
+        <div className="panel-body">
+          <PermissionGrid allPermissions={allPermissions} selected={permissionKeys} onChange={setPermissionKeys} />
+        </div>
+      </div>
+
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {error}
+        </p>
       )}
-      <label>
-        {dict.emailLabel}
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
-      <label>
-        {dict.nationalIdLabel}
-        <input type="text" value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
-      </label>
-      {mode === "create" && (
-        <label>
-          {dict.joinedDateLabel}
-          <input type="date" value={joinedDate} onChange={(e) => setJoinedDate(e.target.value)} />
-        </label>
-      )}
-      <label>
-        {dict.jobTitleLabel}
-        <select value={jobTitleId} onChange={(e) => setJobTitleId(e.target.value)}>
-          <option value="">—</option>
-          {jobTitles.map((jt) => (
-            <option key={jt.id} value={jt.id}>
-              {jt.nameAr} / {jt.nameEn}
-            </option>
-          ))}
-        </select>
-      </label>
-      <fieldset>
-        <legend>{dict.departmentsLabel}</legend>
-        {departments.map((d) => (
-          <label key={d.id} style={{ display: "block" }}>
-            <input
-              type="checkbox"
-              checked={departmentIds.has(d.id)}
-              onChange={() => toggleDepartment(d.id)}
-            />
-            {d.nameAr} / {d.nameEn}
-          </label>
-        ))}
-      </fieldset>
-      <fieldset>
-        <legend>{dict.permissionsLabel}</legend>
-        <PermissionGrid
-          allPermissions={allPermissions}
-          selected={permissionKeys}
-          onChange={setPermissionKeys}
-        />
-      </fieldset>
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={submitting}>
+      <button type="submit" className="btn btn-primary" disabled={submitting}>
+        {submitting && <span className="spinner" />}
         {mode === "create" ? dict.submitCreate : dict.submitUpdate}
       </button>
     </form>

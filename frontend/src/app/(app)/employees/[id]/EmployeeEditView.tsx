@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import EmployeeForm from "@/components/EmployeeForm";
+import SectionLoading from "@/components/SectionLoading";
 import type { EmployeeDetail, LocalizedEntityDto, PermissionDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -66,12 +67,17 @@ export default function EmployeeEditView({
     });
   }
 
-  if (!employee || !departments || !jobTitles || !allPermissions) return null;
+  if (!employee || !departments || !jobTitles || !allPermissions) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{employee.name}</h1>
-      {conflict && <p role="alert">{dict.conflictNotice}</p>}
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{employee.name}</h1>
+      {conflict && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+          {dict.conflictNotice}
+        </p>
+      )}
       <EmployeeForm
         key={employee.version}
         dict={dict}
@@ -84,14 +90,16 @@ export default function EmployeeEditView({
         onSubmitted={setEmployee}
         onConflict={() => setConflict(true)}
       />
-      <button type="button" onClick={handleResetPin}>
-        {dict.resetPin}
-      </button>
-      {employee.active && (
-        <button type="button" onClick={handleDeactivate}>
-          {dict.deactivate}
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <button type="button" className="btn btn-outline btn-sm" onClick={handleResetPin}>
+          {dict.resetPin}
         </button>
-      )}
-    </main>
+        {employee.active && (
+          <button type="button" className="btn btn-seal btn-sm" onClick={handleDeactivate}>
+            {dict.deactivate}
+          </button>
+        )}
+      </div>
+    </>
   );
 }
