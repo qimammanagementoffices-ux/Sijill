@@ -142,34 +142,38 @@ export default function StructureAdminView({
 
         <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
           <h3 style={{ marginTop: 0 }}>{dict.addNew}</h3>
-          <form onSubmit={handleCreate} className="form-grid">
-            <div className="field">
-              <label>{dict.nameArLabel}</label>
-              <input
-                type="text"
-                value={newNameAr}
-                onChange={(e) => setNewNameAr(e.target.value)}
-                placeholder={dict.nameArLabel}
-                dir="rtl"
-                required
-              />
-            </div>
-            <div className="field">
-              <label>{dict.nameEnLabel}</label>
-              <input
-                type="text"
-                value={newNameEn}
-                onChange={(e) => setNewNameEn(e.target.value)}
-                placeholder={dict.nameEnLabel}
-                dir="ltr"
-                required
-              />
-            </div>
-            <div className="field span2">
-              <button type="submit" className="btn btn-primary btn-sm">
-                {dict.addNew}
-              </button>
-            </div>
+          <form onSubmit={handleCreate} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              type="text"
+              value={newNameAr}
+              onChange={(e) => setNewNameAr(e.target.value)}
+              placeholder={dict.nameArLabel}
+              dir="rtl"
+              required
+              style={{
+                flex: "1 1 200px",
+                border: "1.5px solid var(--line)",
+                borderRadius: 9,
+                padding: "10px 12px",
+              }}
+            />
+            <input
+              type="text"
+              value={newNameEn}
+              onChange={(e) => setNewNameEn(e.target.value)}
+              placeholder={dict.nameEnLabel}
+              dir="ltr"
+              required
+              style={{
+                flex: "1 1 200px",
+                border: "1.5px solid var(--line)",
+                borderRadius: 9,
+                padding: "10px 12px",
+              }}
+            />
+            <button type="submit" className="btn btn-primary btn-sm">
+              {dict.addNew}
+            </button>
           </form>
         </div>
       </div>
