@@ -6,6 +6,15 @@ import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { NeedRequestDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
+
+const STATUS_STAMP_CLASS: Record<string, string> = {
+  PENDING: "s-pending",
+  APPROVED: "s-approved",
+  POSTPONED: "s-postponed",
+  REJECTED: "s-rejected",
+  CLOSED: "s-closed",
+};
 
 export default function RequestDetailView({
   id,
@@ -66,7 +75,7 @@ export default function RequestDetailView({
     load();
   }
 
-  if (!request) return null;
+  if (!request) return <SectionLoading />;
 
   const statusLabel = {
     PENDING: dict.statusPending,
@@ -77,74 +86,87 @@ export default function RequestDetailView({
   }[request.status];
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{request.requesterName}</h1>
-      <p>{statusLabel}</p>
-      <p>{request.notes}</p>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{request.requesterName}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
+          <span className="dot" />
+          {statusLabel}
+        </span>
+        {request.notes && <span style={{ fontSize: 12.5, color: "var(--slate)" }}>{request.notes}</span>}
+      </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>{dict.quantityRequestedLabel}</th>
-            <th>{dict.quantityIssuedLabel}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {request.lines.map((line) => (
-            <tr key={line.id}>
-              <td>
-                {line.itemNameAr} × {line.quantityRequested}
-              </td>
-              <td>
-                {request.status === "APPROVED" ? (
-                  <input
-                    type="number"
-                    min={0}
-                    max={line.quantityRequested}
-                    value={issuedByLine[line.id] ?? ""}
-                    onChange={(e) => setIssuedByLine({ ...issuedByLine, [line.id]: e.target.value })}
-                  />
-                ) : (
-                  (line.quantityIssued ?? "—")
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="panel">
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>{dict.quantityRequestedLabel}</th>
+                <th>{dict.quantityIssuedLabel}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {request.lines.map((line) => (
+                <tr key={line.id}>
+                  <td>
+                    {line.itemNameAr} × <span className="qty-num">{line.quantityRequested}</span>
+                  </td>
+                  <td>
+                    {request.status === "APPROVED" ? (
+                      <input
+                        type="number"
+                        min={0}
+                        max={line.quantityRequested}
+                        value={issuedByLine[line.id] ?? ""}
+                        onChange={(e) => setIssuedByLine({ ...issuedByLine, [line.id]: e.target.value })}
+                        style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 90 }}
+                      />
+                    ) : (
+                      <span className="qty-num">{line.quantityIssued ?? "—"}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (
-        <label>
-          {dict.reasonLabel}
-          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
-        </label>
-      )}
-
-      <p>
-        {(request.status === "PENDING" || request.status === "POSTPONED") &&
-          permissions.includes("wh.act.approve") && (
-            <button type="button" onClick={() => act("approve")}>
-              {dict.approve}
-            </button>
-          )}
-        {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
-          permissions.includes("wh.act.reject") && (
-            <button type="button" onClick={() => act("reject")}>
-              {dict.reject}
-            </button>
-          )}
-        {(request.status === "PENDING" || request.status === "APPROVED") &&
-          permissions.includes("wh.act.postpone") && (
-            <button type="button" onClick={() => act("postpone")}>
-              {dict.postpone}
-            </button>
-          )}
-        {request.status === "APPROVED" && permissions.includes("wh.act.finish") && (
-          <button type="button" onClick={finish}>
-            {dict.finish}
-          </button>
+        {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (
+          <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+            <div className="field" style={{ maxWidth: 360 }}>
+              <label>{dict.reasonLabel}</label>
+              <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+          </div>
         )}
-      </p>
-    </main>
+
+        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8 }}>
+          {(request.status === "PENDING" || request.status === "POSTPONED") &&
+            permissions.includes("wh.act.approve") && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => act("approve")}>
+                {dict.approve}
+              </button>
+            )}
+          {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
+            permissions.includes("wh.act.reject") && (
+              <button type="button" className="btn btn-seal btn-sm" onClick={() => act("reject")}>
+                {dict.reject}
+              </button>
+            )}
+          {(request.status === "PENDING" || request.status === "APPROVED") &&
+            permissions.includes("wh.act.postpone") && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => act("postpone")}>
+                {dict.postpone}
+              </button>
+            )}
+          {request.status === "APPROVED" && permissions.includes("wh.act.finish") && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={finish}>
+              {dict.finish}
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

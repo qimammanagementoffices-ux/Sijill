@@ -12,6 +12,7 @@ import type {
   PagedResponse,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 type LineDraft = { inventoryItemId: string; quantityRequested: string };
 
@@ -86,78 +87,101 @@ export default function NewRequestView({
     }
   }
 
-  if (!departments || !categories || !items) return null;
+  if (!departments || !categories || !items) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.addNew}</h1>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.addNew}</h1>
       <form onSubmit={handleSubmit}>
-        <label>
-          {dict.columnDepartment}
-          <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-            <option value="">—</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nameAr} / {d.nameEn}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Category
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">—</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nameAr} / {c.nameEn}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {dict.notesLabel}
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </label>
-
-        {lines.map((line, index) => (
-          <div key={index}>
-            <select
-              value={line.inventoryItemId}
-              onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
-              required
-            >
-              <option value="">—</option>
-              {items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.code} — {item.nameAr}
-                </option>
-              ))}
-            </select>
-            <label>
-              {dict.quantityRequestedLabel}
-              <input
-                type="number"
-                min={1}
-                value={line.quantityRequested}
-                onChange={(e) => updateLine(index, { quantityRequested: e.target.value })}
-              />
-            </label>
-            {lines.length > 1 && (
-              <button type="button" onClick={() => removeLine(index)}>
-                ×
-              </button>
-            )}
+        <div className="panel">
+          <div className="panel-body">
+            <div className="form-grid">
+              <div className="field">
+                <label>{dict.columnDepartment}</label>
+                <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+                  <option value="">—</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.nameAr} / {d.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Category</label>
+                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                  <option value="">—</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nameAr} / {c.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field span2">
+                <label>{dict.notesLabel}</label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+            </div>
           </div>
-        ))}
-        <button type="button" onClick={addLine}>
-          {dict.addLine}
-        </button>
+        </div>
 
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>{dict.addLine}</h3>
+          </div>
+          <div className="panel-body">
+            {lines.map((line, index) => (
+              <div key={index} className="form-grid" style={{ marginBottom: 10, alignItems: "end" }}>
+                <div className="field span2">
+                  <select
+                    value={line.inventoryItemId}
+                    onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
+                    required
+                  >
+                    <option value="">—</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code} — {item.nameAr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label>{dict.quantityRequestedLabel}</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={line.quantityRequested}
+                      onChange={(e) => updateLine(index, { quantityRequested: e.target.value })}
+                    />
+                  </div>
+                  {lines.length > 1 && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLine(index)}>
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button type="button" className="btn btn-outline btn-sm" onClick={addLine}>
+              {dict.addLine}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting && <span className="spinner" />}
           {dict.submit}
         </button>
       </form>
-    </main>
+    </>
   );
 }

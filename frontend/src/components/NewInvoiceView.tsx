@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { InventoryItemListItem, InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
 
@@ -87,86 +88,109 @@ export default function NewInvoiceView({
     }
   }
 
-  if (!items) return null;
+  if (!items) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.addNew}</h1>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.addNew}</h1>
       <form onSubmit={handleSubmit}>
-        <label>
-          {dict.numberLabel}
-          <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} required />
-        </label>
-        <label>
-          {dict.dateLabel}
-          <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
-        </label>
-        <label>
-          {dict.vendorLabel}
-          <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} required />
-        </label>
-        <label>
-          {dict.taxRateLabel}
-          <input type="number" step="0.01" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
-        </label>
-
-        {lines.map((line, index) => (
-          <div key={index}>
-            <label>
-              {dict.itemLabel}
-              <select
-                value={line.inventoryItemId}
-                onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
-                required
-              >
-                <option value="">—</option>
-                {items.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.code} — {item.nameAr}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {dict.quantityLabel}
-              <input
-                type="number"
-                min={1}
-                value={line.quantity}
-                onChange={(e) => updateLine(index, { quantity: e.target.value })}
-              />
-            </label>
-            <label>
-              {dict.unitPriceLabel}
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                value={line.unitPrice}
-                onChange={(e) => updateLine(index, { unitPrice: e.target.value })}
-              />
-            </label>
-            {lines.length > 1 && (
-              <button type="button" onClick={() => removeLine(index)}>
-                ×
-              </button>
-            )}
+        <div className="panel">
+          <div className="panel-body">
+            <div className="form-grid">
+              <div className="field">
+                <label>{dict.numberLabel}</label>
+                <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} required />
+              </div>
+              <div className="field">
+                <label>{dict.dateLabel}</label>
+                <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>{dict.vendorLabel}</label>
+                <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} required />
+              </div>
+              <div className="field">
+                <label>{dict.taxRateLabel}</label>
+                <input type="number" step="0.01" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
+              </div>
+            </div>
           </div>
-        ))}
-        <button type="button" onClick={addLine}>
-          {dict.addLine}
-        </button>
+        </div>
 
-        <p>
-          {dict.subtotalLabel}: {subtotal.toFixed(2)} — {dict.taxTotalLabel}: {taxTotal.toFixed(2)} —{" "}
-          {dict.totalLabel}: {(subtotal + taxTotal).toFixed(2)}
-        </p>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>{dict.addLine}</h3>
+          </div>
+          <div className="panel-body">
+            {lines.map((line, index) => (
+              <div key={index} className="form-grid" style={{ marginBottom: 10, alignItems: "end" }}>
+                <div className="field">
+                  <label>{dict.itemLabel}</label>
+                  <select
+                    value={line.inventoryItemId}
+                    onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
+                    required
+                  >
+                    <option value="">—</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code} — {item.nameAr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{dict.quantityLabel}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={line.quantity}
+                    onChange={(e) => updateLine(index, { quantity: e.target.value })}
+                  />
+                </div>
+                <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label>{dict.unitPriceLabel}</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={line.unitPrice}
+                      onChange={(e) => updateLine(index, { unitPrice: e.target.value })}
+                    />
+                  </div>
+                  {lines.length > 1 && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLine(index)}>
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button type="button" className="btn btn-outline btn-sm" onClick={addLine}>
+              {dict.addLine}
+            </button>
 
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
+            <p className="mono" style={{ marginTop: 16, fontSize: 13 }}>
+              {dict.subtotalLabel}: {subtotal.toFixed(2)} — {dict.taxTotalLabel}: {taxTotal.toFixed(2)} —{" "}
+              <strong>
+                {dict.totalLabel}: {(subtotal + taxTotal).toFixed(2)}
+              </strong>
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting && <span className="spinner" />}
           {dict.submit}
         </button>
       </form>
-    </main>
+    </>
   );
 }
