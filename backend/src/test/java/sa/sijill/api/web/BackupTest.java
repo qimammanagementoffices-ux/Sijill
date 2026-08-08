@@ -128,4 +128,23 @@ class BackupTest extends AbstractIntegrationTest {
                         .content("{\"pin\":\"9999\"}"))
                 .andExpect(status().isTooManyRequests());
     }
+
+    @Test
+    void deleteRequiresSysBackupPermission() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900108");
+        String noPermToken = createEmployeeAndLogin(adminToken, "0599900109", Set.of());
+
+        mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteOfUnknownBackupReturns404() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900110");
+
+        mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
 }

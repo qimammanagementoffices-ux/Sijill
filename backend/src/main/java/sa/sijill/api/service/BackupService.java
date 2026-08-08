@@ -77,6 +77,13 @@ public class BackupService {
     }
 
     @Transactional
+    public void delete(UUID id) {
+        BackupSnapshot snapshot = get(id);
+        storageService.delete(snapshot.getStorageKey());
+        backupSnapshotRepository.delete(snapshot);
+    }
+
+    @Transactional
     public BackupSnapshot runBackup(BackupTrigger triggeredBy) {
         if (!backupLock.tryLock()) {
             throw ApiException.conflict("A backup or restore is already in progress. Try again shortly.");

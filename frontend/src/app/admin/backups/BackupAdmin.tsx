@@ -71,6 +71,17 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
     URL.revokeObjectURL(url);
   }
 
+  async function handleDelete(backup: BackupSnapshotDto) {
+    if (!window.confirm(dict.deleteConfirm)) return;
+    setError(null);
+    try {
+      await apiFetch(`/backups/${backup.id}`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : dict.deleteFailed);
+    }
+  }
+
   function triggeredByLabel(t: string) {
     if (t === "MANUAL") return dict.triggeredManual;
     if (t === "PRE_RESTORE") return dict.triggeredPreRestore;
@@ -157,6 +168,9 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
                   </button>
                   <button type="button" onClick={() => openRestoreModal(b)}>
                     {dict.restore}
+                  </button>
+                  <button type="button" onClick={() => handleDelete(b)}>
+                    {dict.delete}
                   </button>
                 </td>
               </tr>

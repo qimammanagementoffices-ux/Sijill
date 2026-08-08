@@ -256,6 +256,9 @@ export type Dictionary = {
     restoreFailed: string;
     restoreRateLimited: string;
     restoreInvalidPin: string;
+    delete: string;
+    deleteConfirm: string;
+    deleteFailed: string;
   };
   rooms: {
     title: string;

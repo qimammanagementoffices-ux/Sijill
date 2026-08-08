@@ -89,4 +89,11 @@ public class BackupController {
         backupService.restore(id, actor);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('sys.backup')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        backupService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
