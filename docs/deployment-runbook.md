@@ -64,6 +64,7 @@ in. The API went down with its DB role stuck on `NOLOGIN`. This is why
 - Manual backup: `/admin/backups` → "Run backup now" (requires `sys.backup`).
 - Restore: same page → "Restore" on any snapshot → re-enter your PIN to confirm. This always takes a fresh safety snapshot of the *current* state first (tagged "Pre-restore" in the list) before overwriting the live database, and force-logs out the current session afterward (the restore may have replaced the employee table under you).
 - Restore is rate-limited (3 attempts/60s per employee) and audited (`BACKUP_RESTORED` entries in the audit log, viewable with `sys.audit.view`).
+- **Backup history survives restores — it's the one deliberate exception to "restore rolls back everything."** The `backup_snapshot` table (and its rows — your list of backups, including ones taken after the snapshot you're restoring to) is excluded from both what gets dumped and what gets replaced during a restore. Without this, every restore would make the `/admin/backups` list appear to lose history (the target snapshot's own row, and anything created after it) even though the actual dump files in object storage are never touched — confusing enough that it's handled specially rather than left as "technically correct but alarming."
 - **After every successful restore, manually restart `sijill-api` in the Render dashboard — this is a required step, not optional cleanup.** The schema-reset-and-restore process leaves the still-running app instance's DB connection pool and cached ORM metadata stale against the new schema; every DB-backed endpoint will 500 until the service is restarted. An automatic self-restart (`System.exit(0)`, relying on Render restarting a web service whose process exits) was tried and reverted — confirmed live that it does not reliably bring the service back within any reasonable window, turning a partial problem into the whole app being stuck down. The restore-success message shown in the UI reminds the admin who triggered it to do this restart immediately.
 - If `pg_restore` itself fails partway (corrupt/incompatible dump, connection drop mid-restore), the backend automatically attempts to roll back to the pre-restore snapshot it just took, rather than leave the database empty. The error response says which happened: rolled back successfully (retry later, or investigate the original dump, and still restart `sijill-api` per the point above since the schema was reset either way), or — rare, and serious — rollback also failed, naming the pre-restore snapshot id to restore from manually via `pg_restore` on a scratch instance immediately.
 
@@ -71,10 +72,13 @@ in. The API went down with its DB role stuck on `NOLOGIN`. This is why
 scratch environment — a local `docker-compose` Postgres or a throwaway
 Render Postgres instance, pointed at by a local backend run with matching
 `PGHOST`/`PGDATABASE`/credentials — never against production. Download the
-snapshot via the admin UI, run `pg_restore --clean --if-exists -d <scratch db> <file>`
-manually, and spot-check row counts on a few core tables (`employee`,
-`inventory_item`, `asset`). This validates the dump is actually restorable,
-not just that the backup job ran.
+snapshot via the admin UI, and against an *empty* scratch database run
+`pg_restore --no-owner --no-privileges -d <scratch db> <file>` (no `--clean`
+needed since the target is already empty; the dump won't contain
+`backup_snapshot` — that table is deliberately excluded, see above), and
+spot-check row counts on a few core tables (`employee`, `inventory_item`,
+`asset`). This validates the dump is actually restorable, not just that the
+backup job ran.
 
 ## 6. Monitoring & health checks
 

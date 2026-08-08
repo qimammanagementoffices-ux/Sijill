@@ -202,6 +202,12 @@ public class BackupService {
         }
     }
 
+    // --exclude-table=public.backup_snapshot: backup history is deliberately
+    // NOT part of what restore rolls back (D5, user's explicit choice) —
+    // without this, every restore would make the backup list appear to lose
+    // history that's actually still sitting safely in object storage. See
+    // resetPublicSchema for the other half of this (preserving the live
+    // backup_snapshot table's current rows across the reset).
     private void runPgDump(Path outputFile) throws Exception {
         ProcessBuilder builder = new ProcessBuilder(
                 "pg_dump",
@@ -209,6 +215,7 @@ public class BackupService {
                 "-p", pgPort,
                 "-U", pgUsername,
                 "-Fc",
+                "--exclude-table=public.backup_snapshot",
                 "-f", outputFile.toAbsolutePath().toString(),
                 pgDatabase);
         builder.environment().put("PGPASSWORD", pgPassword);
@@ -230,6 +237,22 @@ public class BackupService {
     // limitations entirely — the standard fix for "--clean fails on
     // cross-table foreign keys," not a one-off workaround, so it'll hold
     // even if new FKs are added later.
+    //
+    // backup_snapshot is parked in a scratch schema across the reset rather
+    // than dropped with everything else — the dump being restored never
+    // contains that table (runPgDump excludes it), so if we didn't preserve
+    // it here, restore would leave the database with no backup_snapshot
+    // table at all. Moving it out and back keeps its current rows (backup
+    // history) intact and continuous across the restore, by design (D5):
+    // restore rolls back application data, not the record of backups taken.
+    //
+    // Known edge case: a target dump taken *before* this exclusion existed
+    // still contains its own backup_snapshot table/data. Restoring one of
+    // those will fail when pg_restore tries to create a table that already
+    // exists here — a clean, typed pg_restore failure, so it triggers the
+    // usual self-heal rollback (recoverToPreRestoreState) rather than
+    // corrupting anything. Ages out naturally as old snapshots expire past
+    // the retention window.
     private void resetPublicSchema() throws Exception {
         ProcessBuilder builder = new ProcessBuilder(
                 "psql",
@@ -238,7 +261,13 @@ public class BackupService {
                 "-U", pgUsername,
                 "-d", pgDatabase,
                 "-v", "ON_ERROR_STOP=1",
-                "-c", "drop schema public cascade; create schema public;");
+                "-c",
+                "create schema if not exists restore_temp; "
+                        + "alter table public.backup_snapshot set schema restore_temp; "
+                        + "drop schema public cascade; "
+                        + "create schema public; "
+                        + "alter table restore_temp.backup_snapshot set schema public; "
+                        + "drop schema restore_temp;");
         builder.environment().put("PGPASSWORD", pgPassword);
         builder.redirectErrorStream(true);
         Process process = builder.start();
