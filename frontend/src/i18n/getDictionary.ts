@@ -55,6 +55,7 @@ export type Dictionary = {
     brandingNav: string;
     backupsNav: string;
     siteMaintenanceNav: string;
+    languagesNav: string;
   };
   errors: {
     generic: string;
@@ -370,6 +371,31 @@ export type Dictionary = {
     columnHi: string;
     save: string;
     conflictNotice: string;
+  };
+  adminLanguages: {
+    title: string;
+    builtInNote: string;
+    columnCode: string;
+    columnName: string;
+    columnDirection: string;
+    directionLtr: string;
+    directionRtl: string;
+    delete: string;
+    deleteConfirm: string;
+    review: string;
+    addTitle: string;
+    codeLabel: string;
+    codeHint: string;
+    nameLabel: string;
+    directionLabel: string;
+    add: string;
+    adding: string;
+    addFailed: string;
+    reviewTitle: string;
+    reviewBack: string;
+    columnKey: string;
+    columnValue: string;
+    save: string;
   };
 };
 

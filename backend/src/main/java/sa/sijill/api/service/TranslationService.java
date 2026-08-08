@@ -2,13 +2,16 @@ package sa.sijill.api.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.domain.Translation;
+import sa.sijill.api.domain.TranslationExtraValue;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.error.StaleVersionException;
+import sa.sijill.api.repository.TranslationExtraValueRepository;
 import sa.sijill.api.repository.TranslationRepository;
 import sa.sijill.api.web.dto.TranslationDto;
 import sa.sijill.api.web.dto.UpdateTranslationRequest;
@@ -16,25 +19,44 @@ import sa.sijill.api.web.dto.UpdateTranslationRequest;
 @Service
 public class TranslationService {
 
-    private final TranslationRepository translationRepository;
+    private static final Set<String> BUILT_IN_LOCALES = Set.of("ar", "en", "hi");
 
-    public TranslationService(TranslationRepository translationRepository) {
+    private final TranslationRepository translationRepository;
+    private final TranslationExtraValueRepository translationExtraValueRepository;
+
+    public TranslationService(
+            TranslationRepository translationRepository,
+            TranslationExtraValueRepository translationExtraValueRepository) {
         this.translationRepository = translationRepository;
+        this.translationExtraValueRepository = translationExtraValueRepository;
     }
 
-    /** Unknown locale returns an empty map rather than an error — frontend falls back to raw keys. */
+    /**
+     * Unknown locale returns an empty map rather than an error — frontend
+     * falls back to raw keys. ar/en/hi come from Translation's fixed
+     * columns as before; any other locale is looked up from
+     * TranslationExtraValue (admin-added languages — decision-record.md D7).
+     */
     public Map<String, String> getDictionary(String locale) {
-        Map<String, String> result = new LinkedHashMap<>();
-        for (Translation t : translationRepository.findAll()) {
-            String value = switch (locale) {
-                case "ar" -> t.getValueAr();
-                case "en" -> t.getValueEn();
-                case "hi" -> t.getValueHi();
-                default -> null;
-            };
-            if (value != null) {
-                result.put(t.getKey(), value);
+        if (BUILT_IN_LOCALES.contains(locale)) {
+            Map<String, String> result = new LinkedHashMap<>();
+            for (Translation t : translationRepository.findAll()) {
+                String value = switch (locale) {
+                    case "ar" -> t.getValueAr();
+                    case "en" -> t.getValueEn();
+                    case "hi" -> t.getValueHi();
+                    default -> null;
+                };
+                if (value != null) {
+                    result.put(t.getKey(), value);
+                }
             }
+            return result;
+        }
+
+        Map<String, String> result = new LinkedHashMap<>();
+        for (TranslationExtraValue v : translationExtraValueRepository.findByLanguageCodeOrderByTranslationKey(locale)) {
+            result.put(v.getTranslationKey(), v.getValue());
         }
         return result;
     }

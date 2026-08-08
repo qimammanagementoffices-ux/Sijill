@@ -11,6 +11,17 @@ export type TranslationRow = {
   version: number;
 };
 
+export type LanguageDto = {
+  code: string;
+  name: string;
+  direction: "ltr" | "rtl";
+};
+
+export type TranslationExtraValueDto = {
+  key: string;
+  value: string;
+};
+
 export type EmployeeListItem = {
   id: string;
   employeeNumber: string;

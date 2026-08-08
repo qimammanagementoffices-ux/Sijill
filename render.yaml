@@ -60,8 +60,16 @@ services:
       # https://<project-ref>.supabase.co/storage/v1/object/public
       - key: OBJECT_STORAGE_PUBLIC_URL_BASE
         sync: false
+      # Off by default -- the admin "add language" feature (Phase 9) needs
+      # TRANSLATION_API_KEY set manually before it's usable; flip this to
+      # "true" once that's done. TRANSLATION_PROVIDER only supports
+      # "anthropic" today (AnthropicTranslationAiClient).
       - key: TRANSLATION_HELPER_ENABLED
         value: "false"
+      - key: TRANSLATION_PROVIDER
+        value: anthropic
+      - key: TRANSLATION_API_KEY
+        sync: false
       - key: BACKUP_RETENTION_DAYS
         value: "30"
       - key: SPRING_PROFILES_ACTIVE

@@ -166,6 +166,11 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
               <Link href="/admin/site-maintenance">{dict.siteMaintenanceNav}</Link>
             </li>
           )}
+          {canManageTranslations && (
+            <li>
+              <Link href="/admin/languages">{dict.languagesNav}</Link>
+            </li>
+          )}
         </ul>
       </nav>
 
