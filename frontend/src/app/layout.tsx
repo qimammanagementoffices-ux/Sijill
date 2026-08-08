@@ -48,9 +48,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const dir = availableLocales.find((l) => l.code === locale)?.direction ?? localeDirection[defaultLocale];
   return (
     <html lang={locale} dir={dir} style={{ ["--brand-primary" as string]: branding.primaryColor }}>
-      <body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+Devanagari:wght@400;500;700&family=Inter:wght@400;500;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      {/* lang-{locale} drives globals.css's per-language font selection
+          (Cairo for ar and any unlisted locale, Inter for en, Noto Sans
+          Devanagari for hi) -- see the CSS file's comment on why "hi" not
+          "ur" is used, matching this project's own Hindi-not-Urdu rule. */}
+      <body className={`lang-${locale}`}>
         <MaintenanceGate status={maintenance} dict={dict.siteMaintenancePage}>
-          <LocaleSwitcher locales={availableLocales} current={locale} />
           {children}
         </MaintenanceGate>
       </body>

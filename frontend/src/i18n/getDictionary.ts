@@ -33,6 +33,10 @@ export type Dictionary = {
     genericError: string;
   };
   dashboard: {
+    appName: string;
+    appTagline: string;
+    dashboardNav: string;
+    adminEyebrow: string;
     welcomeMessage: string;
     logout: string;
     employeesNav: string;
