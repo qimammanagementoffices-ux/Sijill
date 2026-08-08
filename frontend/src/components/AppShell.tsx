@@ -186,7 +186,9 @@ export default function AppShell({
           </button>
           <div className="topbar-right" style={{ marginInlineStart: "auto" }}>
             <LocaleSwitcher locales={locales} current={currentLocale} />
-            <div className="avatar">{initial}</div>
+            <div className="avatar" title={employee.name}>
+              {initial}
+            </div>
             <button type="button" className="logout-btn" onClick={handleLogout}>
               {dict.logout}
             </button>
