@@ -13,6 +13,7 @@ import type { Dictionary } from "@/i18n/getDictionary";
 type Props = {
   dict: Dictionary["employees"];
   errorsDict: Dictionary["errors"];
+  permissionDict: Dictionary["permission"];
   mode: "create" | "edit";
   initial?: EmployeeDetail;
   departments: LocalizedEntityDto[];
@@ -25,6 +26,7 @@ type Props = {
 export default function EmployeeForm({
   dict,
   errorsDict,
+  permissionDict,
   mode,
   initial,
   departments,
@@ -200,7 +202,12 @@ export default function EmployeeForm({
           <h3>{dict.permissionsLabel}</h3>
         </div>
         <div className="panel-body">
-          <PermissionGrid allPermissions={allPermissions} selected={permissionKeys} onChange={setPermissionKeys} />
+          <PermissionGrid
+            allPermissions={allPermissions}
+            selected={permissionKeys}
+            onChange={setPermissionKeys}
+            permissionDict={permissionDict}
+          />
         </div>
       </div>
 

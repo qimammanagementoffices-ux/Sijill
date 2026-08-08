@@ -4,5 +4,5 @@ import NewEmployeeView from "./NewEmployeeView";
 
 export default async function NewEmployeePage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <NewEmployeeView dict={dict.employees} errorsDict={dict.errors} />;
+  return <NewEmployeeView dict={dict.employees} errorsDict={dict.errors} permissionDict={dict.permission} />;
 }

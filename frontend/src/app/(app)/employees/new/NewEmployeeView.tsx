@@ -12,9 +12,11 @@ import type { Dictionary } from "@/i18n/getDictionary";
 export default function NewEmployeeView({
   dict,
   errorsDict,
+  permissionDict,
 }: {
   dict: Dictionary["employees"];
   errorsDict: Dictionary["errors"];
+  permissionDict: Dictionary["permission"];
 }) {
   const router = useRouter();
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
@@ -48,6 +50,7 @@ export default function NewEmployeeView({
       <EmployeeForm
         dict={dict}
         errorsDict={errorsDict}
+        permissionDict={permissionDict}
         mode="create"
         departments={departments}
         jobTitles={jobTitles}

@@ -106,6 +106,12 @@ export type Dictionary = {
     addNew: string;
     save: string;
   };
+  // Flat lookup for permission.<key with dots as underscores> translation
+  // rows (descriptions, group headings, sub-headings) -- indexed by string
+  // since permission keys are dynamic (the DB catalogue, not a fixed enum),
+  // unlike every other dict section here. Singular "permission" to match
+  // the translation key prefix ("permission.emp_view", ...).
+  permission: Record<string, string>;
   warehouseItems: {
     title: string;
     searchPlaceholder: string;

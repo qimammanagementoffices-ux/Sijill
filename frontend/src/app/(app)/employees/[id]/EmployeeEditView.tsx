@@ -15,11 +15,13 @@ export default function EmployeeEditView({
   dict,
   errorsDict,
   commonDict,
+  permissionDict,
 }: {
   id: string;
   dict: Dictionary["employees"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
+  permissionDict: Dictionary["permission"];
 }) {
   const router = useRouter();
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
@@ -88,6 +90,7 @@ export default function EmployeeEditView({
         key={employee.version}
         dict={dict}
         errorsDict={errorsDict}
+        permissionDict={permissionDict}
         mode="edit"
         initial={employee}
         departments={departments}
