@@ -25,7 +25,15 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
+          return;
         }
+        // Any other failure (500, network error) used to be swallowed here,
+        // leaving `languages` permanently null and the whole page rendering
+        // nothing -- a blank page with no indication anything went wrong.
+        // Surface it and fall back to an empty list so the built-in
+        // ar/en/hi rows and the add-language form still render.
+        setError(err instanceof ApiError ? err.message : String(err));
+        setLanguages([]);
       });
   }
 
