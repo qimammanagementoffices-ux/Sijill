@@ -126,7 +126,9 @@ Scope: schema-critical decisions only. These four items change entity shape, tab
 - **Naming:** everything here uses a `siteMaintenance*` prefix throughout (dict keys, nav label, route `/admin/site-maintenance`) — deliberately distinct from the app's existing `maintenance*` naming, which already belongs to the unrelated building-maintenance-request module (fault reporting/repair workflow, `mt.*` permissions). Mixing the two would be a serious, easy-to-make naming collision.
 - **Reopen timer:** informational only. It renders a live countdown on the maintenance page, but does **not** automatically flip `enabled` back to false — an admin always does that explicitly. No scheduler/job was added for this; matches the "admin chooses when to close/reopen" framing of the original request rather than adding an unrequested auto-reopen mechanism.
 
-**Schema impact:** new `maintenance_setting` table (V22), new `sys.maintenance` permission (V21), `AttachmentOwnerType` gains a `MAINTENANCE` variant (no migration — it's a Java enum backing a `varchar` column, not a DB-level enum type).
+**Schema impact:** new `maintenance_setting` table (V22), new `sys.maintenance` permission (V21), `AttachmentOwnerType` gains a `MAINTENANCE` variant.
+
+**Bug found live post-deploy, fixed in V27:** the "no migration needed for the new `AttachmentOwnerType` value" reasoning above was wrong — `attachment.owner_type` has an explicit `CHECK (owner_type IN (...))` constraint from V10, not a bare unconstrained `varchar`. Every maintenance-image upload was failing with a 409 ("This action conflicts with existing data" — `DataIntegrityViolationException` on the CHECK violation) because `'MAINTENANCE'` was never added to the allowed list. `V27__widen_attachment_owner_type_check.sql` drops and re-adds the constraint with `'MAINTENANCE'` included, same pattern as V15 widening `backup_snapshot`'s trigger check. Lesson for any future `AttachmentOwnerType` addition: check V10 for the CHECK constraint, don't assume the column is unconstrained.
 
 ---
 
