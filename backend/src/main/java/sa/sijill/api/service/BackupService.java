@@ -84,11 +84,19 @@ public class BackupService {
     // schema (including employee) out from under any open JPA transaction.
     // Only the bookkeeping (marking the snapshot restored, the audit entry)
     // needs a transaction, committed after the subprocesses have already
-    // succeeded — and scheduleRestart() then exits the JVM shortly after,
-    // since Hikari's pool and Hibernate's cached metadata are now stale
-    // against whatever schema just replaced the old one; nothing short of a
-    // fresh process reliably clears that (confirmed live: the app stayed up
-    // but every DB-backed endpoint 500'd until manually restarted).
+    // succeeded.
+    //
+    // Deliberately does NOT try to self-restart the process afterward — an
+    // earlier version called System.exit(0) here on the assumption Render
+    // restarts a web service whose process exits, relying on Hikari's pool /
+    // Hibernate's cached metadata being stale against the schema that just
+    // replaced the old one. That assumption didn't hold up live: the process
+    // exiting did not reliably bring the service back within any reasonable
+    // window, turning "some endpoints error until a restart" into "the whole
+    // app stuck down until someone manually restarts it in the Render
+    // dashboard" — a worse failure mode than the one it was meant to fix.
+    // Manually restarting sijill-api after a restore is now a documented
+    // required step (docs/deployment-runbook.md §5) instead.
     public void restore(UUID snapshotId, Employee actor) {
         BackupSnapshot target = get(snapshotId);
         BackupSnapshot preRestoreSnapshot = captureSnapshot(BackupTrigger.PRE_RESTORE);
@@ -104,7 +112,6 @@ public class BackupService {
                 return;
             }
             restoreBookkeeper.markRestored(snapshotId, actor);
-            scheduleRestart();
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
@@ -127,7 +134,6 @@ public class BackupService {
         try {
             downloadTo(preRestoreSnapshot, recoveryFile);
             runPgRestore(recoveryFile);
-            scheduleRestart();
             throw ApiException.internal(
                     "Restore failed and the database was automatically rolled back to its pre-restore state. Original error: "
                             + originalFailure.getMessage());
@@ -141,28 +147,6 @@ public class BackupService {
         } finally {
             deleteQuietly(recoveryFile);
         }
-    }
-
-    // Exits the JVM shortly after this call, once the current HTTP response
-    // has had time to flush to the client — Render restarts a web service's
-    // container when its process exits, which is what actually clears the
-    // stale Hikari pool / Hibernate metadata after an in-place schema swap.
-    // Any other in-flight requests at that moment get dropped, an accepted
-    // tradeoff: a restore already invalidates every other active session's
-    // view of the database regardless of whether the process restarts.
-    private void scheduleRestart() {
-        Thread restarter = new Thread(
-                () -> {
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    System.exit(0);
-                },
-                "post-restore-restart");
-        restarter.setDaemon(false);
-        restarter.start();
     }
 
     private Path createTempDumpFile(String prefix) {
