@@ -289,7 +289,6 @@ export type BackupSnapshotDto = {
   sizeBytes: number;
   triggeredBy: "SCHEDULED" | "MANUAL" | "PRE_RESTORE";
   createdAt: string;
-  restoredAt: string | null;
 };
 
 export type BrandingDto = {

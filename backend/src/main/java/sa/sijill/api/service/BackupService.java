@@ -72,14 +72,15 @@ public class BackupService {
 
     // Restore is destructive, so it always takes a fresh safety snapshot of
     // the current (about-to-be-overwritten) state first, tagged PRE_RESTORE,
-    // before pulling the target dump down and running pg_restore against the
-    // live database. The pg_restore subprocess deliberately runs outside any
-    // single @Transactional scope — it opens its own libpq connection, not
-    // one from the JPA/Hikari pool, and --clean will drop/recreate tables
-    // (including employee) out from under any open JPA transaction. Only the
-    // bookkeeping (marking the snapshot restored, the audit entry) needs a
-    // transaction, and it's committed after the subprocess has already
-    // succeeded.
+    // before resetting the schema and running pg_restore against the live
+    // database (see resetPublicSchema/runPgRestore for why the schema is
+    // reset rather than relying on pg_restore's own --clean). Both
+    // subprocesses deliberately run outside any single @Transactional scope
+    // — they open their own libpq connections, not one from the JPA/Hikari
+    // pool, and they replace the schema (including employee) out from under
+    // any open JPA transaction. Only the bookkeeping (marking the snapshot
+    // restored, the audit entry) needs a transaction, and it's committed
+    // after both subprocesses have already succeeded.
     public void restore(UUID snapshotId, Employee actor) {
         BackupSnapshot target = get(snapshotId);
         captureSnapshot(BackupTrigger.PRE_RESTORE);
@@ -95,6 +96,7 @@ public class BackupService {
             try (var stream = storageService.downloadPrivateFile(target.getStorageKey())) {
                 Files.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             }
+            resetPublicSchema();
             runPgRestore(tempFile);
             restoreBookkeeper.markRestored(snapshotId, actor);
         } catch (ApiException e) {
@@ -160,18 +162,53 @@ public class BackupService {
         }
     }
 
+    // pg_restore's own --clean mode is not reliable here: its DROP
+    // statements aren't CASCADE and don't reliably order themselves around
+    // cross-table foreign keys — confirmed live in production, where it
+    // failed trying to drop `employee` while a backup_snapshot FK still
+    // referenced it (see decision-record.md D5). Resetting the schema first
+    // and restoring into it empty sidesteps pg_restore's DROP-ordering
+    // limitations entirely — the standard fix for "--clean fails on
+    // cross-table foreign keys," not a one-off workaround, so it'll hold
+    // even if new FKs are added later.
+    private void resetPublicSchema() throws Exception {
+        ProcessBuilder builder = new ProcessBuilder(
+                "psql",
+                "-h", pgHost,
+                "-p", pgPort,
+                "-U", pgUsername,
+                "-d", pgDatabase,
+                "-v", "ON_ERROR_STOP=1",
+                "-c", "drop schema public cascade; create schema public;");
+        builder.environment().put("PGPASSWORD", pgPassword);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes());
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw ApiException.internal("Failed to reset schema before restore: exited with code " + exitCode + ": " + output);
+        }
+    }
+
     private void runPgRestore(Path inputFile) throws Exception {
-        // -Fc dumps aren't restorable into a non-empty database without
-        // --clean --if-exists (they don't wipe existing objects first) —
-        // this drops and recreates every table, including employee, so the
-        // caller's own session/PIN may no longer be valid afterward.
+        // --no-owner --no-privileges: the dump replays ALTER DEFAULT
+        // PRIVILEGES/GRANT statements tied to whichever role originally
+        // owned the database (Render's "postgres" superuser role), which
+        // our own connected role can't execute — irrelevant anyway since
+        // we're restoring into an already-provisioned database whose
+        // ownership/grants don't need replaying.
+        // --single-transaction: the schema is already empty (resetPublicSchema
+        // ran first), so any failure here should roll back atomically rather
+        // than leave a partially-restored database — no --clean/--if-exists
+        // needed for the same reason.
         ProcessBuilder builder = new ProcessBuilder(
                 "pg_restore",
                 "-h", pgHost,
                 "-p", pgPort,
                 "-U", pgUsername,
-                "--clean",
-                "--if-exists",
+                "--no-owner",
+                "--no-privileges",
+                "--single-transaction",
                 "-d", pgDatabase,
                 inputFile.toAbsolutePath().toString());
         builder.environment().put("PGPASSWORD", pgPassword);
