@@ -99,6 +99,21 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
     }
   }
 
+  async function handleImageRemove() {
+    if (!setting?.imageAttachmentId) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const attachmentId = setting.imageAttachmentId;
+      await save(null);
+      await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
   if (!setting) return null;
 
   return (
@@ -136,7 +151,14 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
           disabled={uploading}
         />
       </label>
-      {setting.imageUrl && <img src={setting.imageUrl} alt="" style={{ maxWidth: 300 }} />}
+      {setting.imageUrl && (
+        <div>
+          <img src={setting.imageUrl} alt="" style={{ maxWidth: 300, display: "block" }} />
+          <button type="button" onClick={handleImageRemove} disabled={uploading}>
+            {dict.removeImage}
+          </button>
+        </div>
+      )}
 
       <label>
         {dict.reopenAtLabel}

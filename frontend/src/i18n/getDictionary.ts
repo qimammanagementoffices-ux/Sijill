@@ -278,6 +278,7 @@ export type Dictionary = {
     messageEnLabel: string;
     messageHiLabel: string;
     imageLabel: string;
+    removeImage: string;
     reopenAtLabel: string;
     save: string;
     saveSuccess: string;
