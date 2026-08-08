@@ -9,6 +9,7 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import type { LocaleInfo } from "@/i18n/locales";
 import type { BrandingDto } from "@/lib/types";
 import LocaleSwitcher from "./LocaleSwitcher";
+import BrandSeal from "./BrandSeal";
 
 type EmployeeSummary = {
   id: string;
@@ -136,6 +137,16 @@ export default function AppShell({
     },
   ].filter((g) => g.items.length > 0);
 
+  // Pick the single longest href that matches the current path (e.g. on
+  // /assets/categories, prefer that exact nav entry over the broader
+  // /assets one it would otherwise also match via startsWith) rather than
+  // letting every ancestor route light up at once.
+  const activeHref = navGroups
+    .flatMap((g) => g.items)
+    .map((item) => item.href)
+    .filter((href) => pathname === href || pathname?.startsWith(href + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+
   const initial = employee.name.trim().charAt(0).toUpperCase() || "?";
 
   return (
@@ -143,7 +154,7 @@ export default function AppShell({
       {navOpen && <div className="nav-backdrop no-print" onClick={() => setNavOpen(false)} />}
       <aside className={`sidebar no-print${navOpen ? " open" : ""}`}>
         <div className="brand">
-          <div className="brand-seal">{branding.logoUrl ? <img src={branding.logoUrl} alt="" /> : "س"}</div>
+          <BrandSeal logoUrl={branding.logoUrl} className="brand-seal" />
           <h1 className="disp">{branding.platformName || dict.appName}</h1>
           <p>{branding.subtitle || dict.appTagline}</p>
         </div>
@@ -155,7 +166,7 @@ export default function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`nav-item${pathname === item.href || pathname?.startsWith(item.href + "/") ? " active" : ""}`}
+                  className={`nav-item${item.href === activeHref ? " active" : ""}`}
                 >
                   {item.label}
                 </Link>

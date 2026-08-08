@@ -162,7 +162,7 @@ export default function StructureAdminView({
               value={newNameEn}
               onChange={(e) => setNewNameEn(e.target.value)}
               placeholder={dict.nameEnLabel}
-              dir="auto"
+              dir="rtl"
               required
               style={{
                 flex: "1 1 200px",

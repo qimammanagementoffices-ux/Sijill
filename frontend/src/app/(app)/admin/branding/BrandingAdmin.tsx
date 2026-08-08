@@ -188,8 +188,8 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         </p>
       )}
 
-      <div className="modal">
-        <div className="modal-body">
+      <div className="panel">
+        <div className="panel-body">
           <div className="branding-row">
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt="logo" style={{ maxWidth: 90, borderRadius: 8 }} />
@@ -284,7 +284,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
             </div>
           </div>
         </div>
-        <div className="modal-foot">
+        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8 }}>
           <button type="button" className="btn btn-outline btn-sm" onClick={handleReset}>
             {dict.reset}
           </button>
