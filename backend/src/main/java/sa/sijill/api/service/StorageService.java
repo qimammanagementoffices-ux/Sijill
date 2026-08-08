@@ -1,13 +1,17 @@
 package sa.sijill.api.service;
 
+import java.nio.file.Path;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import sa.sijill.api.error.ApiException;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 // Wraps the S3-compatible client for Supabase Storage. Storage keys are
@@ -48,6 +52,26 @@ public class StorageService {
             throw ApiException.internal("Failed to upload file");
         }
         return new UploadResult(key, publicUrlBase + "/" + bucket + "/" + key);
+    }
+
+    // For files that must never be reachable by a public URL (e.g. database
+    // backups containing PII/PIN hashes) — uploads without returning a
+    // public URL, and downloads stream back through our own authenticated
+    // endpoint instead of the bucket's public path.
+    public String uploadPrivateFile(Path filePath, String keyPrefix, String contentType) {
+        String key = keyPrefix + "/" + UUID.randomUUID() + ".dump";
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),
+                    RequestBody.fromFile(filePath));
+        } catch (Exception e) {
+            throw ApiException.internal("Failed to upload file");
+        }
+        return key;
+    }
+
+    public ResponseInputStream<GetObjectResponse> downloadPrivateFile(String storageKey) {
+        return s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(storageKey).build());
     }
 
     // Best-effort: an unreachable/misconfigured object store shouldn't block
