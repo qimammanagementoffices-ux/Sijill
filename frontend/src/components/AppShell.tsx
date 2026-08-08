@@ -57,7 +57,16 @@ export default function AppShell({
     router.push("/login");
   }
 
-  if (!employee) return null;
+  // A blank page while /auth/me is in flight (which can take a few seconds
+  // against a cold-started free-tier backend) read as "did my click even
+  // land" -- show a spinner instead of nothing.
+  if (!employee) {
+    return (
+      <div className="full-page-loading">
+        <span className="spinner spinner-lg" />
+      </div>
+    );
+  }
 
   const canViewEmployees =
     employee.permissions.includes("emp.view") || employee.permissions.includes("emp.manage");

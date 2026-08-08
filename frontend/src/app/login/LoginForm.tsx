@@ -108,6 +108,7 @@ export default function LoginForm({
           </p>
         )}
         <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 18 }} disabled={submitting}>
+          {submitting && <span className="spinner" />}
           {dict.submit}
         </button>
       </form>
