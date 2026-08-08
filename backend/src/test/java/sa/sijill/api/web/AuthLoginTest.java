@@ -8,23 +8,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
 import sa.sijill.api.web.dto.FirstAdminRequest;
 import sa.sijill.api.web.dto.LoginRequest;
 
-// Dirties the context after this class so the in-memory LoginRateLimiter
-// singleton (deliberately not DB state, so @Transactional rollback doesn't
-// touch it) can't leak rate-limit counters into other test classes.
-//
-// Each test also uses its own phone number — the rate limiter is keyed by
-// phone and isn't reset between test methods within this class either
-// (only DB state rolls back), so two tests sharing a phone can trip one
-// another's counter depending on JUnit's (unspecified) method order.
+// LoginRateLimiter is now backed by RateLimitStore (Postgres, via
+// JdbcTemplate against the same DataSource as everything else) rather than
+// an in-memory singleton -- its writes participate in this test's
+// transaction like any other DB write, so @Transactional rollback now
+// covers it too. No more @DirtiesContext / unique-phone-per-test workaround
+// needed for cross-test leakage.
 @Transactional
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AuthLoginTest extends AbstractIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
