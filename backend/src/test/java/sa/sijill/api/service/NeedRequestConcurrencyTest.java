@@ -3,6 +3,7 @@ package sa.sijill.api.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -11,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,8 +26,10 @@ import sa.sijill.api.domain.InventoryItem;
 import sa.sijill.api.domain.NeedRequest;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.AssetRepository;
+import sa.sijill.api.repository.AuditLogRepository;
 import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.repository.InventoryItemRepository;
+import sa.sijill.api.repository.NeedRequestRepository;
 import sa.sijill.api.web.dto.CreateAssetRequest;
 import sa.sijill.api.web.dto.CreateNeedRequestRequest;
 import sa.sijill.api.web.dto.FinishNeedRequestRequest;
@@ -39,6 +43,15 @@ import sa.sijill.api.web.dto.NeedRequestLineRequest;
  * class-level @Transactional (unlike most other integration tests) — each
  * thread needs its own real connection/transaction against the shared
  * Testcontainers Postgres instance, not one shared, rolled-back transaction.
+ *
+ * That means everything created here is permanently committed, unlike every
+ * other test class — left uncleaned, the leftover employees break the
+ * "no employees exist yet" precondition that /onboarding/first-admin (and
+ * therefore almost every other test's bootstrap helper) depends on. Every
+ * created row is tracked and deleted in @AfterEach, in FK-safe order (audit
+ * log entries reference the actor employee; need requests cascade-delete
+ * their own lines/actions but must go before the employee and item rows
+ * they reference).
  */
 class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
 
@@ -47,7 +60,28 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
     @Autowired private InventoryItemRepository inventoryItemRepository;
     @Autowired private AssetRepository assetRepository;
     @Autowired private EmployeeRepository employeeRepository;
+    @Autowired private NeedRequestRepository needRequestRepository;
+    @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+
+    private final List<UUID> createdEmployeeIds = new ArrayList<>();
+    private final List<UUID> createdNeedRequestIds = new ArrayList<>();
+    private final List<UUID> createdInventoryItemIds = new ArrayList<>();
+    // Populated from a background thread in attemptCreateAsset — only ever
+    // by whichever of the two racing threads actually wins, but synchronized
+    // regardless since it's still a cross-thread write.
+    private final List<UUID> createdAssetIds = java.util.Collections.synchronizedList(new ArrayList<>());
+
+    @AfterEach
+    void cleanUpCommittedData() {
+        auditLogRepository.deleteAll(auditLogRepository.findAll().stream()
+                .filter(log -> log.getActor() != null && createdEmployeeIds.contains(log.getActor().getId()))
+                .toList());
+        createdNeedRequestIds.forEach(needRequestRepository::deleteById);
+        createdAssetIds.forEach(assetRepository::deleteById);
+        createdInventoryItemIds.forEach(inventoryItemRepository::deleteById);
+        createdEmployeeIds.forEach(employeeRepository::deleteById);
+    }
 
     private Employee createEmployee(String phone) {
         Employee employee = new Employee();
@@ -57,7 +91,9 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         employee.setPinHash(passwordEncoder.encode("1234"));
         employee.setJoinedDate(LocalDate.now());
         employee.setActive(true);
-        return employeeRepository.save(employee);
+        Employee saved = employeeRepository.save(employee);
+        createdEmployeeIds.add(saved.getId());
+        return saved;
     }
 
     private InventoryItem createItem(String code, int quantity) {
@@ -70,13 +106,16 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         item.setMinQuantity(0);
         item.setDateAdded(LocalDate.now());
         item.setActive(true);
-        return inventoryItemRepository.save(item);
+        InventoryItem saved = inventoryItemRepository.save(item);
+        createdInventoryItemIds.add(saved.getId());
+        return saved;
     }
 
     private NeedRequest submitAndApprove(UUID itemId, Employee actor) {
         NeedRequest request = needRequestService.submit(
                 new CreateNeedRequestRequest(null, null, "concurrency test", List.of(new NeedRequestLineRequest(itemId, 1))),
                 actor);
+        createdNeedRequestIds.add(request.getId());
         return needRequestService.approve(request.getId(), actor);
     }
 
@@ -137,10 +176,11 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         ready.countDown();
         go.await();
         try {
-            assetService.create(
+            var created = assetService.create(
                     new CreateAssetRequest(
                             assetNumber, "أصل", "Asset", null, null, null, AssetStatus.ACTIVE, null, null, null, null),
                     actor);
+            createdAssetIds.add(created.getId());
             return true;
         } catch (ApiException | DataIntegrityViolationException e) {
             return false;
