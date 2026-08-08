@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import ItemForm from "@/components/ItemForm";
+import SectionLoading from "@/components/SectionLoading";
 import type { CategoryDto, InventoryItemDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -33,11 +34,12 @@ export default function NewItemView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  if (!categories) return null;
+  if (!categories) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.addNew}</h1>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.addNew}</h1>
       <ItemForm
         dict={dict}
         errorsDict={errorsDict}
@@ -46,6 +48,6 @@ export default function NewItemView({
         basePath={itemBasePath}
         onSubmitted={(item: InventoryItemDetail) => router.push(`${itemBasePath}/${item.id}`)}
       />
-    </main>
+    </>
   );
 }

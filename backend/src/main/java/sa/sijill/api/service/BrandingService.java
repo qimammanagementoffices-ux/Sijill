@@ -18,6 +18,7 @@ public class BrandingService {
 
     private static final String DEFAULT_PRESET = "default";
     private static final String DEFAULT_COLOR = "#0f766e";
+    private static final String DEFAULT_ACCENT_COLOR = "#8B2635";
 
     private final BrandingSettingRepository brandingSettingRepository;
     private final AttachmentRepository attachmentRepository;
@@ -43,10 +44,16 @@ public class BrandingService {
             throw new StaleVersionException(BrandingDto.from(setting));
         }
         validateColor(request.primaryColor());
+        validateColor(request.accentColor());
 
         UUID previousLogoId = setting.getLogoAttachment() == null ? null : setting.getLogoAttachment().getId();
         setting.setPreset(request.preset());
         setting.setPrimaryColor(request.primaryColor());
+        setting.setAccentColor(request.accentColor());
+        setting.setPlatformName(blankToNull(request.platformName()));
+        setting.setSchoolName(blankToNull(request.schoolName()));
+        setting.setSchoolLabel(blankToNull(request.schoolLabel()));
+        setting.setSubtitle(blankToNull(request.subtitle()));
         setting.setLogoAttachment(resolveAttachment(request.logoAttachmentId()));
         BrandingSetting saved = brandingSettingRepository.save(setting);
 
@@ -65,6 +72,11 @@ public class BrandingService {
         UUID previousLogoId = setting.getLogoAttachment() == null ? null : setting.getLogoAttachment().getId();
         setting.setPreset(DEFAULT_PRESET);
         setting.setPrimaryColor(DEFAULT_COLOR);
+        setting.setAccentColor(DEFAULT_ACCENT_COLOR);
+        setting.setPlatformName(null);
+        setting.setSchoolName(null);
+        setting.setSchoolLabel(null);
+        setting.setSubtitle(null);
         setting.setLogoAttachment(null);
         BrandingSetting saved = brandingSettingRepository.save(setting);
 
@@ -82,7 +94,11 @@ public class BrandingService {
 
     private void validateColor(String color) {
         if (color == null || !color.matches("^#[0-9a-fA-F]{6}$")) {
-            throw ApiException.validation("Invalid color", Map.of("primaryColor", "must be a #RRGGBB hex color"));
+            throw ApiException.validation("Invalid color", Map.of("color", "must be a #RRGGBB hex color"));
         }
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 }

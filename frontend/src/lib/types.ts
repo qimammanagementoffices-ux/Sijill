@@ -305,6 +305,11 @@ export type BackupSnapshotDto = {
 export type BrandingDto = {
   preset: string;
   primaryColor: string;
+  accentColor: string;
+  platformName: string | null;
+  schoolName: string | null;
+  schoolLabel: string | null;
+  subtitle: string | null;
   logoAttachmentId: string | null;
   logoUrl: string | null;
   version: number;

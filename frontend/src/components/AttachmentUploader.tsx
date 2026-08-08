@@ -68,29 +68,34 @@ export default function AttachmentUploader({
   if (!attachments) return null;
 
   return (
-    <div>
-      <h3>{dict.title}</h3>
-      {error && <p role="alert">{error}</p>}
+    <div className="panel-body" style={{ padding: "14px 0 0" }}>
+      <h3 style={{ margin: "0 0 10px", fontSize: 13.5 }}>{dict.title}</h3>
+      {error && (
+        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 8 }}>
+          {error}
+        </p>
+      )}
 
-      {attachments.length === 0 && <p>{dict.noAttachments}</p>}
+      {attachments.length === 0 && <p style={{ fontSize: 12.5, color: "var(--slate)" }}>{dict.noAttachments}</p>}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+      <div className="thumb-strip">
         {attachments.map((a) => (
-          <div key={a.id}>
+          <div key={a.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
             {a.contentType.startsWith("image/") ? (
               <img
                 src={a.url}
                 alt={a.filename}
+                data-viewable
                 onClick={() => setPreview(a)}
-                style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer" }}
+                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }}
               />
             ) : (
-              <a href={a.url} target="_blank" rel="noopener noreferrer">
+              <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11 }}>
                 {a.filename}
               </a>
             )}
             {canManage && (
-              <button type="button" onClick={() => handleDelete(a.id)}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleDelete(a.id)}>
                 {dict.delete}
               </button>
             )}
@@ -99,9 +104,18 @@ export default function AttachmentUploader({
       </div>
 
       {canManage && (
-        <div>
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileSelected} />
-          {uploading && <span>{dict.uploading}</span>}
+        <div className="filebox" style={{ marginTop: 10 }}>
+          <label className="upl">
+            {dict.title}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onChange={handleFileSelected}
+              style={{ display: "none" }}
+            />
+          </label>
+          {uploading && <span className="spinner" />}
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/apiClient";
 import { clearToken, getToken } from "@/lib/auth";
 import type { Dictionary } from "@/i18n/getDictionary";
 import type { LocaleInfo } from "@/i18n/locales";
+import type { BrandingDto } from "@/lib/types";
 import LocaleSwitcher from "./LocaleSwitcher";
 
 type EmployeeSummary = {
@@ -26,11 +27,13 @@ export default function AppShell({
   dict,
   locales,
   currentLocale,
+  branding,
   children,
 }: {
   dict: Dictionary["dashboard"];
   locales: LocaleInfo[];
   currentLocale: string;
+  branding: BrandingDto;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -140,9 +143,9 @@ export default function AppShell({
       {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
       <aside className={`sidebar${navOpen ? " open" : ""}`}>
         <div className="brand">
-          <div className="brand-seal">س</div>
-          <h1 className="disp">{dict.appName}</h1>
-          <p>{dict.appTagline}</p>
+          <div className="brand-seal">{branding.logoUrl ? <img src={branding.logoUrl} alt="" /> : "س"}</div>
+          <h1 className="disp">{branding.platformName || dict.appName}</h1>
+          <p>{branding.subtitle || dict.appTagline}</p>
         </div>
         <nav className="nav">
           {navGroups.map((group, i) => (

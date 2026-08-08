@@ -13,7 +13,7 @@
   --paper: #f7f3ea;
   --paper-dim: #efe7d6;
   --card: #ffffff;
-  --seal: #8b2635;
+  --seal: var(--brand-accent, #8b2635);
   --seal-soft: #f4e4e3;
   --sage: #3e7a57;
   --sage-soft: #e3efe4;

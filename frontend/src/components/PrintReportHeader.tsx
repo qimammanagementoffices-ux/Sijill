@@ -8,6 +8,10 @@ import type { Dictionary } from "@/i18n/getDictionary";
 // Shared header for every printable A4 report (master spec §7): branding
 // logo/name, report title, generated timestamp, and an optional
 // filters-summary line so a printed page shows what it's scoped to.
+// schoolName/schoolLabel (from BrandingAdmin's "identity" fields) print
+// under the platform name/logo when the admin has set them -- otherwise
+// this falls back to just the platform name, same as before those fields
+// existed.
 export default function PrintReportHeader({
   title,
   filtersSummary,
@@ -26,14 +30,26 @@ export default function PrintReportHeader({
   }, []);
 
   return (
-    <header style={{ borderBottom: "2px solid #ccc", paddingBottom: "0.5rem", marginBottom: "1rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        {branding?.logoUrl && <img src={branding.logoUrl} alt="" style={{ height: 40 }} />}
-        <strong>{dict.appName}</strong>
+    <header className="ps-header">
+      <div className="ps-header-left">
+        {branding?.logoUrl && (
+          <div className="ps-seal">
+            <img src={branding.logoUrl} alt="" />
+          </div>
+        )}
+        <div className="ps-school">
+          <div className="n1">{branding?.platformName || dict.appName}</div>
+          {branding?.schoolName && <div className="n2">{branding.schoolName}</div>}
+          {branding?.schoolLabel && <div className="n2">{branding.schoolLabel}</div>}
+        </div>
       </div>
-      <h1>{title}</h1>
-      {filtersSummary && <p>{filtersSummary}</p>}
-      <p>{dict.generatedAt}: {new Date().toLocaleString()}</p>
+      <div className="ps-doc-meta">
+        <div>{title}</div>
+        {filtersSummary && <div>{filtersSummary}</div>}
+        <div>
+          {dict.generatedAt}: {new Date().toLocaleString()}
+        </div>
+      </div>
     </header>
   );
 }

@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import ItemForm from "@/components/ItemForm";
 import AttachmentUploader from "@/components/AttachmentUploader";
+import SectionLoading from "@/components/SectionLoading";
 import type { CategoryDto, InventoryItemDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -58,12 +59,13 @@ export default function ItemEditView({
     load();
   }
 
-  if (!item || !categories) return null;
+  if (!item || !categories) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>
-        {item.nameAr} ({item.code})
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">
+        {item.nameAr} <span className="mono" style={{ fontSize: 16, color: "var(--slate)" }}>({item.code})</span>
       </h1>
       <ItemForm
         key={item.version}
@@ -76,11 +78,13 @@ export default function ItemEditView({
         onSubmitted={setItem}
       />
       {item.active && (
-        <button type="button" onClick={handleDeactivate}>
+        <button type="button" className="btn btn-seal btn-sm" style={{ marginTop: 10 }} onClick={handleDeactivate}>
           {dict.deactivate}
         </button>
       )}
-      <AttachmentUploader ownerType="INVENTORY_ITEM" ownerId={item.id} dict={attachmentsDict} canManage={canManage} />
-    </main>
+      <div className="panel">
+        <AttachmentUploader ownerType="INVENTORY_ITEM" ownerId={item.id} dict={attachmentsDict} canManage={canManage} />
+      </div>
+    </>
   );
 }

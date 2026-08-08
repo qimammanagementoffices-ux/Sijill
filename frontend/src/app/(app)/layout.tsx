@@ -1,6 +1,7 @@
 import { getDictionary } from "@/i18n/getDictionary";
 import { getRequestLocale } from "@/i18n/getRequestLocale";
 import { getAvailableLocales } from "@/i18n/locales";
+import { getBranding } from "@/lib/getBranding";
 import AppShell from "@/components/AppShell";
 
 // Wraps every authenticated route (dashboard, employees, warehouse,
@@ -10,9 +11,13 @@ import AppShell from "@/components/AppShell";
 // instead of as a standalone page with no navigation chrome.
 export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const locale = await getRequestLocale();
-  const [dict, locales] = await Promise.all([getDictionary(locale), getAvailableLocales()]);
+  const [dict, locales, branding] = await Promise.all([
+    getDictionary(locale),
+    getAvailableLocales(),
+    getBranding(),
+  ]);
   return (
-    <AppShell dict={dict.dashboard} locales={locales} currentLocale={locale}>
+    <AppShell dict={dict.dashboard} locales={locales} currentLocale={locale} branding={branding}>
       {children}
     </AppShell>
   );

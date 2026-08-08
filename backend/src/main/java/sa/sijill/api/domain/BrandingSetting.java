@@ -24,6 +24,21 @@ public class BrandingSetting {
     @Column(name = "primary_color", nullable = false)
     private String primaryColor;
 
+    @Column(name = "accent_color", nullable = false)
+    private String accentColor;
+
+    @Column(name = "platform_name")
+    private String platformName;
+
+    @Column(name = "school_name")
+    private String schoolName;
+
+    @Column(name = "school_label")
+    private String schoolLabel;
+
+    @Column(name = "subtitle")
+    private String subtitle;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "logo_attachment_id")
     private Attachment logoAttachment;

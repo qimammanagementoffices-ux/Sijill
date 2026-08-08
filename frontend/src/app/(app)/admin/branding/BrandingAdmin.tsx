@@ -12,21 +12,35 @@ import SectionLoading from "@/components/SectionLoading";
 // has no UUID id of its own (it's a single-row table keyed by a boolean).
 const BRANDING_OWNER_ID = "00000000-0000-0000-0000-000000000000";
 
-const PRESETS: { key: string; color: string }[] = [
-  { key: "default", color: "#0f766e" },
-  { key: "blue", color: "#2563eb" },
-  { key: "purple", color: "#7c3aed" },
-  { key: "green", color: "#16a34a" },
-  { key: "red", color: "#dc2626" },
+// Each preset is a primary+accent pair (the two colors this app actually
+// uses); the swatch itself blends in two extra shades purely so it reads
+// as a richer "theme" preview, matching the reference site's quadrant
+// swatches -- those extra shades aren't stored anywhere, just decorative.
+const PRESETS: { key: string; primary: string; accent: string; labelKey: keyof Dictionary["branding"] }[] = [
+  { key: "default", primary: "#1B2A4A", accent: "#8B2635", labelKey: "presetDefault" },
+  { key: "green", primary: "#16653F", accent: "#B4791E", labelKey: "presetGreen" },
+  { key: "blue", primary: "#1D4ED8", accent: "#B4791E", labelKey: "presetBlue" },
+  { key: "purple", primary: "#4C1D95", accent: "#8B2635", labelKey: "presetPurple" },
+  { key: "gray", primary: "#374151", accent: "#8B2635", labelKey: "presetGray" },
 ];
+
+function swatchGradient(primary: string, accent: string): string {
+  return `conic-gradient(${primary} 0% 25%, ${accent} 25% 50%, ${primary} 50% 75%, ${accent} 75% 100%)`;
+}
 
 export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }) {
   const router = useRouter();
   const [branding, setBranding] = useState<BrandingDto | null>(null);
   const [preset, setPreset] = useState("default");
   const [color, setColor] = useState("#0f766e");
+  const [accentColor, setAccentColor] = useState("#8B2635");
+  const [platformName, setPlatformName] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [schoolLabel, setSchoolLabel] = useState("");
+  const [subtitle, setSubtitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   function load() {
     apiFetch<BrandingDto>("/branding")
@@ -34,6 +48,11 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         setBranding(b);
         setPreset(b.preset);
         setColor(b.primaryColor);
+        setAccentColor(b.accentColor);
+        setPlatformName(b.platformName ?? "");
+        setSchoolName(b.schoolName ?? "");
+        setSchoolLabel(b.schoolLabel ?? "");
+        setSubtitle(b.subtitle ?? "");
       })
       .catch(() => router.replace("/dashboard"));
   }
@@ -47,22 +66,34 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
+  function payload(logoAttachmentId: string | null | undefined, version: number) {
+    return {
+      preset,
+      primaryColor: color,
+      accentColor,
+      platformName: platformName || null,
+      schoolName: schoolName || null,
+      schoolLabel: schoolLabel || null,
+      subtitle: subtitle || null,
+      logoAttachmentId: logoAttachmentId !== undefined ? logoAttachmentId : branding?.logoAttachmentId ?? null,
+      version,
+    };
+  }
+
   async function handleSave() {
     if (!branding) return;
     setError(null);
+    setSaving(true);
     try {
       const updated = await apiFetch<BrandingDto>("/branding", {
         method: "PUT",
-        body: JSON.stringify({
-          preset,
-          primaryColor: color,
-          logoAttachmentId: branding.logoAttachmentId,
-          version: branding.version,
-        }),
+        body: JSON.stringify(payload(undefined, branding.version)),
       });
       setBranding(updated);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -83,12 +114,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       );
       const updated = await apiFetch<BrandingDto>("/branding", {
         method: "PUT",
-        body: JSON.stringify({
-          preset,
-          primaryColor: color,
-          logoAttachmentId: uploaded.id,
-          version: branding.version,
-        }),
+        body: JSON.stringify(payload(uploaded.id, branding.version)),
       });
       setBranding(updated);
       // Replacing the logo previously left the old attachment row/storage
@@ -108,11 +134,40 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     }
   }
 
+  async function handleLogoRemove() {
+    if (!branding?.logoAttachmentId || uploading) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const attachmentId = branding.logoAttachmentId;
+      const updated = await apiFetch<BrandingDto>("/branding", {
+        method: "PUT",
+        body: JSON.stringify(payload(null, branding.version)),
+      });
+      setBranding(updated);
+      try {
+        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleReset() {
+    if (!window.confirm(dict.resetConfirm)) return;
     const updated = await apiFetch<BrandingDto>("/branding/reset", { method: "POST" });
     setBranding(updated);
     setPreset(updated.preset);
     setColor(updated.primaryColor);
+    setAccentColor(updated.accentColor);
+    setPlatformName(updated.platformName ?? "");
+    setSchoolName(updated.schoolName ?? "");
+    setSchoolLabel(updated.schoolLabel ?? "");
+    setSubtitle(updated.subtitle ?? "");
   }
 
   if (!branding) return <SectionLoading />;
@@ -127,9 +182,55 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         </p>
       )}
 
-      <div className="panel">
-        <div className="panel-body">
-          <div className="field" style={{ marginBottom: 18 }}>
+      <div className="modal">
+        <div className="modal-body">
+          <div className="branding-row">
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt="logo" style={{ maxWidth: 90, borderRadius: 8 }} />
+            ) : (
+              <div className="brand-seal" style={{ background: "var(--paper-dim)", color: "var(--ink)" }}>
+                س
+              </div>
+            )}
+            <div className="filebox" style={{ flex: 1 }}>
+              <label className="upl">
+                {dict.uploadLogo}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} disabled={uploading} />
+              </label>
+              {branding.logoUrl && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogoRemove} disabled={uploading}>
+                  {dict.removeLogo}
+                </button>
+              )}
+              {uploading && <span className="spinner" />}
+            </div>
+          </div>
+
+          <div className="form-grid" style={{ marginTop: 18 }}>
+            <div className="field">
+              <label>{dict.schoolNameLabel}</label>
+              <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} dir="rtl" />
+            </div>
+            <div className="field">
+              <label>{dict.platformNameLabel}</label>
+              <input
+                type="text"
+                value={platformName}
+                onChange={(e) => setPlatformName(e.target.value)}
+                placeholder={dict.platformNamePlaceholder}
+              />
+            </div>
+            <div className="field span2">
+              <label>{dict.schoolLabelLabel}</label>
+              <input type="text" value={schoolLabel} onChange={(e) => setSchoolLabel(e.target.value)} dir="rtl" />
+            </div>
+            <div className="field span2">
+              <label>{dict.subtitleLabel}</label>
+              <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} dir="rtl" />
+            </div>
+          </div>
+
+          <div className="field" style={{ marginTop: 18 }}>
             <label>{dict.presetLabel}</label>
             <div className="preset-row">
               {PRESETS.map((p) => (
@@ -139,61 +240,52 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
                   className={`preset-swatch${preset === p.key ? " active" : ""}`}
                   onClick={() => {
                     setPreset(p.key);
-                    setColor(p.color);
+                    setColor(p.primary);
+                    setAccentColor(p.accent);
                   }}
                 >
-                  <span className="preset-dots" style={{ background: p.color }} />
-                  <span className="preset-label">{p.key}</span>
+                  <span className="preset-dots" style={{ background: swatchGradient(p.primary, p.accent) }} />
+                  <span className="preset-label">{dict[p.labelKey]}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="field" style={{ marginBottom: 18 }}>
-            <label>{dict.colorLabel}</label>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => {
-                setColor(e.target.value);
-                setPreset("custom");
-              }}
-              style={{ width: 60, height: 36, border: "1.5px solid var(--line)", borderRadius: 8, padding: 2 }}
-            />
-          </div>
-
-          <div
-            style={{
-              background: color,
-              color: "white",
-              padding: "1rem",
-              borderRadius: "var(--radius)",
-              marginBottom: 18,
-              fontWeight: 700,
-            }}
-          >
-            {dict.title}
-          </div>
-
-          <div className="branding-row">
-            {branding.logoUrl && <img src={branding.logoUrl} alt="logo" style={{ maxWidth: 120, borderRadius: 8 }} />}
-            <div className="filebox" style={{ flex: 1 }}>
-              <label className="upl">
-                {dict.logoLabel}
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} disabled={uploading} />
-              </label>
-              {uploading && <span className="spinner" />}
+          <div className="form-grid" style={{ marginTop: 4 }}>
+            <div className="field">
+              <label>{dict.colorLabel}</label>
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => {
+                  setColor(e.target.value);
+                  setPreset("custom");
+                }}
+                style={{ width: 60, height: 36, border: "1.5px solid var(--line)", borderRadius: 8, padding: 2 }}
+              />
+            </div>
+            <div className="field">
+              <label>{dict.accentColorLabel}</label>
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) => {
+                  setAccentColor(e.target.value);
+                  setPreset("custom");
+                }}
+                style={{ width: 60, height: 36, border: "1.5px solid var(--line)", borderRadius: 8, padding: 2 }}
+              />
             </div>
           </div>
-
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={handleSave}>
-              {dict.save}
-            </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleReset}>
-              {dict.reset}
-            </button>
-          </div>
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="btn btn-outline btn-sm" onClick={handleReset}>
+            {dict.reset}
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+            {saving && <span className="spinner" />}
+            {dict.save}
+          </button>
         </div>
       </div>
     </>
