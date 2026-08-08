@@ -103,9 +103,24 @@ decide whether to restart the `sijill-api` instance, but that's it; nothing
 currently pages or emails anyone when it goes unhealthy. Render's own
 service-status emails are the only automatic notification.
 
-Recommended (not yet set up): a free external uptime pinger (e.g.
-UptimeRobot) hitting `/actuator/health` and the frontend root, so someone is
-actually notified on an outage instead of finding out from a user report.
+**Setup (manual — requires creating a third-party account, which needs a
+human, not something Claude Code can do on your behalf):**
+
+1. Go to [uptimerobot.com](https://uptimerobot.com) (free tier: 50 monitors,
+   5-minute check interval) and create an account.
+2. Add a monitor:
+   - Type: HTTP(s)
+   - URL: `https://sijill-api.onrender.com/actuator/health`
+   - Interval: 5 minutes (free tier minimum)
+3. Add a second monitor the same way for the frontend:
+   - URL: `https://sijill-frontend.onrender.com`
+4. Under each monitor's **Alert Contacts**, add your email (and/or phone for
+   SMS, if on a paid tier) so a down alert actually reaches someone instead
+   of only showing up on the UptimeRobot dashboard.
+5. Free-tier caveat: both services cold-start after 15 minutes idle (section
+   2) — a 5-minute ping interval keeps `sijill-api` and `sijill-frontend`
+   effectively always-warm as a side effect, which also means you won't see
+   the cold-start delay in normal use anymore once this is set up.
 
 ## 7. On-call basics (single maintainer)
 
