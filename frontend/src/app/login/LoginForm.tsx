@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken, setToken } from "@/lib/auth";
 import type { Dictionary } from "@/i18n/getDictionary";
+import type { LocaleInfo } from "@/i18n/locales";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 type AuthResponse = {
   token: string;
@@ -14,7 +16,15 @@ type AuthResponse = {
 // Same key BackupAdmin.tsx writes to before forcing a post-restore logout.
 const RESTORE_FLASH_KEY = "sijill.restoredFlash";
 
-export default function LoginForm({ dict }: { dict: Dictionary["login"] }) {
+export default function LoginForm({
+  dict,
+  locales,
+  currentLocale,
+}: {
+  dict: Dictionary["login"];
+  locales: LocaleInfo[];
+  currentLocale: string;
+}) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -54,34 +64,43 @@ export default function LoginForm({ dict }: { dict: Dictionary["login"] }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {flash && <p role="status">{flash}</p>}
-      <label>
-        {dict.phoneLabel}
-        <input
-          type="tel"
-          name="phone"
-          inputMode="numeric"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-        />
-      </label>
-      <label>
-        {dict.pinLabel}
-        <input
-          type="password"
-          name="pin"
-          inputMode="numeric"
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          required
-        />
-      </label>
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={submitting}>
-        {dict.submit}
-      </button>
-    </form>
+    <>
+      <div className="login-lang">
+        <LocaleSwitcher locales={locales} current={currentLocale} />
+      </div>
+      <form onSubmit={handleSubmit}>
+        {flash && <p role="status">{flash}</p>}
+        <div className="field">
+          <label>{dict.phoneLabel}</label>
+          <input
+            type="tel"
+            name="phone"
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+        </div>
+        <div className="field" style={{ marginTop: 14 }}>
+          <label>{dict.pinLabel}</label>
+          <input
+            type="password"
+            name="pin"
+            inputMode="numeric"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            required
+          />
+        </div>
+        {error && (
+          <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginTop: 10 }}>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 18 }} disabled={submitting}>
+          {dict.submit}
+        </button>
+      </form>
+    </>
   );
 }
