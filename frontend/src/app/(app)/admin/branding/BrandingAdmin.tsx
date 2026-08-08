@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { AttachmentDto, BrandingDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 // Fixed synthetic owner id for the single branding row — branding_setting
 // has no UUID id of its own (it's a single-row table keyed by a boolean).
@@ -41,6 +42,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<BrandingDto>("/branding")
@@ -90,6 +92,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         body: JSON.stringify(payload(undefined, branding.version)),
       });
       setBranding(updated);
+      setToast(dict.saveSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -117,6 +120,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         body: JSON.stringify(payload(uploaded.id, branding.version)),
       });
       setBranding(updated);
+      setToast(dict.saveSuccess);
       // Replacing the logo previously left the old attachment row/storage
       // file orphaned. Clean up the superseded one now that the new
       // reference is safely saved.
@@ -145,6 +149,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         body: JSON.stringify(payload(null, branding.version)),
       });
       setBranding(updated);
+      setToast(dict.saveSuccess);
       try {
         await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
       } catch (err) {
@@ -168,6 +173,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setSchoolName(updated.schoolName ?? "");
     setSchoolLabel(updated.schoolLabel ?? "");
     setSubtitle(updated.subtitle ?? "");
+    setToast(dict.saveSuccess);
   }
 
   if (!branding) return <SectionLoading />;
@@ -288,6 +294,8 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
           </button>
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

@@ -249,6 +249,7 @@ export type Dictionary = {
     presetPurple: string;
     presetGray: string;
     save: string;
+    saveSuccess: string;
     reset: string;
     resetConfirm: string;
   };
