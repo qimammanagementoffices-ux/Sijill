@@ -26,15 +26,22 @@ export default function MaintenancePage({
   status: MaintenanceDto;
   dict: Dictionary["siteMaintenancePage"];
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  // Deliberately starts null, not Date.now() -- this component is server-
+  // rendered for the initial HTML (it's "use client", not client-only), so
+  // computing Date.now() directly in render produces a different value on
+  // the server than at hydration a moment later, causing a text-content
+  // hydration mismatch (React errors #418/#423/#425). Countdown only starts
+  // once mounted client-side, matching the SSR output (no countdown) first.
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
     if (!status.reopenAt) return;
+    setNow(Date.now());
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [status.reopenAt]);
 
-  const left = status.reopenAt ? remaining(status.reopenAt, now) : null;
+  const left = status.reopenAt && now !== null ? remaining(status.reopenAt, now) : null;
   const message = status.messageAr || dict.defaultMessage;
 
   return (
