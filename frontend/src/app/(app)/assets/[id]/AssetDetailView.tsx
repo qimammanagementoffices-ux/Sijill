@@ -6,6 +6,7 @@ import { apiFetch, apiFetchBlob, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 import type {
   AssetDetail,
   AssetStatusValue,
@@ -27,10 +28,12 @@ export default function AssetDetailView({
   id,
   dict,
   attachmentsDict,
+  commonDict,
 }: {
   id: string;
   dict: Dictionary["assets"];
   attachmentsDict: Dictionary["attachments"];
+  commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
@@ -39,6 +42,7 @@ export default function AssetDetailView({
   const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
   const [transfers, setTransfers] = useState<AssetTransferDto[] | null>(null);
   const [canManage, setCanManage] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
@@ -110,6 +114,7 @@ export default function AssetDetailView({
         }),
       });
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -131,6 +136,7 @@ export default function AssetDetailView({
       setTransferEmployeeId("");
       setTransferReason("");
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -290,7 +296,13 @@ export default function AssetDetailView({
       )}
 
       <div className="panel">
-        <AttachmentUploader ownerType="ASSET" ownerId={asset.id} dict={attachmentsDict} canManage={canManage} />
+        <AttachmentUploader
+          ownerType="ASSET"
+          ownerId={asset.id}
+          dict={attachmentsDict}
+          canManage={canManage}
+          onAction={() => setToast(commonDict.actionSuccess)}
+        />
       </div>
 
       {transfers && transfers.length > 0 && (
@@ -320,6 +332,8 @@ export default function AssetDetailView({
           </div>
         </div>
       )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

@@ -4,5 +4,5 @@ import TranslationTable from "./TranslationTable";
 
 export default async function AdminTranslationsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <TranslationTable dict={dict.adminTranslations} />;
+  return <TranslationTable dict={dict.adminTranslations} commonDict={dict.common} />;
 }

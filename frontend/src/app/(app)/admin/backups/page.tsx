@@ -4,5 +4,5 @@ import BackupAdmin from "./BackupAdmin";
 
 export default async function BackupAdminPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <BackupAdmin dict={dict.backups} />;
+  return <BackupAdmin dict={dict.backups} commonDict={dict.common} />;
 }

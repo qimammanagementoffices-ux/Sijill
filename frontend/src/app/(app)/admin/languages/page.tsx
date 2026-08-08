@@ -4,5 +4,5 @@ import LanguagesAdmin from "./LanguagesAdmin";
 
 export default async function LanguagesAdminPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <LanguagesAdmin dict={dict.adminLanguages} />;
+  return <LanguagesAdmin dict={dict.adminLanguages} commonDict={dict.common} />;
 }

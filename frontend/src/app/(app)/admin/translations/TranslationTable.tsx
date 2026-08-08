@@ -7,16 +7,24 @@ import { getToken } from "@/lib/auth";
 import type { PagedResponse, TranslationRow } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 type Edited = { valueAr: string; valueEn: string; valueHi: string };
 
-export default function TranslationTable({ dict }: { dict: Dictionary["adminTranslations"] }) {
+export default function TranslationTable({
+  dict,
+  commonDict,
+}: {
+  dict: Dictionary["adminTranslations"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState<PagedResponse<TranslationRow> | null>(null);
   const [edits, setEdits] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
   const [conflictKeys, setConflictKeys] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
 
   function load(pageNumber: number, query: string) {
     apiFetch<PagedResponse<TranslationRow>>(
@@ -64,6 +72,7 @@ export default function TranslationTable({ dict }: { dict: Dictionary["adminTran
         return next;
       });
       load(page?.page ?? 0, q);
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setConflictKeys((prev) => new Set(prev).add(row.key));
@@ -184,6 +193,8 @@ export default function TranslationTable({ dict }: { dict: Dictionary["adminTran
           </div>
         )}
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { getToken, clearToken } from "@/lib/auth";
 import type { BackupSnapshotDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 // Read once by LoginForm on mount to show a one-time "please log in again"
 // message — a restore can replace the employee table under the current
@@ -20,11 +21,18 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
+export default function BackupAdmin({
+  dict,
+  commonDict,
+}: {
+  dict: Dictionary["backups"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [backups, setBackups] = useState<BackupSnapshotDto[] | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<BackupSnapshotDto | null>(null);
   const [pin, setPin] = useState("");
   const [restoreError, setRestoreError] = useState<string | null>(null);
@@ -59,6 +67,7 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
     try {
       await apiFetch("/backups", { method: "POST" });
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -100,6 +109,7 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
       });
       closeDeleteModal();
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setDeleteError(dict.deleteRateLimited);
@@ -305,6 +315,8 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
           </form>
         </div>
       )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

@@ -8,11 +8,19 @@ import { getToken } from "@/lib/auth";
 import type { LanguageDto, TranslationExtraValueDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
-export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLanguages"] }) {
+export default function LanguagesAdmin({
+  dict,
+  commonDict,
+}: {
+  dict: Dictionary["adminLanguages"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [languages, setLanguages] = useState<LanguageDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -61,6 +69,7 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
       setName("");
       setDirection("ltr");
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : dict.addFailed);
     } finally {
@@ -74,13 +83,14 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
     try {
       await apiFetch(`/i18n/languages/${languageCode}`, { method: "DELETE" });
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
   }
 
   if (reviewing) {
-    return <LanguageReview code={reviewing} dict={dict} onBack={() => setReviewing(null)} />;
+    return <LanguageReview code={reviewing} dict={dict} commonDict={commonDict} onBack={() => setReviewing(null)} />;
   }
 
   if (!languages) return <SectionLoading />;
@@ -172,6 +182,8 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
           </form>
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }
@@ -179,15 +191,18 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
 function LanguageReview({
   code,
   dict,
+  commonDict,
   onBack,
 }: {
   code: string;
   dict: Dictionary["adminLanguages"];
+  commonDict: Dictionary["common"];
   onBack: () => void;
 }) {
   const [values, setValues] = useState<TranslationExtraValueDto[] | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<TranslationExtraValueDto[]>(`/i18n/languages/${code}/values`)
@@ -207,6 +222,7 @@ function LanguageReview({
         method: "PUT",
         body: JSON.stringify({ value }),
       });
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -264,6 +280,8 @@ function LanguageReview({
           </table>
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

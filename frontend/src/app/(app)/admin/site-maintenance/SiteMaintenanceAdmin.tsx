@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { AttachmentDto, MaintenanceDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 // Fixed synthetic owner id for the single maintenance_setting row — same
 // pattern as BrandingAdmin.tsx's BRANDING_OWNER_ID (the row has no UUID id
@@ -145,11 +146,7 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
           {error}
         </p>
       )}
-      {success && (
-        <p role="status" style={{ color: "var(--sage)", fontSize: 12.5, marginBottom: 12 }}>
-          {dict.saveSuccess}
-        </p>
-      )}
+      {success && <Toast message={dict.saveSuccess} onDismiss={() => setSuccess(false)} />}
 
       <div className="panel">
         <div className="panel-body">
