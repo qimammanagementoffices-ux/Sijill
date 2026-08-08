@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import SectionLoading from "@/components/SectionLoading";
 import type { AssetListItem, EmployeeListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -20,6 +21,7 @@ export default function CustodyReportView({
   const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
   const [employeeId, setEmployeeId] = useState("");
   const [assets, setAssets] = useState<AssetListItem[] | null>(null);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -58,64 +60,113 @@ export default function CustodyReportView({
     );
   }
 
-  if (!employees) return null;
+  if (!employees) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 700, margin: "5vh auto", padding: "0 1rem" }}>
-      <PrintReportHeader
-        title={dict.custodyReportTitle}
-        filtersSummary={employeeName || undefined}
-        dict={commonDict}
-      />
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.custodyReportTitle}</h1>
 
-      <select className="no-print" value={employeeId} onChange={(e) => generate(e.target.value)}>
-        <option value="">—</option>
-        {employees.map((emp) => (
-          <option key={emp.id} value={emp.id}>
-            {emp.name}
-          </option>
-        ))}
-      </select>
-
-      {assets && (
-        <div>
-          <p>
-            {dict.custodyReportTotalCount}: {assets.length}
-          </p>
-
-          <table>
-            <thead>
-              <tr>
-                <th>{dict.columnAssetNumber}</th>
-                <th>{dict.columnName}</th>
-                <th>{dict.columnRoom}</th>
-                <th>{dict.columnStatus}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.map((asset) => (
-                <tr key={asset.id}>
-                  <td>{asset.assetNumber}</td>
-                  <td>{asset.nameAr}</td>
-                  <td>{asset.room ? asset.room.ar : ""}</td>
-                  <td>{asset.status}</td>
-                </tr>
+      <div className="panel">
+        <div className="panel-body">
+          <div className="field" style={{ maxWidth: 360 }}>
+            <select value={employeeId} onChange={(e) => generate(e.target.value)}>
+              <option value="">—</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </div>
 
-          <p style={{ marginTop: "3rem" }}>______________________</p>
+          {assets && (
+            <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="scale-badge">
+                {dict.custodyReportTotalCount}: {assets.length}
+              </span>
+              <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+                {commonDict.exportXlsx}
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setPreviewing(true)}>
+                {dict.custodyReportPrint}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
-          <p className="no-print">
-            <button type="button" onClick={handleExport}>
-              {commonDict.exportXlsx}
-            </button>
-            <button type="button" onClick={() => window.print()}>
-              {dict.custodyReportPrint}
-            </button>
-          </p>
+      {previewing && assets && (
+        <div className="overlay">
+          <div className="modal wide">
+            <div className="modal-head no-print">
+              <h3>{dict.custodyReportTitle}</h3>
+              <button type="button" className="modal-close" onClick={() => setPreviewing(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="print-pages">
+                <div className="print-page">
+                  <PrintReportHeader
+                    title={dict.custodyReportTitle}
+                    filtersSummary={employeeName || undefined}
+                    dict={commonDict}
+                  />
+
+                  <div className="ps-status-row">
+                    <span className="scale-badge">
+                      {dict.custodyReportTotalCount}: {assets.length}
+                    </span>
+                  </div>
+
+                  <table className="ps-table">
+                    <thead>
+                      <tr>
+                        <th>{dict.columnAssetNumber}</th>
+                        <th>{dict.columnName}</th>
+                        <th>{dict.columnRoom}</th>
+                        <th>{dict.columnStatus}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assets.map((asset) => (
+                        <tr key={asset.id}>
+                          <td>{asset.assetNumber}</td>
+                          <td>{asset.nameAr}</td>
+                          <td>{asset.room ? asset.room.ar : ""}</td>
+                          <td>{asset.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="ps-sign-row">
+                    <div className="ps-sign">
+                      <div className="line" />
+                      <div className="nm">{employeeName}</div>
+                    </div>
+                    <div className="ps-sign">
+                      <div className="line" />
+                      <div className="nm">{dict.custodianLabel}</div>
+                    </div>
+                  </div>
+
+                  <div className="ps-footer">{commonDict.appName}</div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-foot no-print">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setPreviewing(false)}>
+                {commonDict.cancel}
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>
+                {commonDict.print}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </main>
+    </>
   );
 }

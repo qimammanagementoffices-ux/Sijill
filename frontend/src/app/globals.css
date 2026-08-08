@@ -1615,6 +1615,15 @@ body.lang-en .modal-head h3 {
     size: A4;
     margin: 0;
   }
+  /* Pages not yet migrated to .print-page (ItemDirectory, InvoiceList,
+     AssetDirectory, RequestList, ...) print their normal in-flow content
+     directly, relying on @page's margin for spacing -- now that margin is
+     0 (so migrated .print-page reports, which manage their own explicit
+     A4 mm padding, don't get pushed past the printable area), give these
+     un-migrated pages an equivalent margin via body padding instead. */
+  body:not(:has(.print-page)) {
+    padding: 16mm;
+  }
 
   body:has(.overlay) > *:not(.overlay) {
     display: none !important;
