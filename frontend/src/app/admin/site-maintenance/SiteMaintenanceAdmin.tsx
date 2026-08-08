@@ -100,13 +100,21 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
   }
 
   async function handleImageRemove() {
-    if (!setting?.imageAttachmentId) return;
+    if (!setting?.imageAttachmentId || uploading) return;
     setError(null);
     setUploading(true);
     try {
       const attachmentId = setting.imageAttachmentId;
       await save(null);
-      await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+      try {
+        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+      } catch (err) {
+        // The reference is already cleared above (the goal state), so a 404
+        // here just means the row was already gone (e.g. a prior click's
+        // request already deleted it) -- not a real failure, don't surface
+        // it as one. Any other error still should be shown.
+        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -166,7 +174,7 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
       </label>
 
       <p>
-        <button type="button" onClick={() => save(undefined)}>
+        <button type="button" onClick={() => save(undefined)} disabled={uploading}>
           {dict.save}
         </button>
       </p>
