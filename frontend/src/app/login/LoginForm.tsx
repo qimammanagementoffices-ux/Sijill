@@ -88,6 +88,7 @@ export default function LoginForm({
             inputMode="numeric"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            placeholder={dict.phonePlaceholder}
             required
           />
         </div>
@@ -99,6 +100,7 @@ export default function LoginForm({
             inputMode="numeric"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
+            placeholder={dict.pinPlaceholder}
             required
           />
         </div>

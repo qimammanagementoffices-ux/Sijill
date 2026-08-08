@@ -29,7 +29,9 @@ export type Dictionary = {
   login: {
     title: string;
     phoneLabel: string;
+    phonePlaceholder: string;
     pinLabel: string;
+    pinPlaceholder: string;
     submit: string;
     genericError: string;
     rateLimited: string;
