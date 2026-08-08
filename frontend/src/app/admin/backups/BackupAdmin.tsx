@@ -108,7 +108,11 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
       if (err instanceof ApiError && err.status === 429) {
         setRestoreError(dict.restoreRateLimited);
       } else if (err instanceof ApiError && err.status === 409) {
-        setRestoreError(dict.restoreInvalidPin);
+        // 409 also covers "a backup/restore is already in progress" (the
+        // backupLock guard in BackupService) — only show the localized
+        // wrong-PIN text for that specific case, otherwise surface the
+        // backend's own message like every other error path here.
+        setRestoreError(err.message === "Invalid PIN" ? dict.restoreInvalidPin : err.message);
       } else {
         setRestoreError(err instanceof ApiError ? err.message : dict.restoreFailed);
       }

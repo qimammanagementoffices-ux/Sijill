@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,18 @@ public class BackupService {
     private final String pgUsername;
     private final String pgPassword;
     private final int retentionDays;
+
+    // Guards backup/restore so at most one runs at a time. Restore's
+    // resetPublicSchema does a multi-step DDL dance (move backup_snapshot to
+    // a scratch schema, drop/recreate public, move it back) — a concurrent
+    // second restore (or even a "run backup now" mid-restore) interleaving
+    // with that is exactly the kind of thing that can silently lose rows
+    // without any individual SQL statement actually erroring, which is what
+    // live testing showed. tryLock (not lock) so a second attempt gets an
+    // immediate, clear rejection instead of silently queuing behind the
+    // first — each of these is a deliberate one-at-a-time admin action, not
+    // something that should ever be allowed to overlap.
+    private final ReentrantLock backupLock = new ReentrantLock();
 
     public BackupService(
             BackupSnapshotRepository backupSnapshotRepository,
@@ -65,9 +78,16 @@ public class BackupService {
 
     @Transactional
     public BackupSnapshot runBackup(BackupTrigger triggeredBy) {
-        BackupSnapshot saved = captureSnapshot(triggeredBy);
-        pruneOldSnapshots();
-        return saved;
+        if (!backupLock.tryLock()) {
+            throw ApiException.conflict("A backup or restore is already in progress. Try again shortly.");
+        }
+        try {
+            BackupSnapshot saved = captureSnapshot(triggeredBy);
+            pruneOldSnapshots();
+            return saved;
+        } finally {
+            backupLock.unlock();
+        }
     }
 
     // Restore is destructive, so it always takes a fresh safety snapshot of
@@ -98,26 +118,33 @@ public class BackupService {
     // Manually restarting sijill-api after a restore is now a documented
     // required step (docs/deployment-runbook.md §5) instead.
     public void restore(UUID snapshotId, Employee actor) {
-        BackupSnapshot target = get(snapshotId);
-        BackupSnapshot preRestoreSnapshot = captureSnapshot(BackupTrigger.PRE_RESTORE);
-
-        Path targetFile = createTempDumpFile("sijill-restore-");
+        if (!backupLock.tryLock()) {
+            throw ApiException.conflict("A backup or restore is already in progress. Try again shortly.");
+        }
         try {
-            downloadTo(target, targetFile);
-            resetPublicSchema();
+            BackupSnapshot target = get(snapshotId);
+            BackupSnapshot preRestoreSnapshot = captureSnapshot(BackupTrigger.PRE_RESTORE);
+
+            Path targetFile = createTempDumpFile("sijill-restore-");
             try {
-                runPgRestore(targetFile);
-            } catch (Exception restoreFailure) {
-                recoverToPreRestoreState(preRestoreSnapshot, restoreFailure);
-                return;
+                downloadTo(target, targetFile);
+                resetPublicSchema();
+                try {
+                    runPgRestore(targetFile);
+                } catch (Exception restoreFailure) {
+                    recoverToPreRestoreState(preRestoreSnapshot, restoreFailure);
+                    return;
+                }
+                restoreBookkeeper.markRestored(snapshotId, actor);
+            } catch (ApiException e) {
+                throw e;
+            } catch (Exception e) {
+                throw ApiException.internal("Restore failed: " + e.getMessage());
+            } finally {
+                deleteQuietly(targetFile);
             }
-            restoreBookkeeper.markRestored(snapshotId, actor);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw ApiException.internal("Restore failed: " + e.getMessage());
         } finally {
-            deleteQuietly(targetFile);
+            backupLock.unlock();
         }
     }
 
@@ -262,7 +289,13 @@ public class BackupService {
                 "-d", pgDatabase,
                 "-v", "ON_ERROR_STOP=1",
                 "-c",
-                "create schema if not exists restore_temp; "
+                // Unconditionally clear any leftover restore_temp first —
+                // belt-and-suspenders against a prior run that didn't clean
+                // up after itself (backupLock above is the real fix for the
+                // concurrent-restore case, this just makes a clean start
+                // regardless of how a stale schema might have been left).
+                "drop schema if exists restore_temp cascade; "
+                        + "create schema restore_temp; "
                         + "alter table public.backup_snapshot set schema restore_temp; "
                         + "drop schema public cascade; "
                         + "create schema public; "
