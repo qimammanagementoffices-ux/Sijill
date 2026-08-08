@@ -12,6 +12,15 @@ services:
     dockerContext: ./backend
     plan: free
     healthCheckPath: /actuator/health
+    # Was auto-deploying on every push to main independently of
+    # backend-ci.yml's result (see deployment-runbook.md section 2) -- a
+    # commit that failed tests could still ship. Deploys are now triggered
+    # only by backend-ci.yml's `deploy` job, which runs after `build`
+    # succeeds. Requires RENDER_DEPLOY_HOOK_BACKEND (this service's Deploy
+    # Hook URL, from Settings -> Deploy Hook) set as a GitHub Actions
+    # secret -- until that's set, pushes to main build/test but do NOT
+    # deploy; use "Manual Deploy" in the Render dashboard in the meantime.
+    autoDeploy: false
     envVars:
       # Render's `connectionString` property is a plain postgres:// URI, not the
       # jdbc:postgresql:// form Spring/Hikari requires — build it from parts instead.
@@ -82,6 +91,9 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm run start
+    # See sijill-api's autoDeploy comment above -- same reasoning. Requires
+    # RENDER_DEPLOY_HOOK_FRONTEND as a GitHub Actions secret.
+    autoDeploy: false
     envVars:
       # Render service URLs are deterministic (https://<name>.onrender.com) once
       # this blueprint is deployed under these service names. Update both if you

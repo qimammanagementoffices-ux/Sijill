@@ -28,3 +28,21 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+
+  # See backend-ci.yml's deploy job for why this exists -- render.yaml now
+  # sets autoDeploy: false for sijill-frontend too.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_FRONTEND secret not set -- skipping deploy trigger."
+            echo "See docs/deployment-runbook.md section 2 for setup."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK"

@@ -1,6 +1,6 @@
 # Sijill — Decision Record
 
-Status: **ACCEPTED (D1–D9) — D1–D4 on 2026-08-07, D5–D9 on 2026-08-08**. Recommendations adopted as drafted, pending any later amendment. Sub-decisions resolved as follows unless changed:
+Status: **ACCEPTED (D1–D10) — D1–D4 on 2026-08-07, D5–D10 on 2026-08-08**. Recommendations adopted as drafted, pending any later amendment. Sub-decisions resolved as follows unless changed:
 - D1 sub-decision: partial fulfillment **allowed** at finish (issued quantity may be ≤ requested quantity; difference recorded in action history).
 - D2 sub-decision: room number/name **is** exposed on the public QR view (simpler for MVP; revisit if this becomes a concern).
 - D3 sub-decision: two-step DONE→CLOSED **collapsed to a single fulfiller-driven status** — the requester-confirmation step and the admin force-close-after-timeout path are dropped. A request moves directly to `CLOSED` when the fulfiller (`wh.act.finish` / `mt.act.finish` / `as.act.finish` holder) marks it done; no separate "received" confirmation UI.
@@ -10,6 +10,7 @@ Status: **ACCEPTED (D1–D9) — D1–D4 on 2026-08-07, D5–D9 on 2026-08-08**.
 - D7: admin-addable languages are stored **additively** (new `language`/`translation_extra_value` tables), not a redesign of the existing `translation` table's ar/en/hi columns; reuses `sys.translations` (no new permission key).
 - D8: the live language switcher uses a plain preference **cookie** (not a route-segment locale prefix, not localStorage) read server-side on every page; a new public `GET /i18n/locales` endpoint backs it.
 - D9: rate limiting moved from in-memory to a **Postgres-backed** `RateLimitStore` (not Redis) — reuses the existing DB rather than adding a new paid dependency for a login/restore-attempt hot path this small.
+- D10: Render deploys are now gated on CI (`autoDeploy: false` + a CI `deploy` job that POSTs to a Render Deploy Hook only after `build` succeeds on `main`) — requires two GitHub secrets set manually before it's active.
 
 These are working defaults, not irreversible — flag anything you want changed before we get further into Phase 2+ (schema starts locking in once the initial migration lands, and it's still cheap to adjust in Phase 1).
 Scope: schema-critical decisions only. These four items change entity shape, table structure, or transaction logic, so they must be settled before Phase 1 migrations are written. The remaining items in `sijill-architecture-review.md` (§ "Decisions required before implementation," items 2, 3, 8, 9, 10, 11, 12) are vendor/ops/config choices and can be decided phase-by-phase without schema rework.
@@ -185,7 +186,21 @@ Scope: schema-critical decisions only. These four items change entity shape, tab
 
 ---
 
-## Summary — resolved 2026-08-07 (D1–D4), 2026-08-08 (D5, D6, D7, D8, D9)
+## D10. CI-gated Render deploy
+
+**Question (same pre-production batch as D8/D9):** the runbook flagged "CI and Render deploy are unlinked" as a real gap — Render auto-deployed on every push to `main` independently of `backend-ci.yml`/`frontend-ci.yml`, so a commit that failed tests could still ship. Fix it.
+
+**Decision:**
+
+- **`autoDeploy: false`** on both `render.yaml` services. Deploys are now triggered only by a new `deploy` job at the end of each CI workflow, gated with `needs: build` and `if: github.event_name == 'push' && github.ref == 'refs/heads/main'` — so it only fires after tests/typecheck/lint actually pass, and only on `main` (not PRs, not other branches).
+- **Render Deploy Hooks, not the Render API.** Each service's Deploy Hook is a plain unauthenticated POST URL from its Settings page — no API key to generate, store, or rotate. Simpler and lower-blast-radius than issuing a Render API token with account-wide scope just to trigger one service's deploy.
+- **Missing-secret is a clean no-op, not a CI failure.** Setting the two GitHub secrets (`RENDER_DEPLOY_HOOK_BACKEND`/`_FRONTEND`) requires dashboard access neither Claude Code nor this session has — the `deploy` step checks for an empty env var and exits 0 with a log message instead of failing the workflow, so merging this doesn't break CI for anyone before the manual setup step happens. Runbook section 2 documents the setup and the fallback (Render's own Manual Deploy button) for the gap in between.
+
+**Schema impact:** none.
+
+---
+
+## Summary — resolved 2026-08-07 (D1–D4), 2026-08-08 (D5, D6, D7, D8, D9, D10)
 
 1. **D1:** Decrement-on-fulfillment (not reserve-on-approval). Partial fulfillment **allowed** at finish.
 2. **D2:** Token-based QR addressing + the stated public field allowlist. Room name/number **is** exposed.
@@ -196,5 +211,6 @@ Scope: schema-critical decisions only. These four items change entity shape, tab
 7. **D7:** Admin-addable languages via new, additive `language`/`translation_extra_value` tables — the existing `translation` table's ar/en/hi columns are untouched, not redesigned into a full EAV model. Reuses `sys.translations`. AI translation via a plain HTTP call to Anthropic's Messages API (no SDK dependency), gated by previously-scaffolded-but-unwired `TRANSLATION_HELPER_ENABLED`/`PROVIDER`/`API_KEY` env vars — requires manual `TRANSLATION_API_KEY` setup in Render before it works. All keys translated in one batched request, synchronously (no job queue exists). A failed translation leaves the language row visible with zero values rather than vanishing.
 8. **D8:** Live language switcher via a plain preference cookie (`sijill.locale`), read server-side by a new `getRequestLocale()` helper substituted for the old hardcoded `defaultLocale` constant across every page. New public `GET /i18n/locales` lists built-ins + admin-added languages. Stale/deleted-language cookies fall back to `defaultLocale`, and `getDictionary()` itself falls back the same way if a locale's dictionary ever comes back empty. Switching does a full page reload (cookie-driven server layout, not a client transition).
 9. **D9:** Rate limiting moved from in-memory to a Postgres-backed `RateLimitStore` (new `rate_limit_window` table) rather than adding Redis — one atomic upsert-with-conditional-reset per attempt, correct across any number of API instances. `LoginRateLimiter`/`RestoreRateLimiter` keep their exact prior public API, just delegate now.
+10. **D10:** Render deploys gated on CI — `autoDeploy: false` in `render.yaml`, deploy triggered by a CI `deploy` job (via Render Deploy Hooks, not the Render API) that only runs after `build` succeeds on `main`. Requires two GitHub secrets set manually; missing secret is a clean no-op, not a CI failure.
 
-D1–D4 are locked (schema-critical, settled before Phase 1 migrations). D5 is locked the same way for anything touching restore going forward — the 409-not-401 choice in particular should not be "corrected" back to 401 without re-checking `apiClient.ts`'s interceptor first. D6 is locked the same way for anything touching maintenance mode — in particular, never treat the frontend gate as the actual security boundary; it's UX only, the filter is what matters. D7 is locked for anything touching the translation system — in particular, do not "clean this up" into a single EAV table without a real reason; the additive split was a deliberate risk-reduction choice, not an oversight. D8 is locked for anything touching locale resolution — in particular, don't move locale into a route segment or localStorage without revisiting why the cookie approach was chosen (force-dynamic pages + no server session). D9 is locked for anything touching rate limiting — in particular, don't introduce Redis for this without a real scaling reason; Postgres was a deliberate cost/complexity choice, not an oversight.
+D1–D4 are locked (schema-critical, settled before Phase 1 migrations). D5 is locked the same way for anything touching restore going forward — the 409-not-401 choice in particular should not be "corrected" back to 401 without re-checking `apiClient.ts`'s interceptor first. D6 is locked the same way for anything touching maintenance mode — in particular, never treat the frontend gate as the actual security boundary; it's UX only, the filter is what matters. D7 is locked for anything touching the translation system — in particular, do not "clean this up" into a single EAV table without a real reason; the additive split was a deliberate risk-reduction choice, not an oversight. D8 is locked for anything touching locale resolution — in particular, don't move locale into a route segment or localStorage without revisiting why the cookie approach was chosen (force-dynamic pages + no server session). D9 is locked for anything touching rate limiting — in particular, don't introduce Redis for this without a real scaling reason; Postgres was a deliberate cost/complexity choice, not an oversight. D10 is locked for anything touching deploy — don't re-enable `autoDeploy: true` without re-linking it to CI some other way first.

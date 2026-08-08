@@ -33,3 +33,24 @@ jobs:
 
       - name: Build and test
         run: gradle build --no-daemon
+
+  # Render used to auto-deploy on every push to main independently of this
+  # workflow's result (see docs/deployment-runbook.md section 2) -- a commit
+  # that broke tests could still ship. render.yaml now sets
+  # autoDeploy: false for sijill-api, so this is the only thing that
+  # triggers a deploy: only after `build` succeeds, and only on main.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_BACKEND secret not set -- skipping deploy trigger."
+            echo "See docs/deployment-runbook.md section 2 for setup."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK"

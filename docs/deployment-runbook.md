@@ -18,12 +18,28 @@ Three Render services plus one external dependency:
 
 ## 2. Normal deploy
 
-Pushing to `main` triggers Render's own auto-deploy for `sijill-api` and
-`sijill-frontend` independently of `.github/workflows/backend-ci.yml` /
-`frontend-ci.yml`. **These are not currently linked** — a commit that fails
-CI (e.g. a broken test) can still auto-deploy to Render, since Render watches
-the branch directly rather than a "CI passed" signal. Treat a red CI run on
-`main` as an immediate follow-up, not just a merge blocker for the next PR.
+Both services have `autoDeploy: false` in `render.yaml` — Render no longer
+watches `main` directly. A deploy now only happens via the `deploy` job at
+the bottom of `.github/workflows/backend-ci.yml` / `frontend-ci.yml`, which
+runs *only after* the `build` job (tests, typecheck, lint) succeeds on a push
+to `main`, and POSTs to that service's Render **Deploy Hook** URL.
+
+**One-time setup required** (not done automatically — GitHub secrets and the
+Render dashboard both need a human with account access):
+1. For each service, Render dashboard → service → **Settings** → **Deploy
+   Hook** → copy the URL.
+2. GitHub repo → **Settings** → **Secrets and variables** → **Actions** → New
+   repository secret:
+   - `RENDER_DEPLOY_HOOK_BACKEND` = `sijill-api`'s deploy hook URL
+   - `RENDER_DEPLOY_HOOK_FRONTEND` = `sijill-frontend`'s deploy hook URL
+
+**Until both secrets are set, pushes to `main` build and test but do not
+deploy anywhere** — the `deploy` job detects the missing secret and exits
+cleanly rather than failing CI, logging a reminder instead. Use Render's
+**Manual Deploy** button in the meantime, or finish the setup above.
+
+A failing `build` job now genuinely blocks deployment — a commit that breaks
+tests can no longer ship, unlike before.
 
 Free-tier web services cold-start after 15 minutes idle — the first request
 after idle time will be slow; this is expected, not an incident.
@@ -105,5 +121,5 @@ actually notified on an outage instead of finding out from a user report.
 - **No CSP** — deliberately skipped; this is a JSON API with no page content of its own to protect (see the comment in `SecurityConfig.java`).
 - ~~Rate limiting is single-instance, in-memory~~ — fixed: `LoginRateLimiter`/`RestoreRateLimiter` are now backed by `RateLimitStore` (a Postgres table, `rate_limit_window`), correct across any number of API instances without a new paid dependency.
 - **`JWT_REFRESH_TOKEN_EXPIRY_DAYS`** — removed in Phase 7. It was set in `render.yaml`/`application.yml` but no refresh-token code ever existed (`JwtService` only issues access tokens); the dead env var was creating false confidence.
-- **CI and Render deploy are unlinked** — see section 2. A failing test on `main` doesn't block deployment.
+- ~~CI and Render deploy are unlinked~~ — fixed, see section 2 (`autoDeploy: false` + CI-triggered Deploy Hooks). Needs the two GitHub secrets set once before it's actually active.
 - **AI language auto-translation needs manual setup before it works.** `/admin/languages` → "Add and auto-translate" calls `TRANSLATION_API_KEY` (Anthropic), which is `sync: false` in `render.yaml` — set it manually in the `sijill-api` Environment tab, then flip `TRANSLATION_HELPER_ENABLED` to `"true"` and redeploy/restart. Until then, adding a language fails with a clear "AI translation is not enabled" error (safe — no partial state beyond an empty language row you can delete).
