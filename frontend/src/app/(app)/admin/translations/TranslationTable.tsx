@@ -11,6 +11,10 @@ import Toast from "@/components/Toast";
 
 type Edited = { valueAr: string; valueEn: string; valueHi: string };
 
+function revalidateDictionary() {
+  fetch("/api/revalidate-dictionary", { method: "POST" }).catch(() => {});
+}
+
 export default function TranslationTable({
   dict,
   commonDict,
@@ -73,6 +77,7 @@ export default function TranslationTable({
       });
       load(page?.page ?? 0, q);
       setToast(commonDict.actionSuccess);
+      revalidateDictionary();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setConflictKeys((prev) => new Set(prev).add(row.key));

@@ -451,7 +451,7 @@ function setPath(target: Record<string, unknown>, path: string[], value: string)
 
 async function fetchFlatDictionary(locale: string): Promise<Record<string, string>> {
   const res = await fetch(`${API_URL}/i18n/dictionary?locale=${locale}`, {
-    next: { revalidate: 60 },
+    next: { revalidate: 60, tags: ["dictionary"] },
   });
   return res.ok ? res.json() : {};
 }

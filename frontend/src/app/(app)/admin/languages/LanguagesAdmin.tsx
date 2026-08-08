@@ -10,6 +10,10 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
 
+function revalidateDictionary() {
+  fetch("/api/revalidate-dictionary", { method: "POST" }).catch(() => {});
+}
+
 export default function LanguagesAdmin({
   dict,
   commonDict,
@@ -70,6 +74,7 @@ export default function LanguagesAdmin({
       setDirection("ltr");
       load();
       setToast(commonDict.actionSuccess);
+      revalidateDictionary();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : dict.addFailed);
     } finally {
@@ -84,6 +89,7 @@ export default function LanguagesAdmin({
       await apiFetch(`/i18n/languages/${languageCode}`, { method: "DELETE" });
       load();
       setToast(commonDict.actionSuccess);
+      revalidateDictionary();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -223,6 +229,7 @@ function LanguageReview({
         body: JSON.stringify({ value }),
       });
       setToast(commonDict.actionSuccess);
+      revalidateDictionary();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
