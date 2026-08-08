@@ -10,6 +10,7 @@
 // direction. The live switcher (getRequestLocale.ts, LocaleSwitcher.tsx)
 // lets a visitor pick any locale GET /i18n/locales returns, built-in or not.
 
+// no-op touch: verifying RENDER_DEPLOY_HOOK_FRONTEND CI-gated deploy
 export const locales = ["ar", "en", "hi"] as const;
 export type Locale = (typeof locales)[number];
 

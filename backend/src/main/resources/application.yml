@@ -1,3 +1,4 @@
+# no-op touch: verifying RENDER_DEPLOY_HOOK_BACKEND CI-gated deploy
 spring:
   application:
     name: sijill-api
