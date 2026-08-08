@@ -258,7 +258,11 @@ export type Dictionary = {
     restoreInvalidPin: string;
     delete: string;
     deleteConfirm: string;
+    deleteConfirmTitle: string;
+    deleting: string;
     deleteFailed: string;
+    deleteRateLimited: string;
+    deleteInvalidPin: string;
   };
   rooms: {
     title: string;

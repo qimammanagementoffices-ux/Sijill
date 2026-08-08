@@ -28,6 +28,10 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
   const [pin, setPin] = useState("");
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<BackupSnapshotDto | null>(null);
+  const [deletePin, setDeletePin] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function load() {
     apiFetch<BackupSnapshotDto[]>("/backups")
@@ -71,14 +75,42 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
     URL.revokeObjectURL(url);
   }
 
-  async function handleDelete(backup: BackupSnapshotDto) {
-    if (!window.confirm(dict.deleteConfirm)) return;
-    setError(null);
+  function openDeleteModal(backup: BackupSnapshotDto) {
+    setDeleteTarget(backup);
+    setDeletePin("");
+    setDeleteError(null);
+  }
+
+  function closeDeleteModal() {
+    setDeleteTarget(null);
+    setDeletePin("");
+    setDeleteError(null);
+  }
+
+  async function handleDeleteSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    setDeleting(true);
     try {
-      await apiFetch(`/backups/${backup.id}`, { method: "DELETE" });
+      await apiFetch(`/backups/${deleteTarget.id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ pin: deletePin }),
+      });
+      closeDeleteModal();
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : dict.deleteFailed);
+      if (err instanceof ApiError && err.status === 429) {
+        setDeleteError(dict.deleteRateLimited);
+      } else if (err instanceof ApiError && err.status === 409) {
+        // Same as restore: 409 also covers "a backup/restore is already in
+        // progress," not just wrong PIN — only show the localized wrong-PIN
+        // text for that specific message.
+        setDeleteError(err.message === "Invalid PIN" ? dict.deleteInvalidPin : err.message);
+      } else {
+        setDeleteError(err instanceof ApiError ? err.message : dict.deleteFailed);
+      }
+      setDeleting(false);
     }
   }
 
@@ -169,7 +201,7 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
                   <button type="button" onClick={() => openRestoreModal(b)}>
                     {dict.restore}
                   </button>
-                  <button type="button" onClick={() => handleDelete(b)}>
+                  <button type="button" onClick={() => openDeleteModal(b)}>
                     {dict.delete}
                   </button>
                 </td>
@@ -217,6 +249,50 @@ export default function BackupAdmin({ dict }: { dict: Dictionary["backups"] }) {
               </button>
               <button type="submit" disabled={restoring}>
                 {restoring ? dict.restoring : dict.restoreConfirm}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <form
+            onSubmit={handleDeleteSubmit}
+            style={{ background: "white", padding: "1.5rem", maxWidth: 400, width: "100%" }}
+          >
+            <h2>{dict.deleteConfirmTitle}</h2>
+            <p>{dict.deleteConfirm}</p>
+            <label>
+              {dict.pinLabel}
+              <input
+                type="password"
+                name="pin"
+                inputMode="numeric"
+                value={deletePin}
+                onChange={(e) => setDeletePin(e.target.value)}
+                required
+                autoFocus
+              />
+            </label>
+            {deleteError && <p role="alert">{deleteError}</p>}
+            <div>
+              <button type="button" onClick={closeDeleteModal} disabled={deleting}>
+                {dict.restoreCancel}
+              </button>
+              <button type="submit" disabled={deleting}>
+                {deleting ? dict.deleting : dict.delete}
               </button>
             </div>
           </form>

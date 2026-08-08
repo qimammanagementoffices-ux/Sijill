@@ -90,9 +90,23 @@ public class BackupController {
         return ResponseEntity.noContent().build();
     }
 
+    // PIN-gated and rate-limited the same way restore is — deleting a backup
+    // is irreversible (the object storage file is gone, not just the DB
+    // row), so it gets the same re-confirmation treatment rather than being
+    // a single unprotected click.
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('sys.backup')")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @RequestBody RestorePinConfirmationRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        if (!restoreRateLimiter.tryAcquire(actor.getId())) {
+            throw ApiException.rateLimited("Too many attempts. Try again later.");
+        }
+        if (!authService.verifyPin(actor, request.pin())) {
+            // 409, not 401 — same reasoning as restore's PIN check.
+            throw ApiException.conflict("Invalid PIN");
+        }
         backupService.delete(id);
         return ResponseEntity.noContent().build();
     }

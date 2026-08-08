@@ -135,16 +135,31 @@ class BackupTest extends AbstractIntegrationTest {
         String noPermToken = createEmployeeAndLogin(adminToken, "0599900109", Set.of());
 
         mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"1234\"}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void deleteOfUnknownBackupReturns404() throws Exception {
+    void deleteRequiresCorrectPin() throws Exception {
         String adminToken = createAdminAndGetToken("0599900110");
 
         mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"9999\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void deleteOfUnknownBackupReturns404() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900111");
+
+        mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pin\":\"1234\"}"))
                 .andExpect(status().isNotFound());
     }
 }
