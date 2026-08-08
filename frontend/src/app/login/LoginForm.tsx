@@ -57,8 +57,18 @@ export default function LoginForm({
       setToken(response.token);
       router.push("/dashboard");
     } catch (err) {
-      // Server already returns the generic message; still fall back defensively.
-      setError(err instanceof ApiError ? err.message : dict.genericError);
+      // The backend's error messages (AuthService.GENERIC_LOGIN_FAILURE etc.)
+      // are hardcoded English, not run through the translation dictionary --
+      // map by error code to the localized text instead of showing err.message
+      // directly. Falls back to the raw message only for a genuinely
+      // unexpected code, which is better than showing nothing.
+      if (err instanceof ApiError && err.code === "RATE_LIMITED") {
+        setError(dict.rateLimited);
+      } else if (err instanceof ApiError && err.code === "UNAUTHENTICATED") {
+        setError(dict.genericError);
+      } else {
+        setError(err instanceof ApiError ? err.message : dict.genericError);
+      }
       setSubmitting(false);
     }
   }

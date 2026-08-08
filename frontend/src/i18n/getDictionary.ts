@@ -31,6 +31,7 @@ export type Dictionary = {
     pinLabel: string;
     submit: string;
     genericError: string;
+    rateLimited: string;
   };
   dashboard: {
     appName: string;
