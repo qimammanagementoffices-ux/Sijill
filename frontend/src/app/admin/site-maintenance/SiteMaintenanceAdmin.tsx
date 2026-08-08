@@ -83,6 +83,7 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
     setError(null);
     setUploading(true);
     try {
+      const previousAttachmentId = setting.imageAttachmentId;
       const formData = new FormData();
       formData.append("ownerType", "MAINTENANCE");
       formData.append("ownerId", MAINTENANCE_OWNER_ID);
@@ -92,6 +93,16 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
         formData
       );
       await save(uploaded.id);
+      // Replacing an image previously left the old attachment row/storage
+      // file orphaned -- only explicit "Remove" cleaned up. Clean up the
+      // superseded one here too, once the new reference is safely saved.
+      if (previousAttachmentId && previousAttachmentId !== uploaded.id) {
+        try {
+          await apiFetch(`/attachments/${previousAttachmentId}`, { method: "DELETE" });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {

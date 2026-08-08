@@ -71,6 +71,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setError(null);
     setUploading(true);
     try {
+      const previousLogoAttachmentId = branding.logoAttachmentId;
       const formData = new FormData();
       formData.append("ownerType", "BRANDING");
       formData.append("ownerId", BRANDING_OWNER_ID);
@@ -89,6 +90,16 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         }),
       });
       setBranding(updated);
+      // Replacing the logo previously left the old attachment row/storage
+      // file orphaned. Clean up the superseded one now that the new
+      // reference is safely saved.
+      if (previousLogoAttachmentId && previousLogoAttachmentId !== uploaded.id) {
+        try {
+          await apiFetch(`/attachments/${previousLogoAttachmentId}`, { method: "DELETE" });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
