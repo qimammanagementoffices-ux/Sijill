@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
@@ -104,7 +105,9 @@ export default function LanguagesAdmin({ dict }: { dict: Dictionary["adminLangua
               <td>{c}</td>
               <td>—</td>
               <td>{c === "ar" ? dict.directionRtl : dict.directionLtr}</td>
-              <td></td>
+              <td>
+                <Link href="/admin/translations">{dict.editBuiltIn}</Link>
+              </td>
             </tr>
           ))}
           {languages.map((l) => (
@@ -172,7 +175,12 @@ function LanguageReview({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<TranslationExtraValueDto[]>(`/i18n/languages/${code}/values`).then(setValues);
+    apiFetch<TranslationExtraValueDto[]>(`/i18n/languages/${code}/values`)
+      .then(setValues)
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : String(err));
+        setValues([]);
+      });
   }, [code]);
 
   async function handleSave(key: string) {

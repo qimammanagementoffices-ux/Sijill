@@ -384,6 +384,7 @@ export type Dictionary = {
     delete: string;
     deleteConfirm: string;
     review: string;
+    editBuiltIn: string;
     addTitle: string;
     codeLabel: string;
     codeHint: string;
