@@ -167,7 +167,16 @@ export default function MaintenanceRequestDetailView({
           <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
             <h3 style={{ marginTop: 0 }}>{dict.partsUsedLabel}</h3>
             {partDrafts.map((draft, index) => (
-              <div key={index} className="form-grid" style={{ marginBottom: 10, alignItems: "end" }}>
+              <div
+                key={index}
+                className="form-grid"
+                style={{
+                  marginBottom: 10,
+                  alignItems: "end",
+                  paddingTop: index > 0 ? 14 : 0,
+                  borderTop: index > 0 ? "1px solid var(--line-soft)" : "none",
+                }}
+              >
                 <div className="field">
                   <select value={draft.inventoryItemId} onChange={(e) => updatePartDraft(index, { inventoryItemId: e.target.value })}>
                     <option value="">—</option>

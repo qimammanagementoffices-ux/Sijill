@@ -124,7 +124,16 @@ export default function NewInvoiceView({
           </div>
           <div className="panel-body">
             {lines.map((line, index) => (
-              <div key={index} className="form-grid" style={{ marginBottom: 10, alignItems: "end" }}>
+              <div
+                key={index}
+                className="form-grid"
+                style={{
+                  marginBottom: 10,
+                  alignItems: "end",
+                  paddingTop: index > 0 ? 14 : 0,
+                  borderTop: index > 0 ? "1px solid var(--line-soft)" : "none",
+                }}
+              >
                 <div className="field">
                   <label>{dict.itemLabel}</label>
                   <select
