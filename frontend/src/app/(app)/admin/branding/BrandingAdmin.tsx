@@ -29,6 +29,14 @@ function swatchGradient(primary: string, accent: string): string {
   return `conic-gradient(${primary} 0% 25%, ${accent} 25% 50%, ${primary} 50% 75%, ${accent} 75% 100%)`;
 }
 
+// BrandingAdmin talks to the Spring Boot backend directly, so Next's own
+// cached getBranding() response (login page, sidebar) doesn't know branding
+// just changed and would otherwise keep serving the old value for its 60s
+// window. Best-effort -- a failure here just means that window applies.
+function revalidateBranding() {
+  fetch("/api/revalidate-branding", { method: "POST" }).catch(() => {});
+}
+
 export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }) {
   const router = useRouter();
   const [branding, setBranding] = useState<BrandingDto | null>(null);
@@ -93,6 +101,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       });
       setBranding(updated);
       setToast(dict.saveSuccess);
+      revalidateBranding();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -121,6 +130,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       });
       setBranding(updated);
       setToast(dict.saveSuccess);
+      revalidateBranding();
       // Replacing the logo previously left the old attachment row/storage
       // file orphaned. Clean up the superseded one now that the new
       // reference is safely saved.
@@ -150,6 +160,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       });
       setBranding(updated);
       setToast(dict.saveSuccess);
+      revalidateBranding();
       try {
         await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
       } catch (err) {
@@ -174,6 +185,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setSchoolLabel(updated.schoolLabel ?? "");
     setSubtitle(updated.subtitle ?? "");
     setToast(dict.saveSuccess);
+    revalidateBranding();
   }
 
   if (!branding) return <SectionLoading />;

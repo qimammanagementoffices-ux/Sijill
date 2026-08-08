@@ -9,7 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1
 // Next's fetch cache dedupes the two calls into one request per window
 // rather than issuing it twice per page load.
 export async function getBranding(): Promise<BrandingDto> {
-  const res = await fetch(`${API_URL}/branding`, { next: { revalidate: 60 } });
+  const res = await fetch(`${API_URL}/branding`, { next: { revalidate: 60, tags: ["branding"] } });
   if (!res.ok) {
     return {
       preset: "default",
