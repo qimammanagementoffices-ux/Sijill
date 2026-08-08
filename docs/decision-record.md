@@ -1,10 +1,11 @@
 # Sijill — Decision Record
 
-Status: **ACCEPTED (D1–D4) — 2026-08-07**. Recommendations adopted as drafted, pending any later amendment. Sub-decisions resolved as follows unless changed:
+Status: **ACCEPTED (D1–D5) — D1–D4 on 2026-08-07, D5 on 2026-08-08**. Recommendations adopted as drafted, pending any later amendment. Sub-decisions resolved as follows unless changed:
 - D1 sub-decision: partial fulfillment **allowed** at finish (issued quantity may be ≤ requested quantity; difference recorded in action history).
 - D2 sub-decision: room number/name **is** exposed on the public QR view (simpler for MVP; revisit if this becomes a concern).
 - D3 sub-decision: two-step DONE→CLOSED **collapsed to a single fulfiller-driven status** — the requester-confirmation step and the admin force-close-after-timeout path are dropped. A request moves directly to `CLOSED` when the fulfiller (`wh.act.finish` / `mt.act.finish` / `as.act.finish` holder) marks it done; no separate "received" confirmation UI.
 - D4: `sys.*` prefix accepted.
+- D5: restore reuses `sys.backup` (no new permission key); wrong-PIN returns 409, not 401.
 
 These are working defaults, not irreversible — flag anything you want changed before we get further into Phase 2+ (schema starts locking in once the initial migration lands, and it's still cheap to adjust in Phase 1).
 Scope: schema-critical decisions only. These four items change entity shape, table structure, or transaction logic, so they must be settled before Phase 1 migrations are written. The remaining items in `sijill-architecture-review.md` (§ "Decisions required before implementation," items 2, 3, 8, 9, 10, 11, 12) are vendor/ops/config choices and can be decided phase-by-phase without schema rework.
@@ -82,11 +83,30 @@ Scope: schema-critical decisions only. These four items change entity shape, tab
 
 ---
 
-## Summary — resolved 2026-08-07
+## D5. Backup restore — re-auth, rate limiting, and status codes
+
+**Question (Phase 7, not in the original 12 — restore was deliberately deferred out of Phase 6c per that phase's commit message, pending its own focused pass on safety mechanics):** How should restore re-verify the caller, rate-limit repeated attempts, and signal a wrong PIN, given restore is the single most destructive action in the app (replaces the entire live database)?
+
+**Decision:**
+
+- **Permission:** reuse the existing `sys.backup` key (its DB description already reads "Manage backups and restores") rather than a new permission — restore isn't a separate capability, it's a more dangerous action within the same capability.
+- **PIN re-verification:** a new `AuthService.verifyPin(Employee actor, String pin)` that reuses the exact `passwordEncoder.matches(...)` check already used by login, checked against the *already-authenticated* actor's own stored hash — no phone lookup, since the JWT already identifies who's asking. Not a new auth flow.
+- **Rate limiting:** a dedicated `RestoreRateLimiter` (3 attempts/60s, keyed by employee id) rather than reusing/generalizing the existing `LoginRateLimiter` (5/60s, keyed by phone). Deliberately tighter, since a wrong PIN here is guessed against an already-authenticated (possibly stolen/hijacked) session, not an anonymous login attempt — and kept as a separate class rather than risk a regression on the well-tested login path for the sake of a shared abstraction.
+- **Wrong-PIN status code:** 409 Conflict, not 401 Unauthorized — deliberately non-standard for an auth failure. `apiClient.ts`'s frontend interceptor force-clears the session and redirects to `/login` on *any* 401 while a token is present (its "your session expired" handling); since the caller's session is actually still valid here (only the re-entered PIN is wrong), a 401 would silently log the admin out mid-retry instead of showing an inline error. 409 sidesteps that global interceptor while still being a defensible status for "this action conflicts with the required confirmation."
+- **Pre-restore safety snapshot:** mandatory and automatic, not optional or user-triggered — every restore first takes its own backup (tagged `PRE_RESTORE`) of the state it's about to overwrite, before the target dump is applied via `pg_restore --clean --if-exists`.
+
+**Why not just reuse login's 401 + LoginRateLimiter:** both would technically work, but each would silently misapply a rule designed for a different threat model (anonymous credential guessing) to this one (an authenticated session re-confirming a destructive action) — the 401 collision in particular isn't a style nitpick, it's a real UX bug (surfaced and fixed during Phase 7 implementation): the global "401 = session expired" handling would have forced a logout on the very screen where the admin is trying to retry a mistyped PIN.
+
+**Schema impact:** `BackupSnapshot` gained `restoredAt`/`restoredBy` columns and a widened `triggered_by` check constraint (`PRE_RESTORE` added to `SCHEDULED`/`MANUAL`). No new permission catalogue entry.
+
+---
+
+## Summary — resolved 2026-08-07 (D1–D4), 2026-08-08 (D5)
 
 1. **D1:** Decrement-on-fulfillment (not reserve-on-approval). Partial fulfillment **allowed** at finish.
 2. **D2:** Token-based QR addressing + the stated public field allowlist. Room name/number **is** exposed.
 3. **D3:** Collapsed to one fulfiller-driven `CLOSED` status — no separate requester-confirmation step, no admin force-close.
 4. **D4:** New `sys.*` permission keys for branding/backup/audit — accepted.
+5. **D5:** Restore reuses `sys.backup`; PIN re-verification via a new `AuthService.verifyPin`; a dedicated 3/60s `RestoreRateLimiter`; wrong-PIN returns 409 (not 401, to avoid the frontend's global session-expiry handling); mandatory pre-restore safety snapshot.
 
-These four are locked. Phase 1 migrations (entities, join tables, permission catalogue seed) can be written without risk of reshaping tables mid-build.
+D1–D4 are locked (schema-critical, settled before Phase 1 migrations). D5 is locked the same way for anything touching restore going forward — the 409-not-401 choice in particular should not be "corrected" back to 401 without re-checking `apiClient.ts`'s interceptor first.
