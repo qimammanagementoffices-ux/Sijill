@@ -33,6 +33,7 @@ export type Dictionary = {
     submit: string;
     genericError: string;
     rateLimited: string;
+    pinHint: string;
   };
   dashboard: {
     appName: string;

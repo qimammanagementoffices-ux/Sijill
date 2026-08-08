@@ -112,6 +112,10 @@ export default function LoginForm({
           {dict.submit}
         </button>
       </form>
+      <div className="login-hint">
+        <span>🔒</span>
+        <span>{dict.pinHint}</span>
+      </div>
     </>
   );
 }
