@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { InventoryItemListItem, MaintenanceRequestDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 type PartDraft = { inventoryItemId: string; quantity: string };
 
@@ -22,9 +23,11 @@ const STATUS_STAMP_CLASS: Record<string, string> = {
 export default function MaintenanceRequestDetailView({
   id,
   dict,
+  commonDict,
 }: {
   id: string;
   dict: Dictionary["maintenanceRequests"];
+  commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [request, setRequest] = useState<MaintenanceRequestDetail | null>(null);
@@ -32,6 +35,7 @@ export default function MaintenanceRequestDetailView({
   const [parts, setParts] = useState<InventoryItemListItem[] | null>(null);
   const [reason, setReason] = useState("");
   const [partDrafts, setPartDrafts] = useState<PartDraft[]>([{ inventoryItemId: "", quantity: "1" }]);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<MaintenanceRequestDetail>(`/maintenance/requests/${id}`)
@@ -60,6 +64,7 @@ export default function MaintenanceRequestDetailView({
       body: action === "approve" || action === "start" ? undefined : JSON.stringify({ reason: reason || null }),
     });
     load();
+    setToast(commonDict.actionSuccess);
   }
 
   function updatePartDraft(index: number, patch: Partial<PartDraft>) {
@@ -84,6 +89,7 @@ export default function MaintenanceRequestDetailView({
       }),
     });
     load();
+    setToast(commonDict.actionSuccess);
   }
 
   if (!request) return <SectionLoading />;
@@ -229,6 +235,8 @@ export default function MaintenanceRequestDetailView({
           )}
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

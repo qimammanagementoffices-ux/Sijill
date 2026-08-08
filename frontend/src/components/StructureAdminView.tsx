@@ -7,16 +7,19 @@ import { getToken } from "@/lib/auth";
 import type { LocalizedEntityDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "./SectionLoading";
+import Toast from "./Toast";
 
 // Shared by /departments, /job-titles, /warehouse/categories,
 // /maintenance/categories, /assets/categories — same CRUD shape (localized
 // nameAr/nameEn, no delete, version-checked updates) for all five.
 export default function StructureAdminView({
   dict,
+  commonDict,
   entity,
   title,
 }: {
   dict: Dictionary["structure"];
+  commonDict: Dictionary["common"];
   entity: "departments" | "job-titles" | "warehouse/categories" | "maintenance/categories" | "assets/categories";
   title: string;
 }) {
@@ -26,6 +29,7 @@ export default function StructureAdminView({
   const [newNameEn, setNewNameEn] = useState("");
   const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string }>>({});
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<LocalizedEntityDto[]>(`/${entity}`)
@@ -53,6 +57,7 @@ export default function StructureAdminView({
       setNewNameAr("");
       setNewNameEn("");
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -68,6 +73,7 @@ export default function StructureAdminView({
         body: JSON.stringify({ nameAr: edited.nameAr, nameEn: edited.nameEn, version: item.version }),
       });
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -152,6 +158,8 @@ export default function StructureAdminView({
           </form>
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

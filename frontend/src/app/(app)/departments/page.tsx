@@ -4,5 +4,12 @@ import StructureAdminView from "@/components/StructureAdminView";
 
 export default async function DepartmentsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <StructureAdminView dict={dict.structure} entity="departments" title={dict.structure.departmentsTitle} />;
+  return (
+    <StructureAdminView
+      dict={dict.structure}
+      commonDict={dict.common}
+      entity="departments"
+      title={dict.structure.departmentsTitle}
+    />
+  );
 }

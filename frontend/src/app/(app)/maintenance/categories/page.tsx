@@ -7,6 +7,7 @@ export default async function MaintenanceCategoriesPage() {
   return (
     <StructureAdminView
       dict={dict.structure}
+      commonDict={dict.common}
       entity="maintenance/categories"
       title={dict.dashboard.maintenanceCategoriesNav}
     />

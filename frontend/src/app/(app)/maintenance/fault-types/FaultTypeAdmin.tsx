@@ -7,10 +7,17 @@ import { getToken } from "@/lib/auth";
 import type { CategoryDto, FaultTypeDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 type Edited = { nameAr: string; nameEn: string; suggestedCategoryId: string };
 
-export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"] }) {
+export default function FaultTypeAdmin({
+  dict,
+  commonDict,
+}: {
+  dict: Dictionary["faultTypes"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -19,6 +26,7 @@ export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"
   const [newCategoryId, setNewCategoryId] = useState("");
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     Promise.all([
@@ -58,6 +66,7 @@ export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"
       setNewNameEn("");
       setNewCategoryId("");
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -78,6 +87,7 @@ export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"
         }),
       });
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -200,6 +210,8 @@ export default function FaultTypeAdmin({ dict }: { dict: Dictionary["faultTypes"
           </form>
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

@@ -8,6 +8,7 @@ import AttachmentUploader from "@/components/AttachmentUploader";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 import type { RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -33,6 +34,7 @@ export default function RoomAdmin({
   const [newFloor, setNewFloor] = useState("");
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<RoomDto[]>("/rooms")
@@ -73,6 +75,7 @@ export default function RoomAdmin({
       setNewBuilding("");
       setNewFloor("");
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -95,6 +98,7 @@ export default function RoomAdmin({
         }),
       });
       load();
+      setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }
@@ -233,6 +237,7 @@ export default function RoomAdmin({
                               ownerId={room.id}
                               dict={attachmentsDict}
                               canManage={canManage}
+                              onAction={() => setToast(commonDict.actionSuccess)}
                             />
                           </td>
                         </tr>
@@ -275,6 +280,8 @@ export default function RoomAdmin({
           </form>
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

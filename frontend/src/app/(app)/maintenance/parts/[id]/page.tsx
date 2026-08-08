@@ -10,6 +10,7 @@ export default async function MaintenancePartDetailPage({ params }: { params: { 
       dict={dict.warehouseItems}
       attachmentsDict={dict.attachments}
       errorsDict={dict.errors}
+      commonDict={dict.common}
       itemBasePath="/maintenance/parts"
       categoriesPath="/maintenance/categories"
     />

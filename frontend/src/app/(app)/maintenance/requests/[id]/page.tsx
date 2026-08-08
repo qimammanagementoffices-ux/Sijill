@@ -4,5 +4,5 @@ import MaintenanceRequestDetailView from "./MaintenanceRequestDetailView";
 
 export default async function MaintenanceRequestDetailPage({ params }: { params: { id: string } }) {
   const dict = await getDictionary(await getRequestLocale());
-  return <MaintenanceRequestDetailView id={params.id} dict={dict.maintenanceRequests} />;
+  return <MaintenanceRequestDetailView id={params.id} dict={dict.maintenanceRequests} commonDict={dict.common} />;
 }

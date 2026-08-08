@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import ItemForm from "@/components/ItemForm";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 import type { CategoryDto, InventoryItemDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -15,6 +16,7 @@ export default function ItemEditView({
   dict,
   attachmentsDict,
   errorsDict,
+  commonDict,
   itemBasePath,
   categoriesPath,
 }: {
@@ -22,6 +24,7 @@ export default function ItemEditView({
   dict: Dictionary["warehouseItems"];
   attachmentsDict: Dictionary["attachments"];
   errorsDict: Dictionary["errors"];
+  commonDict: Dictionary["common"];
   itemBasePath: string;
   categoriesPath: string;
 }) {
@@ -29,6 +32,7 @@ export default function ItemEditView({
   const [item, setItem] = useState<InventoryItemDetail | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [canManage, setCanManage] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     Promise.all([
@@ -57,6 +61,7 @@ export default function ItemEditView({
   async function handleDeactivate() {
     await apiFetch<void>(`${itemBasePath}/${id}/deactivate`, { method: "POST" });
     load();
+    setToast(commonDict.actionSuccess);
   }
 
   if (!item || !categories) return <SectionLoading />;
@@ -75,7 +80,10 @@ export default function ItemEditView({
         initial={item}
         categories={categories}
         basePath={itemBasePath}
-        onSubmitted={setItem}
+        onSubmitted={(i) => {
+          setItem(i);
+          setToast(commonDict.actionSuccess);
+        }}
       />
       {item.active && (
         <button type="button" className="btn btn-seal btn-sm" style={{ marginTop: 10 }} onClick={handleDeactivate}>
@@ -83,8 +91,16 @@ export default function ItemEditView({
         </button>
       )}
       <div className="panel">
-        <AttachmentUploader ownerType="INVENTORY_ITEM" ownerId={item.id} dict={attachmentsDict} canManage={canManage} />
+        <AttachmentUploader
+          ownerType="INVENTORY_ITEM"
+          ownerId={item.id}
+          dict={attachmentsDict}
+          canManage={canManage}
+          onAction={() => setToast(commonDict.actionSuccess)}
+        />
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

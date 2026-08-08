@@ -4,5 +4,5 @@ import EmployeeEditView from "./EmployeeEditView";
 
 export default async function EmployeeDetailPage({ params }: { params: { id: string } }) {
   const dict = await getDictionary(await getRequestLocale());
-  return <EmployeeEditView id={params.id} dict={dict.employees} errorsDict={dict.errors} />;
+  return <EmployeeEditView id={params.id} dict={dict.employees} errorsDict={dict.errors} commonDict={dict.common} />;
 }

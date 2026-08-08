@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { AssetRequestDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
@@ -16,11 +17,20 @@ const STATUS_STAMP_CLASS: Record<string, string> = {
   CLOSED: "s-closed",
 };
 
-export default function AssetRequestDetailView({ id, dict }: { id: string; dict: Dictionary["assetRequests"] }) {
+export default function AssetRequestDetailView({
+  id,
+  dict,
+  commonDict,
+}: {
+  id: string;
+  dict: Dictionary["assetRequests"];
+  commonDict: Dictionary["common"];
+}) {
   const router = useRouter();
   const [request, setRequest] = useState<AssetRequestDetail | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [reason, setReason] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<AssetRequestDetail>(`/asset-requests/${id}`)
@@ -46,6 +56,7 @@ export default function AssetRequestDetailView({ id, dict }: { id: string; dict:
       body: action === "approve" || action === "finish" ? undefined : JSON.stringify({ reason: reason || null }),
     });
     load();
+    setToast(commonDict.actionSuccess);
   }
 
   if (!request) return <SectionLoading />;
@@ -114,6 +125,8 @@ export default function AssetRequestDetailView({ id, dict }: { id: string; dict:
           )}
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

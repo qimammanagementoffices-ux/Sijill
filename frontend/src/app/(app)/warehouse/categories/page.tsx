@@ -7,6 +7,7 @@ export default async function WarehouseCategoriesPage() {
   return (
     <StructureAdminView
       dict={dict.structure}
+      commonDict={dict.common}
       entity="warehouse/categories"
       title={dict.dashboard.warehouseCategoriesNav}
     />

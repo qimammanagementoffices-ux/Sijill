@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { NeedRequestDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
@@ -19,15 +20,18 @@ const STATUS_STAMP_CLASS: Record<string, string> = {
 export default function RequestDetailView({
   id,
   dict,
+  commonDict,
 }: {
   id: string;
   dict: Dictionary["warehouseRequests"];
+  commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [request, setRequest] = useState<NeedRequestDetail | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [issuedByLine, setIssuedByLine] = useState<Record<string, string>>({});
   const [reason, setReason] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}`)
@@ -60,6 +64,7 @@ export default function RequestDetailView({
       body: action === "approve" ? undefined : JSON.stringify({ reason: reason || null }),
     });
     load();
+    setToast(commonDict.actionSuccess);
   }
 
   async function finish() {
@@ -73,6 +78,7 @@ export default function RequestDetailView({
       }),
     });
     load();
+    setToast(commonDict.actionSuccess);
   }
 
   if (!request) return <SectionLoading />;
@@ -167,6 +173,8 @@ export default function RequestDetailView({
           )}
         </div>
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

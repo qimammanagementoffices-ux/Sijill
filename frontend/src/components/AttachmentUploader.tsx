@@ -13,11 +13,16 @@ export default function AttachmentUploader({
   ownerId,
   dict,
   canManage,
+  onAction,
 }: {
   ownerType: AttachmentOwnerType;
   ownerId: string;
   dict: Dictionary["attachments"];
   canManage: boolean;
+  // Fires after a successful upload/delete -- the toast text itself lives
+  // with the caller (commonDict.actionSuccess) so this component doesn't
+  // need Dictionary["common"] threaded through just for one string.
+  onAction?: () => void;
 }) {
   const [attachments, setAttachments] = useState<AttachmentDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +53,7 @@ export default function AttachmentUploader({
       formData.append("file", file);
       await apiUpload(`/attachments?ownerType=${ownerType}&ownerId=${ownerId}`, formData);
       load();
+      onAction?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -60,6 +66,7 @@ export default function AttachmentUploader({
     try {
       await apiFetch(`/attachments/${id}`, { method: "DELETE" });
       load();
+      onAction?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     }

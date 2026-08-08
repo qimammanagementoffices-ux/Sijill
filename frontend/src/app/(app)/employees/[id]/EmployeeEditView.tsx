@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import EmployeeForm from "@/components/EmployeeForm";
 import SectionLoading from "@/components/SectionLoading";
+import Toast from "@/components/Toast";
 import type { EmployeeDetail, LocalizedEntityDto, PermissionDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -13,10 +14,12 @@ export default function EmployeeEditView({
   id,
   dict,
   errorsDict,
+  commonDict,
 }: {
   id: string;
   dict: Dictionary["employees"];
   errorsDict: Dictionary["errors"];
+  commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
@@ -24,6 +27,7 @@ export default function EmployeeEditView({
   const [jobTitles, setJobTitles] = useState<LocalizedEntityDto[] | null>(null);
   const [allPermissions, setAllPermissions] = useState<PermissionDto[] | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   function loadAll() {
     Promise.all([
@@ -54,6 +58,7 @@ export default function EmployeeEditView({
     if (!window.confirm(dict.deactivateConfirm)) return;
     await apiFetch<void>(`/employees/${id}/deactivate`, { method: "POST" });
     loadAll();
+    setToast(commonDict.actionSuccess);
   }
 
   async function handleResetPin() {
@@ -65,6 +70,7 @@ export default function EmployeeEditView({
       method: "PUT",
       body: JSON.stringify({ pin, pinConfirm }),
     });
+    setToast(commonDict.actionSuccess);
   }
 
   if (!employee || !departments || !jobTitles || !allPermissions) return <SectionLoading />;
@@ -87,7 +93,10 @@ export default function EmployeeEditView({
         departments={departments}
         jobTitles={jobTitles}
         allPermissions={allPermissions}
-        onSubmitted={setEmployee}
+        onSubmitted={(e) => {
+          setEmployee(e);
+          setToast(commonDict.actionSuccess);
+        }}
         onConflict={() => setConflict(true)}
       />
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
@@ -100,6 +109,8 @@ export default function EmployeeEditView({
           </button>
         )}
       </div>
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

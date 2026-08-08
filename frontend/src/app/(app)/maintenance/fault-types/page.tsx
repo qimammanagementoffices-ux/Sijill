@@ -4,5 +4,5 @@ import FaultTypeAdmin from "./FaultTypeAdmin";
 
 export default async function FaultTypesPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <FaultTypeAdmin dict={dict.faultTypes} />;
+  return <FaultTypeAdmin dict={dict.faultTypes} commonDict={dict.common} />;
 }
