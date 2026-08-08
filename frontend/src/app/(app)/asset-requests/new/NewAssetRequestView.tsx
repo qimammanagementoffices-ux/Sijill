@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { AssetListItem, AssetRequestDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 export default function NewAssetRequestView({
   dict,
@@ -47,33 +48,45 @@ export default function NewAssetRequestView({
     }
   }
 
-  if (!assets) return null;
+  if (!assets) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 600, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.addNew}</h1>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.addNew}</h1>
       <form onSubmit={handleSubmit}>
-        <label>
-          {dict.assetLabel}
-          <select value={assetId} onChange={(e) => setAssetId(e.target.value)} required>
-            <option value="">—</option>
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.assetNumber} — {asset.nameAr}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {dict.reasonLabel}
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
-        </label>
+        <div className="panel">
+          <div className="panel-body">
+            <div className="form-grid">
+              <div className="field span2">
+                <label>{dict.assetLabel}</label>
+                <select value={assetId} onChange={(e) => setAssetId(e.target.value)} required>
+                  <option value="">—</option>
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.assetNumber} — {asset.nameAr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field span2">
+                <label>{dict.reasonLabel}</label>
+                <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </div>
 
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
+        {error && (
+          <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting && <span className="spinner" />}
           {dict.submit}
         </button>
       </form>
-    </main>
+    </>
   );
 }
