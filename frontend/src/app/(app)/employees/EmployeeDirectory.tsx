@@ -50,65 +50,87 @@ export default function EmployeeDirectory({ dict }: { dict: Dictionary["employee
   if (!page) return null;
 
   return (
-    <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <h1>{dict.title}</h1>
+    <>
+      <div className="eyebrow">{dict.title}</div>
+      <h1 className="section-title disp">{dict.title}</h1>
 
-      <form onSubmit={handleSearch}>
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={dict.searchPlaceholder}
-        />
-        <button type="submit">{dict.search}</button>
-      </form>
-
-      {canManage && (
-        <p>
-          <Link href="/employees/new">{dict.addNew}</Link>
-        </p>
-      )}
-
-      {page.content.length === 0 ? (
-        <p>{dict.noResults}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.columnEmployeeNumber}</th>
-              <th>{dict.columnName}</th>
-              <th>{dict.columnPhone}</th>
-              <th>{dict.columnJobTitle}</th>
-              <th>{dict.columnDepartments}</th>
-              <th>{dict.columnStatus}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.content.map((employee) => (
-              <tr key={employee.id}>
-                <td>
-                  <Link href={`/employees/${employee.id}`}>{employee.employeeNumber}</Link>
-                </td>
-                <td>{employee.name}</td>
-                <td>{employee.phone}</td>
-                <td>{employee.jobTitle ? employee.jobTitle.ar : ""}</td>
-                <td>{employee.departments.map((d) => d.ar).join(", ")}</td>
-                <td>{employee.active ? dict.active : dict.inactive}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {page.totalPages > 1 && (
-        <p>
-          {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
-            <button key={i} type="button" onClick={() => load(i, q)} disabled={i === page.page}>
-              {i + 1}
+      <div className="panel">
+        <div className="panel-head">
+          <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={dict.searchPlaceholder}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 280 }}
+            />
+            <button type="submit" className="btn btn-outline btn-sm">
+              {dict.search}
             </button>
-          ))}
-        </p>
-      )}
-    </main>
+          </form>
+          {canManage && (
+            <Link href="/employees/new" className="btn btn-primary btn-sm">
+              {dict.addNew}
+            </Link>
+          )}
+        </div>
+
+        {page.content.length === 0 ? (
+          <div className="empty">
+            <b>{dict.noResults}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.columnEmployeeNumber}</th>
+                  <th>{dict.columnName}</th>
+                  <th>{dict.columnPhone}</th>
+                  <th>{dict.columnJobTitle}</th>
+                  <th>{dict.columnDepartments}</th>
+                  <th>{dict.columnStatus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {page.content.map((employee) => (
+                  <tr key={employee.id} className="clickable" onClick={() => router.push(`/employees/${employee.id}`)}>
+                    <td className="mono">
+                      <Link href={`/employees/${employee.id}`}>{employee.employeeNumber}</Link>
+                    </td>
+                    <td>{employee.name}</td>
+                    <td className="mono">{employee.phone}</td>
+                    <td>{employee.jobTitle ? employee.jobTitle.ar : ""}</td>
+                    <td>{employee.departments.map((d) => d.ar).join(", ")}</td>
+                    <td>
+                      <span className={`chip ${employee.active ? "s-approved" : "s-postponed"}`}>
+                        <span className="chip-dot" />
+                        {employee.active ? dict.active : dict.inactive}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {page.totalPages > 1 && (
+          <div className="panel-note" style={{ display: "flex", gap: 6, paddingTop: 14 }}>
+            {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
+              <button
+                key={i}
+                type="button"
+                className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
+                onClick={() => load(i, q)}
+                disabled={i === page.page}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
