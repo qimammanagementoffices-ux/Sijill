@@ -9,6 +9,9 @@ RUN gradle build --no-daemon -x test
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+# pg_dump for the daily backup job (BackupService) — shells out to it
+# via ProcessBuilder rather than a JDBC-based dump implementation.
+RUN apk add --no-cache postgresql-client
 RUN addgroup -S sijill && adduser -S sijill -G sijill
 COPY --from=build /home/gradle/src/build/libs/*.jar app.jar
 USER sijill

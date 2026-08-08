@@ -53,6 +53,7 @@ export type Dictionary = {
     assetCategoriesNav: string;
     assetRequestsNav: string;
     brandingNav: string;
+    backupsNav: string;
   };
   errors: {
     generic: string;
@@ -230,6 +231,19 @@ export type Dictionary = {
     save: string;
     reset: string;
     resetConfirm: string;
+  };
+  backups: {
+    title: string;
+    runNow: string;
+    running: string;
+    columnFilename: string;
+    columnSize: string;
+    columnTriggeredBy: string;
+    columnCreatedAt: string;
+    triggeredScheduled: string;
+    triggeredManual: string;
+    download: string;
+    noBackups: string;
   };
   rooms: {
     title: string;

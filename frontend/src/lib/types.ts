@@ -283,6 +283,14 @@ export type AttachmentDto = {
   createdAt: string;
 };
 
+export type BackupSnapshotDto = {
+  id: string;
+  filename: string;
+  sizeBytes: number;
+  triggeredBy: "SCHEDULED" | "MANUAL";
+  createdAt: string;
+};
+
 export type BrandingDto = {
   preset: string;
   primaryColor: string;
