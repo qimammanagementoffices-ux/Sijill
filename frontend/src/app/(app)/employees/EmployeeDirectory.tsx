@@ -7,6 +7,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import type { EmployeeListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import SectionLoading from "@/components/SectionLoading";
 
 export default function EmployeeDirectory({ dict }: { dict: Dictionary["employees"] }) {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function EmployeeDirectory({ dict }: { dict: Dictionary["employee
     load(0, q);
   }
 
-  if (!page) return null;
+  if (!page) return <SectionLoading />;
 
   return (
     <>

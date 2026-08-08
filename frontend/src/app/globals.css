@@ -420,6 +420,15 @@ body.lang-en .section-title {
   justify-content: center;
   background: var(--paper);
 }
+/* Same idea as .full-page-loading but for inside .content -- a page's own
+   data fetch (list/detail/form initial load) shouldn't blank the sidebar
+   and topbar too, just its own area. */
+.section-loading {
+  padding: 90px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .cards-row {
   display: grid;
@@ -1551,9 +1560,15 @@ body.lang-en .modal-head h3 {
    Everything under this app now goes through PrintReportHeader's
    .print-page wrapper (see components/PrintReportHeader.tsx), so there's
    no remaining plain-flow report relying on the old page-margin behavior. */
+.print-only {
+  display: none;
+}
 @media print {
   .no-print {
     display: none !important;
+  }
+  .print-only {
+    display: block !important;
   }
   body {
     background: white;

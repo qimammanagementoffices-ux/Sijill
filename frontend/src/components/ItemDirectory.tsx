@@ -7,6 +7,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import SectionLoading from "@/components/SectionLoading";
 import type { InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -76,88 +77,114 @@ export default function ItemDirectory({
     );
   }
 
-  if (!page) return null;
+  if (!page) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <PrintReportHeader title={dict.title} dict={commonDict} />
+    <>
+      <div className="no-print">
+        <div className="eyebrow">{dict.title}</div>
+        <h1 className="section-title disp">{dict.title}</h1>
+      </div>
+      <div className="print-only">
+        <PrintReportHeader title={dict.title} dict={commonDict} />
+      </div>
 
-      <p className="no-print">
-        <button type="button" onClick={handleExport}>
-          {commonDict.exportXlsx}
-        </button>
-        <button type="button" onClick={() => window.print()}>
-          {commonDict.print}
-        </button>
-      </p>
-
-      <form className="no-print" onSubmit={handleSearch}>
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={dict.searchPlaceholder}
-        />
-        <label>
-          <input
-            type="checkbox"
-            checked={lowStockOnly}
-            onChange={(e) => {
-              setLowStockOnly(e.target.checked);
-              load(0, q, e.target.checked);
-            }}
-          />
-          {dict.lowStockOnly}
-        </label>
-        <button type="submit">{dict.search}</button>
-      </form>
-
-      {canManage && (
-        <p className="no-print">
-          <Link href={`${basePath}/new`}>{dict.addNew}</Link>
-        </p>
-      )}
-
-      {page.content.length === 0 ? (
-        <p>{dict.noResults}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.columnCode}</th>
-              <th>{dict.columnName}</th>
-              <th>{dict.columnCategory}</th>
-              <th>{dict.columnQuantity}</th>
-              <th>{dict.columnMinQuantity}</th>
-              <th>{dict.columnStatus}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.content.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  <Link href={`${basePath}/${item.id}`}>{item.code}</Link>
-                </td>
-                <td>{item.nameAr}</td>
-                <td>{item.category ? item.category.ar : ""}</td>
-                <td>{item.quantity}</td>
-                <td>{item.minQuantity}</td>
-                <td>{item.lowStock ? dict.lowStockBadge : dict.okBadge}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {page.totalPages > 1 && (
-        <p className="no-print">
-          {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
-            <button key={i} type="button" onClick={() => load(i, q, lowStockOnly)} disabled={i === page.page}>
-              {i + 1}
+      <div className="panel">
+        <div className="panel-head no-print">
+          <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={dict.searchPlaceholder}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 260 }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+              <input
+                type="checkbox"
+                checked={lowStockOnly}
+                onChange={(e) => {
+                  setLowStockOnly(e.target.checked);
+                  load(0, q, e.target.checked);
+                }}
+              />
+              {dict.lowStockOnly}
+            </label>
+            <button type="submit" className="btn btn-outline btn-sm">
+              {dict.search}
             </button>
-          ))}
-        </p>
-      )}
-    </main>
+          </form>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              {commonDict.exportXlsx}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              {commonDict.print}
+            </button>
+            {canManage && (
+              <Link href={`${basePath}/new`} className="btn btn-primary btn-sm">
+                {dict.addNew}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {page.content.length === 0 ? (
+          <div className="empty">
+            <b>{dict.noResults}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.columnCode}</th>
+                  <th>{dict.columnName}</th>
+                  <th>{dict.columnCategory}</th>
+                  <th>{dict.columnQuantity}</th>
+                  <th>{dict.columnMinQuantity}</th>
+                  <th>{dict.columnStatus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {page.content.map((item) => (
+                  <tr key={item.id} className="clickable" onClick={() => router.push(`${basePath}/${item.id}`)}>
+                    <td className="mono">
+                      <Link href={`${basePath}/${item.id}`}>{item.code}</Link>
+                    </td>
+                    <td>{item.nameAr}</td>
+                    <td>{item.category ? item.category.ar : ""}</td>
+                    <td className="qty-num">{item.quantity}</td>
+                    <td className="qty-num">{item.minQuantity}</td>
+                    <td>
+                      <span className={`chip ${item.lowStock ? "s-rejected" : "s-approved"}`}>
+                        <span className="chip-dot" />
+                        {item.lowStock ? dict.lowStockBadge : dict.okBadge}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {page.totalPages > 1 && (
+          <div className="panel-note no-print" style={{ display: "flex", gap: 6, paddingTop: 14 }}>
+            {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
+              <button
+                key={i}
+                type="button"
+                className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
+                onClick={() => load(i, q, lowStockOnly)}
+                disabled={i === page.page}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

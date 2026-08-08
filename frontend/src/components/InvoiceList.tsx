@@ -7,6 +7,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import SectionLoading from "@/components/SectionLoading";
 import type { InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -59,51 +60,64 @@ export default function InvoiceList({
     );
   }
 
-  if (!page) return null;
+  if (!page) return <SectionLoading />;
 
   return (
-    <main style={{ maxWidth: 900, margin: "5vh auto", padding: "0 1rem" }}>
-      <PrintReportHeader title={dict.title} dict={commonDict} />
+    <>
+      <div className="no-print">
+        <div className="eyebrow">{dict.title}</div>
+        <h1 className="section-title disp">{dict.title}</h1>
+      </div>
+      <div className="print-only">
+        <PrintReportHeader title={dict.title} dict={commonDict} />
+      </div>
 
-      <p className="no-print">
-        <button type="button" onClick={handleExport}>
-          {commonDict.exportXlsx}
-        </button>
-        <button type="button" onClick={() => window.print()}>
-          {commonDict.print}
-        </button>
-      </p>
+      <div className="panel">
+        <div className="panel-head no-print" style={{ justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              {commonDict.exportXlsx}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              {commonDict.print}
+            </button>
+            {canPost && (
+              <Link href={`${basePath}/new`} className="btn btn-primary btn-sm">
+                {dict.addNew}
+              </Link>
+            )}
+          </div>
+        </div>
 
-      {canPost && (
-        <p className="no-print">
-          <Link href={`${basePath}/new`}>{dict.addNew}</Link>
-        </p>
-      )}
-
-      {page.content.length === 0 ? (
-        <p>{dict.noResults}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{dict.columnNumber}</th>
-              <th>{dict.columnDate}</th>
-              <th>{dict.columnVendor}</th>
-              <th>{dict.columnTotal}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.content.map((invoice) => (
-              <tr key={invoice.id}>
-                <td>{invoice.invoiceNumber}</td>
-                <td>{invoice.invoiceDate}</td>
-                <td>{invoice.vendor}</td>
-                <td>{invoice.total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+        {page.content.length === 0 ? (
+          <div className="empty">
+            <b>{dict.noResults}</b>
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{dict.columnNumber}</th>
+                  <th>{dict.columnDate}</th>
+                  <th>{dict.columnVendor}</th>
+                  <th>{dict.columnTotal}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {page.content.map((invoice) => (
+                  <tr key={invoice.id}>
+                    <td className="mono">{invoice.invoiceNumber}</td>
+                    <td className="mono">{invoice.invoiceDate}</td>
+                    <td>{invoice.vendor}</td>
+                    <td className="qty-num">{invoice.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
