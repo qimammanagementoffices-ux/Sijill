@@ -275,7 +275,11 @@ body.lang-en .brand h1 {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--seal);
+  /* Fixed dark background rather than var(--seal) (the admin-customizable
+     accent color) -- that color can be light enough that white initials
+     become nearly unreadable, and there's no reason the user badge should
+     follow branding customization anyway. */
+  background: var(--ink);
   color: #fff;
   display: flex;
   align-items: center;

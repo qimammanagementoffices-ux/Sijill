@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/apiClient";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-type EmployeeSummary = { name: string; employeeNumber: string };
+type EmployeeSummary = { name: string };
 
 // AppShell (the persistent sidebar/topbar layout wrapping this page, see
 // app/(app)/layout.tsx) already handles auth/redirect and the nav -- this
@@ -28,7 +28,6 @@ export default function DashboardView({ dict }: { dict: Dictionary["dashboard"] 
         {dict.welcomeMessage}
         {employee ? `, ${employee.name}` : ""}
       </h1>
-      {employee && <p className="section-desc mono">{employee.employeeNumber}</p>}
     </>
   );
 }
