@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { defaultLocale, localeDirection } from "@/i18n/config";
+import { getDictionary } from "@/i18n/getDictionary";
+import MaintenanceGate from "@/components/MaintenanceGate";
+import type { MaintenanceDto } from "@/lib/types";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,6 +19,14 @@ async function getBranding(): Promise<BrandingDto> {
   return res.json();
 }
 
+// Deliberately NOT cached (no next.revalidate) — maintenance mode needs to
+// take effect immediately when an admin flips it, not up to a minute later.
+async function getMaintenanceStatus(): Promise<MaintenanceDto> {
+  const res = await fetch(`${API_URL}/maintenance`, { cache: "no-store" });
+  if (!res.ok) return { enabled: false, messageAr: null, messageEn: null, messageHi: null, imageAttachmentId: null, imageUrl: null, reopenAt: null, version: 0 };
+  return res.json();
+}
+
 // Every page depends on a live backend call now — getDictionary() fetches
 // translations from the API instead of static JSON (see i18n/getDictionary.ts),
 // and most pages also fetch live data. Force dynamic rendering app-wide so
@@ -28,10 +39,18 @@ export const dynamic = "force-dynamic";
 // from day one since every layout decision downstream assumes it.
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const dir = localeDirection[defaultLocale];
-  const branding = await getBranding();
+  const [branding, maintenance, dict] = await Promise.all([
+    getBranding(),
+    getMaintenanceStatus(),
+    getDictionary(defaultLocale),
+  ]);
   return (
     <html lang={defaultLocale} dir={dir} style={{ ["--brand-primary" as string]: branding.primaryColor }}>
-      <body>{children}</body>
+      <body>
+        <MaintenanceGate status={maintenance} dict={dict.siteMaintenancePage}>
+          {children}
+        </MaintenanceGate>
+      </body>
     </html>
   );
 }

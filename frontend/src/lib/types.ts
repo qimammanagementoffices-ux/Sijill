@@ -299,6 +299,17 @@ export type BrandingDto = {
   version: number;
 };
 
+export type MaintenanceDto = {
+  enabled: boolean;
+  messageAr: string | null;
+  messageEn: string | null;
+  messageHi: string | null;
+  imageAttachmentId: string | null;
+  imageUrl: string | null;
+  reopenAt: string | null;
+  version: number;
+};
+
 export type AssetRequestDetail = {
   id: string;
   requesterId: string;

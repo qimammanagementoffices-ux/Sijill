@@ -1,11 +1,12 @@
 # Sijill — Decision Record
 
-Status: **ACCEPTED (D1–D5) — D1–D4 on 2026-08-07, D5 on 2026-08-08**. Recommendations adopted as drafted, pending any later amendment. Sub-decisions resolved as follows unless changed:
+Status: **ACCEPTED (D1–D6) — D1–D4 on 2026-08-07, D5 on 2026-08-08, D6 on 2026-08-08**. Recommendations adopted as drafted, pending any later amendment. Sub-decisions resolved as follows unless changed:
 - D1 sub-decision: partial fulfillment **allowed** at finish (issued quantity may be ≤ requested quantity; difference recorded in action history).
 - D2 sub-decision: room number/name **is** exposed on the public QR view (simpler for MVP; revisit if this becomes a concern).
 - D3 sub-decision: two-step DONE→CLOSED **collapsed to a single fulfiller-driven status** — the requester-confirmation step and the admin force-close-after-timeout path are dropped. A request moves directly to `CLOSED` when the fulfiller (`wh.act.finish` / `mt.act.finish` / `as.act.finish` holder) marks it done; no separate "received" confirmation UI.
 - D4: `sys.*` prefix accepted.
 - D5: restore reuses `sys.backup` (no new permission key); wrong-PIN returns 409, not 401.
+- D6: site maintenance-mode gets its own new `sys.maintenance` permission (not folded into `sys.branding`); the reopen timer is informational only, never auto-disables maintenance mode.
 
 These are working defaults, not irreversible — flag anything you want changed before we get further into Phase 2+ (schema starts locking in once the initial migration lands, and it's still cheap to adjust in Phase 1).
 Scope: schema-critical decisions only. These four items change entity shape, table structure, or transaction logic, so they must be settled before Phase 1 migrations are written. The remaining items in `sijill-architecture-review.md` (§ "Decisions required before implementation," items 2, 3, 8, 9, 10, 11, 12) are vendor/ops/config choices and can be decided phase-by-phase without schema rework.
@@ -109,12 +110,32 @@ Scope: schema-critical decisions only. These four items change entity shape, tab
 
 ---
 
-## Summary — resolved 2026-08-07 (D1–D4), 2026-08-08 (D5)
+## D6. Site maintenance-mode
+
+**Question (Phase 8, not in the original 12 — user-requested kill-switch: an admin can close the whole site at any time, showing a maintenance page with an image, a message, and a reopen countdown):** What permission gates it, how is "the whole site" actually blocked given there's no existing middleware/route-interception mechanism, and does the reopen timer auto-disable maintenance mode?
+
+**Decision:**
+
+- **Permission:** new `sys.maintenance` key, not folded into `sys.branding` — this isn't a branding/appearance concern, it's a distinct, more consequential capability (taking the entire site offline for everyone else), and it also doubles as the *bypass* authority checked on every request while maintenance mode is on. Conflating it with branding would mean anyone who can change the theme color could also lock everyone else out.
+- **Storage:** `maintenance_setting`, a single-row table using the exact same boolean-PK-with-check-constraint trick as `branding_setting` (V10) — `enabled`, `message_ar`/`message_en`/`message_hi`, an `image_attachment_id` FK reusing the existing generic `Attachment`/`AttachmentOwnerType` mechanism (new `MAINTENANCE` owner type, gated by `sys.maintenance` in both the view and manage switches), and `reopen_at`.
+- **Enforcement mechanism:** the app has no Next.js middleware and no server-side auth check in the root layout (auth lives in `localStorage`, not a cookie, so the server-rendered layout can't itself resolve "is this visitor an admin"). Enforcement is therefore two-layered:
+  - **Backend (the real enforcement):** a new `MaintenanceModeFilter`, added to the Spring Security chain via `.addFilterAfter(maintenanceModeFilter, JwtAuthenticationFilter.class)` — after JWT auth resolves `Authentication`, so it can check for the `sys.maintenance` bypass authority. When enabled, every request gets a 503 except an explicit allowlist (health check, login, `/auth/me`, the dictionary/branding/maintenance-status endpoints — kept in sync with `SecurityConfig`'s own `permitAll` list) and any caller currently holding `sys.maintenance`. This is what actually blocks API access; hiding UI is not treated as a security boundary (same principle as every other permission in this app).
+  - **Frontend (UX only):** a `MaintenanceGate` client component wraps `{children}` in the root layout, which already does a public server-side fetch for branding — extended to also fetch maintenance status the same way (deliberately `cache: "no-store"`, not the 60s revalidate branding uses, so a toggle takes effect immediately rather than up to a minute later). Since the server layout can't resolve admin status itself, the gate does a **client-side** check after mount: if a token exists, call `/auth/me` and look for `sys.maintenance` in the returned permissions; render the maintenance page by default and swap in real content only once bypass is confirmed (avoids a flash of protected content). `/login` is explicitly exempted from the gate so an admin can always reach it to turn maintenance mode back off.
+  - The maintenance page itself (`MaintenancePage.tsx`) is a **display component, not a route** — rendered in place by the gate at whatever URL the visitor was trying to reach, rather than a redirect to one fixed path. This works uniformly for every route without needing per-page redirect logic.
+- **Naming:** everything here uses a `siteMaintenance*` prefix throughout (dict keys, nav label, route `/admin/site-maintenance`) — deliberately distinct from the app's existing `maintenance*` naming, which already belongs to the unrelated building-maintenance-request module (fault reporting/repair workflow, `mt.*` permissions). Mixing the two would be a serious, easy-to-make naming collision.
+- **Reopen timer:** informational only. It renders a live countdown on the maintenance page, but does **not** automatically flip `enabled` back to false — an admin always does that explicitly. No scheduler/job was added for this; matches the "admin chooses when to close/reopen" framing of the original request rather than adding an unrequested auto-reopen mechanism.
+
+**Schema impact:** new `maintenance_setting` table (V22), new `sys.maintenance` permission (V21), `AttachmentOwnerType` gains a `MAINTENANCE` variant (no migration — it's a Java enum backing a `varchar` column, not a DB-level enum type).
+
+---
+
+## Summary — resolved 2026-08-07 (D1–D4), 2026-08-08 (D5, D6)
 
 1. **D1:** Decrement-on-fulfillment (not reserve-on-approval). Partial fulfillment **allowed** at finish.
 2. **D2:** Token-based QR addressing + the stated public field allowlist. Room name/number **is** exposed.
 3. **D3:** Collapsed to one fulfiller-driven `CLOSED` status — no separate requester-confirmation step, no admin force-close.
 4. **D4:** New `sys.*` permission keys for branding/backup/audit — accepted.
 5. **D5:** Restore reuses `sys.backup`; PIN re-verification via a new `AuthService.verifyPin`; a dedicated 3/60s `RestoreRateLimiter`; wrong-PIN returns 409 (not 401, to avoid the frontend's global session-expiry handling); mandatory pre-restore safety snapshot; restore resets the `public` schema and restores into it empty rather than relying on `pg_restore --clean`; confirmation is audit-log-only (no columns on the restored table itself — structurally can't work); a failed `pg_restore` triggers a best-effort rollback to the pre-restore snapshot rather than leaving an empty database; the post-restore process restart is a **manual** required runbook step, not automatic (an automatic `System.exit(0)` was tried and reverted after live testing showed it doesn't reliably work on Render); backup history (`backup_snapshot`) is deliberately excluded from restore scope — user's explicit choice — so the backup list survives restores intact even though everything else gets rolled back.
+6. **D6:** New `sys.maintenance` permission, doubling as the request-blocking bypass authority. Enforcement is backend-first (`MaintenanceModeFilter` in the Spring Security chain, 503 for everyone except an allowlist and bypass holders) with a frontend `MaintenanceGate` for UX only (client-side bypass check via `/auth/me`, since auth lives in `localStorage` not a cookie so the server layout can't resolve it itself). The maintenance page is a display component rendered in place, not a dedicated route. Reopen timer is informational only — never auto-disables maintenance mode.
 
-D1–D4 are locked (schema-critical, settled before Phase 1 migrations). D5 is locked the same way for anything touching restore going forward — the 409-not-401 choice in particular should not be "corrected" back to 401 without re-checking `apiClient.ts`'s interceptor first.
+D1–D4 are locked (schema-critical, settled before Phase 1 migrations). D5 is locked the same way for anything touching restore going forward — the 409-not-401 choice in particular should not be "corrected" back to 401 without re-checking `apiClient.ts`'s interceptor first. D6 is locked the same way for anything touching maintenance mode — in particular, never treat the frontend gate as the actual security boundary; it's UX only, the filter is what matters.

@@ -62,6 +62,7 @@ public class AttachmentController {
             case INVENTORY_ITEM -> "wh.view";
             case ROOM, ASSET -> "as.view";
             case BRANDING -> "sys.branding";
+            case MAINTENANCE -> "sys.maintenance";
         };
     }
 
@@ -70,6 +71,7 @@ public class AttachmentController {
             case INVENTORY_ITEM -> "wh.items";
             case ROOM, ASSET -> "as.manage";
             case BRANDING -> "sys.branding";
+            case MAINTENANCE -> "sys.maintenance";
         };
     }
 

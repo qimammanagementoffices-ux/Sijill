@@ -18,6 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import sa.sijill.api.security.JwtAuthenticationFilter;
+import sa.sijill.api.security.MaintenanceModeFilter;
 import sa.sijill.api.security.RestAccessDeniedHandler;
 import sa.sijill.api.security.RestAuthenticationEntryPoint;
 
@@ -36,16 +37,19 @@ import sa.sijill.api.security.RestAuthenticationEntryPoint;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final MaintenanceModeFilter maintenanceModeFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
     private final String frontendOrigin;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            MaintenanceModeFilter maintenanceModeFilter,
             RestAuthenticationEntryPoint authenticationEntryPoint,
             RestAccessDeniedHandler accessDeniedHandler,
             @Value("${app.frontend-origin:http://localhost:3000}") String frontendOrigin) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.maintenanceModeFilter = maintenanceModeFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
         this.frontendOrigin = frontendOrigin;
@@ -85,11 +89,14 @@ public class SecurityConfig {
                                 "/api/v1/i18n/dictionary",
                                 "/api/v1/public/assets/**")
                         .permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/branding")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/branding", "/api/v1/maintenance")
                         .permitAll()
                         .anyRequest()
                         .authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // After JwtAuthenticationFilter so Authentication (and the
+                // sys.maintenance bypass authority) is already resolved.
+                .addFilterAfter(maintenanceModeFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 

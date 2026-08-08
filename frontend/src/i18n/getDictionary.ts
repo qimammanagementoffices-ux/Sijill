@@ -54,6 +54,7 @@ export type Dictionary = {
     assetRequestsNav: string;
     brandingNav: string;
     backupsNav: string;
+    siteMaintenanceNav: string;
   };
   errors: {
     generic: string;
@@ -263,6 +264,31 @@ export type Dictionary = {
     deleteFailed: string;
     deleteRateLimited: string;
     deleteInvalidPin: string;
+  };
+  // Site maintenance-mode (Phase 8) — the admin kill-switch and the public
+  // page shown to everyone else while it's on. Deliberately named
+  // "siteMaintenance*" throughout, not "maintenance*" — that prefix is
+  // already used by the unrelated building-maintenance-request module
+  // (fault reporting/repair workflow, see maintenancePartsNav etc. above).
+  siteMaintenanceAdmin: {
+    title: string;
+    enabledLabel: string;
+    messageArLabel: string;
+    messageEnLabel: string;
+    messageHiLabel: string;
+    imageLabel: string;
+    reopenAtLabel: string;
+    save: string;
+    saveSuccess: string;
+  };
+  siteMaintenancePage: {
+    title: string;
+    defaultMessage: string;
+    reopenLabel: string;
+    reopenUnitDays: string;
+    reopenUnitHours: string;
+    reopenUnitMinutes: string;
+    reopenUnitSeconds: string;
   };
   rooms: {
     title: string;
