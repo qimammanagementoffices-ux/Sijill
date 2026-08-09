@@ -18,9 +18,11 @@ export default async function LoginPage() {
       <div className="login-card">
         <BrandSeal logoUrl={branding.logoUrl} className="login-seal disp" />
         <h1 className="disp">
-          {[branding.platformName || dict.dashboard.appName, branding.schoolName].filter(Boolean).join(" — ")}
+          {[branding.platformName || dict.dashboard?.appName || "سِجِلّ", branding.schoolName]
+            .filter(Boolean)
+            .join(" — ")}
         </h1>
-        <p>{branding.subtitle || dict.dashboard.appTagline}</p>
+        <p>{branding.subtitle || dict.dashboard?.appTagline || ""}</p>
         <LoginForm dict={dict.login} locales={locales} currentLocale={locale} />
       </div>
     </main>

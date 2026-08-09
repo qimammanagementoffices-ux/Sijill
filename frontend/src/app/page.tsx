@@ -14,6 +14,16 @@ type SystemStatus = { needsOnboarding: boolean };
 // /dashboard if a token is already present, so we don't duplicate that check
 // here on the server.
 export default async function RootPage() {
-  const status = await apiFetch<SystemStatus>("/system/status");
-  redirect(status.needsOnboarding ? "/onboarding" : "/login");
+  // The backend can briefly 502 during a deploy restart or free-tier cold
+  // start -- crashing this page with a generic Next.js error screen (instead
+  // of just landing on /login, which itself tolerates a slow/unavailable
+  // backend) turns a few-second blip into a hard outage for every visitor.
+  let needsOnboarding = false;
+  try {
+    const status = await apiFetch<SystemStatus>("/system/status");
+    needsOnboarding = status.needsOnboarding;
+  } catch {
+    // fall through to /login
+  }
+  redirect(needsOnboarding ? "/onboarding" : "/login");
 }
