@@ -64,7 +64,15 @@ export type LocalizedEntityDto = { id: string; nameAr: string; nameEn: string; v
 
 // --- Warehouse (Phase 3a) ---
 
-export type CategoryDto = { id: string; nameAr: string; nameEn: string; active: boolean; version: number };
+export type CategoryDto = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  nameUr: string | null;
+  icon: string | null;
+  active: boolean;
+  version: number;
+};
 
 export type InventoryItemListItem = {
   id: string;

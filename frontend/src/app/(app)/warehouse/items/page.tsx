@@ -9,6 +9,7 @@ export default async function WarehouseItemsPage() {
       dict={dict.warehouseItems}
       errorsDict={dict.errors}
       commonDict={dict.common}
+      categoriesModalDict={dict.categoriesModal}
       basePath="/warehouse/items"
       categoriesPath="/warehouse/categories"
     />

@@ -10,6 +10,7 @@ import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import NewAssetView from "@/components/NewAssetView";
 import Toast from "@/components/Toast";
+import CategoriesModal from "@/components/CategoriesModal";
 import type { AssetDetail, AssetListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -23,16 +24,19 @@ export default function AssetDirectory({
   dict,
   errorsDict,
   commonDict,
+  categoriesModalDict,
 }: {
   dict: Dictionary["assets"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState<PagedResponse<AssetListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -131,6 +135,11 @@ export default function AssetDirectory({
               {dict.custodyReportTitle}
             </Link>
             {canManage && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowCategoriesModal(true)}>
+                {dict.categoriesButton}
+              </button>
+            )}
+            {canManage && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}
               </button>
@@ -224,6 +233,18 @@ export default function AssetDirectory({
             </div>
           </div>
         </div>
+      )}
+
+      {showCategoriesModal && (
+        <CategoriesModal
+          basePath="/assets/categories"
+          title={dict.categoriesTitle}
+          description={dict.categoriesDescription}
+          dict={categoriesModalDict}
+          errorsDict={errorsDict}
+          onClose={() => setShowCategoriesModal(false)}
+          onChanged={() => {}}
+        />
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

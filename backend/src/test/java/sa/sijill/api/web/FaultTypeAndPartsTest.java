@@ -43,7 +43,7 @@ class FaultTypeAndPartsTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new sa.sijill.api.web.dto.UpsertLocalizedEntityRequest("كهرباء", "Electrical", null))))
+                                new sa.sijill.api.web.dto.UpsertCategoryRequest("كهرباء", "Electrical", null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

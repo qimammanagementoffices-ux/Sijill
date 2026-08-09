@@ -95,6 +95,62 @@ public class AnthropicTranslationAiClient implements TranslationAiClient {
         return translated;
     }
 
+    @Override
+    public String translateText(String text, String sourceLanguageName, String targetLanguageName) {
+        requireConfigured();
+
+        String prompt = "Translate the following text from " + sourceLanguageName + " to " + targetLanguageName + ".\n"
+                + "This is a short category/label name for a school administration web app — keep it concise and"
+                + " natural as a UI label, not a literal word-for-word translation.\n"
+                + "Return ONLY the translated text — no quotes, no explanation, no extra text.\n\n" + text;
+        String requestBody = buildRequestBody(prompt);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_URL))
+                .header("x-api-key", apiKey)
+                .header("anthropic-version", ANTHROPIC_VERSION)
+                .header("content-type", "application/json")
+                .timeout(Duration.ofSeconds(30))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw ApiException.internal("AI translation request failed: " + e.getMessage());
+        }
+        if (response.statusCode() != 200) {
+            throw ApiException.internal(
+                    "AI translation provider returned " + response.statusCode() + ": " + response.body());
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(response.body());
+            String result = root.path("content").path(0).path("text").asText("");
+            return stripCodeFences(result.trim()).trim();
+        } catch (Exception e) {
+            throw ApiException.internal("Failed to parse AI translation response: " + e.getMessage());
+        }
+    }
+
+    private void requireConfigured() {
+        if (!enabled) {
+            throw ApiException.validation(
+                    "AI translation is not enabled. Set TRANSLATION_HELPER_ENABLED=true and configure"
+                            + " TRANSLATION_PROVIDER/TRANSLATION_API_KEY.",
+                    Map.of());
+        }
+        if (!"anthropic".equalsIgnoreCase(provider)) {
+            throw ApiException.validation(
+                    "Unsupported TRANSLATION_PROVIDER '" + provider + "' — only 'anthropic' is implemented.",
+                    Map.of());
+        }
+        if (apiKey == null || apiKey.isBlank()) {
+            throw ApiException.validation("TRANSLATION_API_KEY is not set.", Map.of());
+        }
+    }
+
     private String buildPrompt(Map<String, String> sourceEnglish, String targetLanguageName) {
         try {
             String sourceJson = objectMapper.writeValueAsString(sourceEnglish);

@@ -9,9 +9,11 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "./SectionLoading";
 import Toast from "./Toast";
 
-// Shared by /departments, /job-titles, /warehouse/categories,
-// /maintenance/categories, /assets/categories — same CRUD shape (localized
-// nameAr/nameEn, no delete, version-checked updates) for all five.
+// Shared by /departments and /job-titles — same CRUD shape (localized
+// nameAr/nameEn, no delete, version-checked updates) for both. The three
+// category domains (warehouse/maintenance/asset) moved to CategoriesModal,
+// which has its own icon/Urdu-name/auto-translate fields these two don't
+// need.
 export default function StructureAdminView({
   dict,
   commonDict,
@@ -20,7 +22,7 @@ export default function StructureAdminView({
 }: {
   dict: Dictionary["structure"];
   commonDict: Dictionary["common"];
-  entity: "departments" | "job-titles" | "warehouse/categories" | "maintenance/categories" | "assets/categories";
+  entity: "departments" | "job-titles";
   title: string;
 }) {
   const router = useRouter();

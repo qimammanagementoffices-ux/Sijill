@@ -10,6 +10,7 @@ import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
+import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -21,12 +22,14 @@ export default function ItemDirectory({
   dict,
   errorsDict,
   commonDict,
+  categoriesModalDict,
   basePath,
   categoriesPath,
 }: {
   dict: Dictionary["warehouseItems"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
   basePath: string;
   categoriesPath: string;
 }) {
@@ -36,6 +39,7 @@ export default function ItemDirectory({
   const [page, setPage] = useState<PagedResponse<InventoryItemListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -146,6 +150,11 @@ export default function ItemDirectory({
               {commonDict.print}
             </button>
             {canManage && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowCategoriesModal(true)}>
+                {dict.categoriesButton}
+              </button>
+            )}
+            {canManage && (
               <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>
                 {dict.addNew}
               </button>
@@ -251,6 +260,18 @@ export default function ItemDirectory({
             </div>
           </div>
         </div>
+      )}
+
+      {showCategoriesModal && (
+        <CategoriesModal
+          basePath={categoriesPath}
+          title={dict.categoriesTitle}
+          description={dict.categoriesDescription}
+          dict={categoriesModalDict}
+          errorsDict={errorsDict}
+          onClose={() => setShowCategoriesModal(false)}
+          onChanged={() => apiFetch<CategoryDto[]>(categoriesPath).then(setCategories)}
+        />
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

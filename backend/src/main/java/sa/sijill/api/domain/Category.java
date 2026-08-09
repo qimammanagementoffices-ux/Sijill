@@ -28,6 +28,12 @@ public class Category {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
+    @Column(name = "name_ur")
+    private String nameUr;
+
+    @Column(name = "icon")
+    private String icon;
+
     @Column(name = "active", nullable = false)
     private boolean active = true;
 

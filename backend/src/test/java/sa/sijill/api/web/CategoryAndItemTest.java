@@ -19,7 +19,7 @@ import sa.sijill.api.web.dto.CreateEmployeeRequest;
 import sa.sijill.api.web.dto.CreateInventoryItemRequest;
 import sa.sijill.api.web.dto.FirstAdminRequest;
 import sa.sijill.api.web.dto.LoginRequest;
-import sa.sijill.api.web.dto.UpsertLocalizedEntityRequest;
+import sa.sijill.api.web.dto.UpsertCategoryRequest;
 
 @Transactional
 class CategoryAndItemTest extends AbstractIntegrationTest {
@@ -40,7 +40,7 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
     }
 
     private String createCategory(String token) throws Exception {
-        var request = new UpsertLocalizedEntityRequest("قرطاسية", "Stationery", null);
+        var request = new UpsertCategoryRequest("قرطاسية", "Stationery", null, null, null);
         String body = mockMvc.perform(post("/api/v1/warehouse/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

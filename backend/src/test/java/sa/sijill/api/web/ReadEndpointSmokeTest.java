@@ -122,7 +122,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.jobTitle.en").value("Teacher"));
 
         // Category + item (the association that broke on the warehouse side).
-        var category = new UpsertLocalizedEntityRequest("قرطاسية", "Stationery", null);
+        var category = new UpsertCategoryRequest("قرطاسية", "Stationery", null, null, null);
         String categoryBody = mockMvc.perform(post("/api/v1/warehouse/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -188,7 +188,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertLocalizedEntityRequest("كهرباء", "Electrical", null))))
+                                new UpsertCategoryRequest("كهرباء", "Electrical", null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -271,7 +271,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertLocalizedEntityRequest("إلكترونيات", "Electronics", null))))
+                                new UpsertCategoryRequest("إلكترونيات", "Electronics", null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

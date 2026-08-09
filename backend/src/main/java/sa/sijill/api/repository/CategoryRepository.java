@@ -8,5 +8,5 @@ import sa.sijill.api.domain.Domain;
 
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
-    List<Category> findByDomain(Domain domain);
+    List<Category> findByDomainAndActiveTrue(Domain domain);
 }

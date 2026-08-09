@@ -17,4 +17,13 @@ public interface TranslationAiClient {
      * same key set.
      */
     Map<String, String> translateBatch(Map<String, String> sourceEnglish, String targetLanguageName);
+
+    /**
+     * Translates a single short piece of text (e.g. a category name) from
+     * {@code sourceLanguageName} to {@code targetLanguageName}. Unlike
+     * {@link #translateBatch}, the source language is not fixed to English.
+     * Throws ApiException.internal/validation on the same conditions as
+     * translateBatch.
+     */
+    String translateText(String text, String sourceLanguageName, String targetLanguageName);
 }

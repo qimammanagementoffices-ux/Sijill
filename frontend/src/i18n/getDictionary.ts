@@ -143,6 +143,20 @@ export type Dictionary = {
     addNew: string;
     save: string;
   };
+  categoriesModal: {
+    iconLabel: string;
+    iconPlaceholder: string;
+    nameArLabel: string;
+    nameEnLabel: string;
+    nameUrLabel: string;
+    namePlaceholder: string;
+    autoTranslate: string;
+    autoTranslateNote: string;
+    addNew: string;
+    done: string;
+    removeConfirm: string;
+    noResults: string;
+  };
   // Flat lookup for permission.<key with dots as underscores> translation
   // rows (descriptions, group headings, sub-headings) -- indexed by string
   // since permission keys are dynamic (the DB catalogue, not a fixed enum),
@@ -176,6 +190,9 @@ export type Dictionary = {
     submitCreate: string;
     submitUpdate: string;
     deactivate: string;
+    categoriesButton: string;
+    categoriesTitle: string;
+    categoriesDescription: string;
   };
   warehouseInvoices: {
     title: string;
@@ -405,6 +422,9 @@ export type Dictionary = {
     custodyReportPrint: string;
     custodyReportGeneratedAt: string;
     custodyReportTotalCount: string;
+    categoriesButton: string;
+    categoriesTitle: string;
+    categoriesDescription: string;
   };
   assetRequests: {
     title: string;

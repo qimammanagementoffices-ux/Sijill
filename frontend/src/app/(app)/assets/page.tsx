@@ -4,5 +4,12 @@ import AssetDirectory from "./AssetDirectory";
 
 export default async function AssetsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <AssetDirectory dict={dict.assets} errorsDict={dict.errors} commonDict={dict.common} />;
+  return (
+    <AssetDirectory
+      dict={dict.assets}
+      errorsDict={dict.errors}
+      commonDict={dict.common}
+      categoriesModalDict={dict.categoriesModal}
+    />
+  );
 }

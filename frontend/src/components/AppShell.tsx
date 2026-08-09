@@ -98,7 +98,6 @@ export default function AppShell({
     employee.permissions.includes("mt.view") || employee.permissions.includes("mt.request");
   const canViewAssets =
     employee.permissions.includes("as.view") || employee.permissions.includes("as.request");
-  const canManageAssets = employee.permissions.includes("as.manage");
   const canManageBranding = employee.permissions.includes("sys.branding");
   const canManageBackups = employee.permissions.includes("sys.backup");
   const canManageSiteMaintenance = employee.permissions.includes("sys.maintenance");
@@ -136,7 +135,6 @@ export default function AppShell({
         ...(canViewWarehouse ? [{ href: "/warehouse/items", label: dict.warehouseItemsNav }] : []),
         ...(canViewInvoices ? [{ href: "/warehouse/invoices", label: dict.warehouseInvoicesNav }] : []),
         ...(canViewWarehouse ? [{ href: "/warehouse/requests", label: dict.warehouseRequestsNav }] : []),
-        ...(canManageWarehouseItems ? [{ href: "/warehouse/categories", label: dict.warehouseCategoriesNav }] : []),
       ],
     },
     {
@@ -147,7 +145,6 @@ export default function AppShell({
         ...(canViewWarehouse ? [{ href: "/maintenance/parts", label: dict.maintenancePartsNav }] : []),
         ...(canViewInvoices ? [{ href: "/maintenance/invoices", label: dict.maintenanceInvoicesNav }] : []),
         ...(canViewMaintenance ? [{ href: "/maintenance/requests", label: dict.maintenanceRequestsNav }] : []),
-        ...(canManageWarehouseItems ? [{ href: "/maintenance/categories", label: dict.maintenanceCategoriesNav }] : []),
         ...(canManageWarehouseItems
           ? [{ href: "/maintenance/fault-types", label: dict.maintenanceFaultTypesNav }]
           : []),
@@ -160,7 +157,6 @@ export default function AppShell({
       items: [
         ...(canViewAssets ? [{ href: "/rooms", label: dict.roomsNav }] : []),
         ...(canViewAssets ? [{ href: "/assets", label: dict.assetsNav }] : []),
-        ...(canManageAssets ? [{ href: "/assets/categories", label: dict.assetCategoriesNav }] : []),
         ...(canViewAssets ? [{ href: "/asset-requests", label: dict.assetRequestsNav }] : []),
       ],
     },
@@ -175,9 +171,9 @@ export default function AppShell({
   ];
 
   // Pick the single longest href that matches the current path (e.g. on
-  // /assets/categories, prefer that exact nav entry over the broader
-  // /assets one it would otherwise also match via startsWith) rather than
-  // letting every ancestor route light up at once.
+  // /assets/[id], prefer that exact nav entry over the broader /assets one
+  // it would otherwise also match via startsWith) rather than letting every
+  // ancestor route light up at once.
   const allHrefs = [
     "/dashboard",
     ...collapsibleGroups.flatMap((g) => g.items.map((item) => item.href)),
