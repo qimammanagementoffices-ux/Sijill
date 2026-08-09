@@ -10,6 +10,7 @@ import type { LocaleInfo } from "@/i18n/locales";
 import type { BrandingDto } from "@/lib/types";
 import LocaleSwitcher from "./LocaleSwitcher";
 import BrandSeal from "./BrandSeal";
+import EditProfileModal from "./EditProfileModal";
 import { IconUsers, IconBox, IconWrench, IconBuilding, IconChevronDown } from "./NavIcons";
 
 type EmployeeSummary = {
@@ -18,6 +19,8 @@ type EmployeeSummary = {
   name: string;
   phone: string;
   photoUrl: string | null;
+  photoAttachmentId: string | null;
+  version: number;
   permissions: string[];
 };
 
@@ -28,12 +31,18 @@ type EmployeeSummary = {
 // the visual redesign since it wraps the entire authenticated app at once.
 export default function AppShell({
   dict,
+  employeesDict,
+  errorsDict,
+  commonDict,
   locales,
   currentLocale,
   branding,
   children,
 }: {
   dict: Dictionary["dashboard"];
+  employeesDict: Dictionary["employees"];
+  errorsDict: Dictionary["errors"];
+  commonDict: Dictionary["common"];
   locales: LocaleInfo[];
   currentLocale: string;
   branding: BrandingDto;
@@ -45,6 +54,7 @@ export default function AppShell({
   const [navOpen, setNavOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [userToggledGroup, setUserToggledGroup] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -256,12 +266,17 @@ export default function AppShell({
           </button>
           <div className="topbar-right" style={{ marginInlineStart: "auto" }}>
             <LocaleSwitcher locales={locales} current={currentLocale} />
-            <div className="topbar-user" title={employee.name}>
+            <button
+              type="button"
+              className="topbar-user"
+              title={employee.name}
+              onClick={() => setShowProfileModal(true)}
+            >
               <div className="avatar">
                 {employee.photoUrl ? <img src={employee.photoUrl} alt="" /> : initial}
               </div>
               <span className="topbar-user-name">{employee.name}</span>
-            </div>
+            </button>
             <button type="button" className="logout-btn" onClick={handleLogout}>
               {dict.logout}
             </button>
@@ -269,6 +284,18 @@ export default function AppShell({
         </header>
         <main className="content">{children}</main>
       </div>
+
+      {showProfileModal && (
+        <EditProfileModal
+          employee={employee}
+          dict={employeesDict}
+          errorsDict={errorsDict}
+          commonDict={commonDict}
+          dashboardDict={dict}
+          onClose={() => setShowProfileModal(false)}
+          onUpdated={(updated) => setEmployee({ ...employee, ...updated })}
+        />
+      )}
     </div>
   );
 }

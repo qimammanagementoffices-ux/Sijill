@@ -44,7 +44,9 @@ public class AttachmentController {
             @RequestParam UUID ownerId,
             @RequestParam MultipartFile file,
             @AuthenticationPrincipal Employee actor) {
-        requirePermission(actor, managePermissionFor(ownerType));
+        if (!isSelfPhoto(ownerType, ownerId, actor)) {
+            requirePermission(actor, managePermissionFor(ownerType));
+        }
         return AttachmentDto.from(attachmentService.upload(ownerType, ownerId, file, actor));
     }
 
@@ -52,9 +54,19 @@ public class AttachmentController {
     public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         Attachment attachment =
                 attachmentRepository.findById(id).orElseThrow(() -> ApiException.notFound("Attachment not found"));
-        requirePermission(actor, managePermissionFor(attachment.getOwnerType()));
+        if (!isSelfPhoto(attachment.getOwnerType(), attachment.getOwnerId(), actor)) {
+            requirePermission(actor, managePermissionFor(attachment.getOwnerType()));
+        }
         attachmentService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Every employee may upload/replace/remove their own profile photo
+    // without emp.manage -- this is the one attachment case where the
+    // "owner" and the actor can legitimately be the same person editing
+    // their own record via PUT /auth/me.
+    private boolean isSelfPhoto(AttachmentOwnerType ownerType, UUID ownerId, Employee actor) {
+        return ownerType == AttachmentOwnerType.EMPLOYEE && ownerId.equals(actor.getId());
     }
 
     private String viewPermissionFor(AttachmentOwnerType ownerType) {

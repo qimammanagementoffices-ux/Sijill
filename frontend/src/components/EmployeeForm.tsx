@@ -220,14 +220,43 @@ export default function EmployeeForm({
                 {dict.photoLabel}
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} disabled={photoUploading} />
               </label>
-              {photoUploading && <span className="spinner" />}
             </div>
-            {photoUrl && (
+            {(photoUrl || photoUploading) && (
               <div className="thumb-strip" style={{ marginTop: 10, alignItems: "flex-start" }}>
-                <img src={photoUrl} alt="" style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-                <button type="button" className="btn btn-outline btn-sm" onClick={handlePhotoRemove} disabled={photoUploading}>
-                  {dict.removePhoto}
-                </button>
+                <div
+                  style={{
+                    position: "relative",
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                    background: "var(--paper-dim)",
+                    flex: "none",
+                  }}
+                >
+                  {photoUrl && (
+                    <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  )}
+                  {photoUploading && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "rgba(27, 42, 74, 0.45)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <span className="spinner" />
+                    </div>
+                  )}
+                </div>
+                {photoUrl && !photoUploading && (
+                  <button type="button" className="btn btn-outline btn-sm" onClick={handlePhotoRemove} disabled={photoUploading}>
+                    {dict.removePhoto}
+                  </button>
+                )}
               </div>
             )}
           </div>

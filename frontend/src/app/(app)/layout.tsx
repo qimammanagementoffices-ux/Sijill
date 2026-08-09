@@ -17,7 +17,15 @@ export default async function AppGroupLayout({ children }: { children: React.Rea
     getBranding(),
   ]);
   return (
-    <AppShell dict={dict.dashboard} locales={locales} currentLocale={locale} branding={branding}>
+    <AppShell
+      dict={dict.dashboard}
+      employeesDict={dict.employees}
+      errorsDict={dict.errors}
+      commonDict={dict.common}
+      locales={locales}
+      currentLocale={locale}
+      branding={branding}
+    >
       {children}
     </AppShell>
   );

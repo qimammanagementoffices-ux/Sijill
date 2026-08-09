@@ -366,6 +366,15 @@ body.lang-en .brand h1 {
   display: flex;
   align-items: center;
   gap: 8px;
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.topbar-user:hover {
+  background: var(--paper-dim);
 }
 .topbar-user-name {
   font-size: 12.5px;

@@ -49,6 +49,7 @@ export type Dictionary = {
     adminEyebrow: string;
     welcomeMessage: string;
     logout: string;
+    editProfile: string;
     employeesNav: string;
     departmentsNav: string;
     jobTitlesNav: string;
