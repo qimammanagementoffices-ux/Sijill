@@ -4,5 +4,13 @@ import InvoiceList from "@/components/InvoiceList";
 
 export default async function WarehouseInvoicesPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <InvoiceList dict={dict.warehouseInvoices} commonDict={dict.common} basePath="/warehouse/invoices" />;
+  return (
+    <InvoiceList
+      dict={dict.warehouseInvoices}
+      errorsDict={dict.errors}
+      commonDict={dict.common}
+      basePath="/warehouse/invoices"
+      itemsPath="/warehouse/items"
+    />
+  );
 }

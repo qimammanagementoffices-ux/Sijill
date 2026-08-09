@@ -8,7 +8,9 @@ import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
-import type { InventoryItemListItem, PagedResponse } from "@/lib/types";
+import ItemForm from "@/components/ItemForm";
+import Toast from "@/components/Toast";
+import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 // Shared by /warehouse/items and /maintenance/parts — same reusable
@@ -17,18 +19,26 @@ import type { Dictionary } from "@/i18n/getDictionary";
 // identical in both domains ("/warehouse/items", "/maintenance/parts").
 export default function ItemDirectory({
   dict,
+  errorsDict,
   commonDict,
   basePath,
+  categoriesPath,
 }: {
   dict: Dictionary["warehouseItems"];
+  errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   basePath: string;
+  categoriesPath: string;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState<PagedResponse<InventoryItemListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [categories, setCategories] = useState<CategoryDto[] | null>(null);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load(pageNumber: number, query: string, lowStock: boolean) {
     apiFetch<PagedResponse<InventoryItemListItem>>(
@@ -57,6 +67,20 @@ export default function ItemDirectory({
   function handleSearch(e: FormEvent) {
     e.preventDefault();
     load(0, q, lowStockOnly);
+  }
+
+  function openAddModal() {
+    setShowAddModal(true);
+    if (!categories) {
+      apiFetch<CategoryDto[]>(categoriesPath).then(setCategories);
+    }
+  }
+
+  function handleAdded(item: InventoryItemDetail) {
+    setShowAddModal(false);
+    load(0, q, lowStockOnly);
+    setToast(commonDict.actionSuccess);
+    void item;
   }
 
   async function handleExport() {
@@ -122,9 +146,9 @@ export default function ItemDirectory({
               {commonDict.print}
             </button>
             {canManage && (
-              <Link href={`${basePath}/new`} className="btn btn-primary btn-sm">
+              <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>
                 {dict.addNew}
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -185,6 +209,51 @@ export default function ItemDirectory({
           </div>
         )}
       </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {!categories ? (
+                <SectionLoading />
+              ) : (
+                <ItemForm
+                  dict={dict}
+                  errorsDict={errorsDict}
+                  mode="create"
+                  categories={categories}
+                  basePath={basePath}
+                  onSubmitted={handleAdded}
+                  formId="item-add-form"
+                  onSubmittingChange={setAddSubmitting}
+                />
+              )}
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button
+                type="submit"
+                form="item-add-form"
+                className="btn btn-primary btn-sm"
+                disabled={addSubmitting || !categories}
+              >
+                {addSubmitting && <span className="spinner" />}
+                {dict.submitCreate}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

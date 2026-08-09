@@ -2,34 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
+import NewInvoiceView from "@/components/NewInvoiceView";
+import Toast from "@/components/Toast";
 import type { InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 // Shared by /warehouse/invoices and /maintenance/invoices.
 export default function InvoiceList({
   dict,
+  errorsDict,
   commonDict,
   basePath,
+  itemsPath,
 }: {
   dict: Dictionary["warehouseInvoices"];
+  errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   basePath: string;
+  itemsPath: string;
 }) {
   const router = useRouter();
   const [page, setPage] = useState<PagedResponse<InvoiceDetail> | null>(null);
   const [canPost, setCanPost] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
+  function load() {
     apiFetch<PagedResponse<InvoiceDetail>>(basePath)
       .then(setPage)
       .catch((err) => {
@@ -37,6 +41,14 @@ export default function InvoiceList({
           router.replace("/dashboard");
         }
       });
+  }
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    load();
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanPost(me.permissions.includes("wh.invoices.edit")))
       .catch(() => {});
@@ -58,6 +70,13 @@ export default function InvoiceList({
       ],
       all.content
     );
+  }
+
+  function handleAdded(invoice: InvoiceDetail) {
+    setShowAddModal(false);
+    load();
+    setToast(commonDict.actionSuccess);
+    void invoice;
   }
 
   if (!page) return <SectionLoading />;
@@ -82,9 +101,9 @@ export default function InvoiceList({
               {commonDict.print}
             </button>
             {canPost && (
-              <Link href={`${basePath}/new`} className="btn btn-primary btn-sm">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -118,6 +137,41 @@ export default function InvoiceList({
           </div>
         )}
       </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <NewInvoiceView
+                dict={dict}
+                errorsDict={errorsDict}
+                basePath={basePath}
+                itemsPath={itemsPath}
+                onSubmitted={handleAdded}
+                formId="invoice-add-form"
+                onSubmittingChange={setAddSubmitting}
+              />
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="invoice-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+                {addSubmitting && <span className="spinner" />}
+                {dict.submit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

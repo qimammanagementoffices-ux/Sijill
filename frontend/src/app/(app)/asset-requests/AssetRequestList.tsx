@@ -8,7 +8,9 @@ import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
-import type { AssetRequestListItem, PagedResponse } from "@/lib/types";
+import NewAssetRequestView from "@/components/NewAssetRequestView";
+import Toast from "@/components/Toast";
+import type { AssetRequestDetail, AssetRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUSES = ["PENDING", "APPROVED", "POSTPONED", "REJECTED", "CLOSED"] as const;
@@ -22,15 +24,20 @@ const STATUS_STAMP_CLASS: Record<string, string> = {
 
 export default function AssetRequestList({
   dict,
+  errorsDict,
   commonDict,
 }: {
   dict: Dictionary["assetRequests"];
+  errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [page, setPage] = useState<PagedResponse<AssetRequestListItem> | null>(null);
   const [filtering, setFiltering] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load(statusFilter: string) {
     const query = statusFilter ? `?status=${statusFilter}` : "";
@@ -80,6 +87,13 @@ export default function AssetRequestList({
     );
   }
 
+  function handleAdded(request: AssetRequestDetail) {
+    setShowAddModal(false);
+    load(status);
+    setToast(commonDict.actionSuccess);
+    void request;
+  }
+
   if (!page) return <SectionLoading />;
 
   return (
@@ -118,9 +132,9 @@ export default function AssetRequestList({
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               {commonDict.print}
             </button>
-            <Link href="/asset-requests/new" className="btn btn-primary btn-sm">
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
               {dict.addNew}
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -162,6 +176,39 @@ export default function AssetRequestList({
           </div>
         )}
       </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <NewAssetRequestView
+                dict={dict}
+                errorsDict={errorsDict}
+                onSubmitted={handleAdded}
+                formId="asset-request-add-form"
+                onSubmittingChange={setAddSubmitting}
+              />
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="asset-request-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+                {addSubmitting && <span className="spinner" />}
+                {dict.submit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

@@ -4,5 +4,13 @@ import ItemDirectory from "@/components/ItemDirectory";
 
 export default async function MaintenancePartsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <ItemDirectory dict={dict.warehouseItems} commonDict={dict.common} basePath="/maintenance/parts" />;
+  return (
+    <ItemDirectory
+      dict={dict.warehouseItems}
+      errorsDict={dict.errors}
+      commonDict={dict.common}
+      basePath="/maintenance/parts"
+      categoriesPath="/maintenance/categories"
+    />
+  );
 }

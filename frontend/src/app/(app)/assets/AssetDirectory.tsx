@@ -8,7 +8,9 @@ import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
-import type { AssetListItem, PagedResponse } from "@/lib/types";
+import NewAssetView from "@/components/NewAssetView";
+import Toast from "@/components/Toast";
+import type { AssetDetail, AssetListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_CHIP_CLASS: Record<string, string> = {
@@ -19,15 +21,20 @@ const STATUS_CHIP_CLASS: Record<string, string> = {
 
 export default function AssetDirectory({
   dict,
+  errorsDict,
   commonDict,
 }: {
   dict: Dictionary["assets"];
+  errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState<PagedResponse<AssetListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   function load(pageNumber: number, query: string) {
     apiFetch<PagedResponse<AssetListItem>>(`/assets?q=${encodeURIComponent(query)}&page=${pageNumber}`)
@@ -81,6 +88,13 @@ export default function AssetDirectory({
     );
   }
 
+  function handleAdded(asset: AssetDetail) {
+    setShowAddModal(false);
+    load(0, q);
+    setToast(commonDict.actionSuccess);
+    void asset;
+  }
+
   if (!page) return <SectionLoading />;
 
   return (
@@ -117,9 +131,9 @@ export default function AssetDirectory({
               {dict.custodyReportTitle}
             </Link>
             {canManage && (
-              <Link href="/assets/new" className="btn btn-primary btn-sm">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -180,6 +194,39 @@ export default function AssetDirectory({
           </div>
         )}
       </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <NewAssetView
+                dict={dict}
+                errorsDict={errorsDict}
+                onSubmitted={handleAdded}
+                formId="asset-add-form"
+                onSubmittingChange={setAddSubmitting}
+              />
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="asset-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+                {addSubmitting && <span className="spinner" />}
+                {dict.submitCreate}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

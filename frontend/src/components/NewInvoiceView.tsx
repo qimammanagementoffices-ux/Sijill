@@ -1,30 +1,36 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
-import { getToken } from "@/lib/auth";
 import type { InventoryItemListItem, InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
 
-// Shared by /warehouse/invoices/new and /maintenance/invoices/new.
-// itemsPath is the matching domain's items endpoint ("/warehouse/items" or
+// Shared by warehouse and maintenance invoice-add modals. itemsPath is the
+// matching domain's items endpoint ("/warehouse/items" or
 // "/maintenance/parts") used to populate the line-item picker.
 export default function NewInvoiceView({
   dict,
   errorsDict,
   basePath,
   itemsPath,
+  onSubmitted,
+  formId,
+  onSubmittingChange,
 }: {
   dict: Dictionary["warehouseInvoices"];
   errorsDict: Dictionary["errors"];
   basePath: string;
   itemsPath: string;
+  onSubmitted: (invoice: InvoiceDetail) => void;
+  // When set, the submit button renders externally (via
+  // <button form={formId}>) instead of inline -- used inside a modal,
+  // same pattern as EmployeeForm.
+  formId?: string;
+  onSubmittingChange?: (submitting: boolean) => void;
 }) {
-  const router = useRouter();
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
@@ -35,15 +41,14 @@ export default function NewInvoiceView({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
-    apiFetch<PagedResponse<InventoryItemListItem>>(`${itemsPath}?size=100`)
-      .then((page) => setItems(page.content))
-      .catch(() => router.replace(basePath));
+    apiFetch<PagedResponse<InventoryItemListItem>>(`${itemsPath}?size=100`).then((page) => setItems(page.content));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
+
+  useEffect(() => {
+    onSubmittingChange?.(submitting);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitting]);
 
   function updateLine(index: number, patch: Partial<LineDraft>) {
     setLines(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
@@ -81,7 +86,7 @@ export default function NewInvoiceView({
             })),
         }),
       });
-      router.push(`${basePath}?posted=${created.id}`);
+      onSubmitted(created);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);
       setSubmitting(false);
@@ -91,10 +96,7 @@ export default function NewInvoiceView({
   if (!items) return <SectionLoading />;
 
   return (
-    <>
-      <div className="eyebrow">{dict.title}</div>
-      <h1 className="section-title disp">{dict.addNew}</h1>
-      <form onSubmit={handleSubmit}>
+    <form id={formId} onSubmit={handleSubmit}>
         <div className="panel">
           <div className="panel-body">
             <div className="form-grid">
@@ -195,11 +197,12 @@ export default function NewInvoiceView({
             {error}
           </p>
         )}
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting && <span className="spinner" />}
-          {dict.submit}
-        </button>
-      </form>
-    </>
+        {!formId && (
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting && <span className="spinner" />}
+            {dict.submit}
+          </button>
+        )}
+    </form>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import type {
   CategoryDto,
@@ -16,9 +16,24 @@ type Props = {
   categories: CategoryDto[];
   basePath: string;
   onSubmitted: (item: InventoryItemDetail) => void;
+  // When set, the submit/cancel buttons render externally (via
+  // <button form={formId}>) instead of inline -- used inside a modal,
+  // same pattern as EmployeeForm.
+  formId?: string;
+  onSubmittingChange?: (submitting: boolean) => void;
 };
 
-export default function ItemForm({ dict, errorsDict, mode, initial, categories, basePath, onSubmitted }: Props) {
+export default function ItemForm({
+  dict,
+  errorsDict,
+  mode,
+  initial,
+  categories,
+  basePath,
+  onSubmitted,
+  formId,
+  onSubmittingChange,
+}: Props) {
   const [code, setCode] = useState(initial?.code ?? "");
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? "");
   const [nameEn, setNameEn] = useState(initial?.nameEn ?? "");
@@ -27,6 +42,11 @@ export default function ItemForm({ dict, errorsDict, mode, initial, categories, 
   const [minQuantity, setMinQuantity] = useState(String(initial?.minQuantity ?? 0));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    onSubmittingChange?.(submitting);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitting]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -70,7 +90,7 @@ export default function ItemForm({ dict, errorsDict, mode, initial, categories, 
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form id={formId} onSubmit={handleSubmit}>
       <div className="panel">
         <div className="panel-body">
           <div className="form-grid">
@@ -120,10 +140,12 @@ export default function ItemForm({ dict, errorsDict, mode, initial, categories, 
           {error}
         </p>
       )}
-      <button type="submit" className="btn btn-primary" disabled={submitting}>
-        {submitting && <span className="spinner" />}
-        {mode === "create" ? dict.submitCreate : dict.submitUpdate}
-      </button>
+      {!formId && (
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting && <span className="spinner" />}
+          {mode === "create" ? dict.submitCreate : dict.submitUpdate}
+        </button>
+      )}
     </form>
   );
 }
