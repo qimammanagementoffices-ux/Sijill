@@ -63,6 +63,7 @@ public class AttachmentController {
             case ROOM, ASSET -> "as.view";
             case BRANDING -> "sys.branding";
             case MAINTENANCE -> "sys.maintenance";
+            case EMPLOYEE -> "emp.view";
         };
     }
 
@@ -72,6 +73,7 @@ public class AttachmentController {
             case ROOM, ASSET -> "as.manage";
             case BRANDING -> "sys.branding";
             case MAINTENANCE -> "sys.maintenance";
+            case EMPLOYEE -> "emp.manage";
         };
     }
 

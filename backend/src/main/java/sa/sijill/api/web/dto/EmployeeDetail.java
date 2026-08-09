@@ -17,6 +17,8 @@ public record EmployeeDetail(
         LocalizedRef jobTitle,
         List<LocalizedRef> departments,
         List<String> permissions,
+        UUID photoAttachmentId,
+        String photoUrl,
         int version) {
 
     public static EmployeeDetail from(Employee employee) {
@@ -32,6 +34,8 @@ public record EmployeeDetail(
                 employee.getJobTitle() == null ? null : LocalizedRef.from(employee.getJobTitle()),
                 employee.getDepartments().stream().map(LocalizedRef::from).toList(),
                 employee.getPermissions().stream().map(p -> p.getKey()).sorted().toList(),
+                employee.getPhotoAttachment() == null ? null : employee.getPhotoAttachment().getId(),
+                employee.getPhotoAttachment() == null ? null : employee.getPhotoAttachment().getUrl(),
                 employee.getVersion());
     }
 }

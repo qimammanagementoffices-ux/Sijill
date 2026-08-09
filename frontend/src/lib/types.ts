@@ -44,6 +44,8 @@ export type EmployeeDetail = {
   jobTitle: LocalizedRef | null;
   departments: LocalizedRef[];
   permissions: string[];
+  photoAttachmentId: string | null;
+  photoUrl: string | null;
   version: number;
 };
 
@@ -281,7 +283,7 @@ export type AssetRequestListItem = {
 
 // --- Media / branding (Phase 6a) ---
 
-export type AttachmentOwnerType = "INVENTORY_ITEM" | "ROOM" | "ASSET" | "BRANDING";
+export type AttachmentOwnerType = "INVENTORY_ITEM" | "ROOM" | "ASSET" | "BRANDING" | "MAINTENANCE" | "EMPLOYEE";
 
 export type AttachmentDto = {
   id: string;

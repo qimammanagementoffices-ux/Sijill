@@ -39,7 +39,7 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
     }
 
     private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
-        var create = new CreateEmployeeRequest("Someone", phone, "1234", "1234", null, null, null, null, null, permissions);
+        var create = new CreateEmployeeRequest("Someone", phone, "1234", "1234", null, null, null, null, null, permissions, null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)

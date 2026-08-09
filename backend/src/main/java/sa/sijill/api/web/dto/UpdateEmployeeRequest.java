@@ -10,4 +10,5 @@ public record UpdateEmployeeRequest(
         String nationalId,
         UUID jobTitleId,
         List<UUID> departmentIds,
-        int version) {}
+        int version,
+        UUID photoAttachmentId) {}

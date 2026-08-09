@@ -15,4 +15,5 @@ public record CreateEmployeeRequest(
         LocalDate joinedDate,
         UUID jobTitleId,
         List<UUID> departmentIds,
-        Set<String> permissionKeys) {}
+        Set<String> permissionKeys,
+        UUID photoAttachmentId) {}

@@ -5,5 +5,6 @@ public enum AttachmentOwnerType {
     ROOM,
     ASSET,
     BRANDING,
-    MAINTENANCE
+    MAINTENANCE,
+    EMPLOYEE
 }

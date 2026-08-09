@@ -37,7 +37,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     }
 
     private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
-        var create = new CreateEmployeeRequest("Requester", phone, "1234", "1234", null, null, null, null, null, permissions);
+        var create = new CreateEmployeeRequest("Requester", phone, "1234", "1234", null, null, null, null, null, permissions, null);
         String body = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,7 +63,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateEmployeeRequest(
                                 "Requester", "0599888222", "1234", "1234", null, null, null, null, null,
-                                Set.of("as.request")))))
+                                Set.of("as.request"), null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

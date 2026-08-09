@@ -56,6 +56,12 @@ public class Employee {
     @JoinColumn(name = "job_title_id")
     private JobTitle jobTitle;
 
+    // EAGER for the same open-in-view-off reason as jobTitle/departments/
+    // permissions above.
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "photo_attachment_id")
+    private Attachment photoAttachment;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "employee_department",

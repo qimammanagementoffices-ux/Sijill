@@ -11,12 +11,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.Department;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.JobTitle;
 import sa.sijill.api.domain.Permission;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.error.StaleVersionException;
+import sa.sijill.api.repository.AttachmentRepository;
 import sa.sijill.api.repository.DepartmentRepository;
 import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.repository.JobTitleRepository;
@@ -39,6 +41,8 @@ public class EmployeeService {
     private final PinValidator pinValidator;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final AttachmentRepository attachmentRepository;
+    private final AttachmentService attachmentService;
 
     public EmployeeService(
             EmployeeRepository employeeRepository,
@@ -49,7 +53,9 @@ public class EmployeeService {
             PhoneNormalizer phoneNormalizer,
             PinValidator pinValidator,
             AuditService auditService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            AttachmentRepository attachmentRepository,
+            AttachmentService attachmentService) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.jobTitleRepository = jobTitleRepository;
@@ -59,6 +65,8 @@ public class EmployeeService {
         this.pinValidator = pinValidator;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
+        this.attachmentRepository = attachmentRepository;
+        this.attachmentService = attachmentService;
     }
 
     public Page<Employee> search(String q, Pageable pageable) {
@@ -94,6 +102,7 @@ public class EmployeeService {
         employee.setJobTitle(resolveJobTitle(request.jobTitleId()));
         employee.setDepartments(resolveDepartments(request.departmentIds()));
         employee.setPermissions(resolvePermissions(request.permissionKeys()));
+        employee.setPhotoAttachment(resolveAttachment(request.photoAttachmentId()));
 
         Employee saved = employeeRepository.save(employee);
         auditService.record(saved, "EMPLOYEE_CREATED", "Employee", saved.getId());
@@ -117,15 +126,24 @@ public class EmployeeService {
                     "Phone number already in use", Map.of("phone", "already in use by another employee"));
         }
 
+        UUID previousPhotoId = employee.getPhotoAttachment() == null ? null : employee.getPhotoAttachment().getId();
+
         employee.setName(request.name());
         employee.setPhone(phone);
         employee.setEmail(request.email());
         employee.setNationalId(request.nationalId());
         employee.setJobTitle(resolveJobTitle(request.jobTitleId()));
         employee.setDepartments(resolveDepartments(request.departmentIds()));
+        employee.setPhotoAttachment(resolveAttachment(request.photoAttachmentId()));
 
         Employee saved = employeeRepository.save(employee);
         auditService.record(saved, "EMPLOYEE_UPDATED", "Employee", saved.getId());
+
+        // Clear the old photo from storage once nothing references it, same
+        // as BrandingService's logo replacement.
+        if (previousPhotoId != null && !previousPhotoId.equals(request.photoAttachmentId())) {
+            attachmentService.delete(previousPhotoId);
+        }
         return saved;
     }
 
@@ -167,6 +185,12 @@ public class EmployeeService {
         if (jobTitleId == null) return null;
         return jobTitleRepository.findById(jobTitleId).orElseThrow(() -> ApiException.validation(
                 "Job title not found", Map.of("jobTitleId", "does not exist")));
+    }
+
+    private Attachment resolveAttachment(UUID photoAttachmentId) {
+        if (photoAttachmentId == null) return null;
+        return attachmentRepository.findById(photoAttachmentId).orElseThrow(() -> ApiException.validation(
+                "Photo attachment not found", Map.of("photoAttachmentId", "does not exist")));
     }
 
     private Set<Department> resolveDepartments(List<UUID> departmentIds) {

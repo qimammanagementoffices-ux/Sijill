@@ -35,7 +35,7 @@ class AuditLogTest extends AbstractIntegrationTest {
     @Test
     void permissionChangeWritesAuditEntryWithBeforeAndAfter() {
         Employee target = employeeService.create(new CreateEmployeeRequest(
-                "Perm Target", "0588889999", "1234", "1234", null, null, null, null, null, Set.of("emp.view")));
+                "Perm Target", "0588889999", "1234", "1234", null, null, null, null, null, Set.of("emp.view"), null));
 
         employeeService.updatePermissions(
                 target.getId(), new UpdatePermissionsRequest(Set.of("emp.view", "emp.manage"), target.getVersion()));

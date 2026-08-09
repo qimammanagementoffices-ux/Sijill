@@ -83,7 +83,7 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0592222222");
 
         var limited = new CreateEmployeeRequest(
-                "Viewer Only", "0593333333", "1234", "1234", null, null, null, null, null, Set.of("wh.view"));
+                "Viewer Only", "0593333333", "1234", "1234", null, null, null, null, null, Set.of("wh.view"), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)

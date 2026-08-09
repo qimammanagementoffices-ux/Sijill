@@ -41,7 +41,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         String token = createAdminAndGetToken("0561111111");
 
         var newEmployee = new CreateEmployeeRequest(
-                "Sara Ahmed", "0562222222", "1234", "1234", null, null, null, null, null, Set.of());
+                "Sara Ahmed", "0562222222", "1234", "1234", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -68,7 +68,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0563333333");
 
         var limited = new CreateEmployeeRequest(
-                "No Permissions", "0564444444", "1234", "1234", null, null, null, null, null, Set.of());
+                "No Permissions", "0564444444", "1234", "1234", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)

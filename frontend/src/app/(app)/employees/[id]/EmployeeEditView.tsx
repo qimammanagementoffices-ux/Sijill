@@ -82,7 +82,25 @@ export default function EmployeeEditView({
   return (
     <>
       <div className="eyebrow">{dict.title}</div>
-      <h1 className="section-title disp">{employee.name}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+        {employee.photoUrl ? (
+          <img
+            src={employee.photoUrl}
+            alt=""
+            style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", flex: "none" }}
+          />
+        ) : (
+          <div
+            className="brand-seal"
+            style={{ background: "var(--ink)", color: "#fff", width: 48, height: 48, fontSize: 20, margin: 0 }}
+          >
+            {employee.name.trim().charAt(0).toUpperCase() || "?"}
+          </div>
+        )}
+        <h1 className="section-title disp" style={{ margin: 0 }}>
+          {employee.name}
+        </h1>
+      </div>
       {conflict && (
         <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
           {dict.conflictNotice}

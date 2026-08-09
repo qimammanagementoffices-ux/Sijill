@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { apiFetch, ApiError } from "@/lib/apiClient";
+import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import PermissionGrid from "@/components/PermissionGrid";
 import type {
+  AttachmentDto,
   EmployeeDetail,
   LocalizedEntityDto,
   PermissionDto,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+
+// Sentinel ownerId for a photo uploaded during employee creation, before the
+// employee row (and its real id) exists yet -- owner_id is just polymorphic
+// metadata on the attachment row, never a real foreign key, so this is safe
+// (same trick BrandingAdmin/SiteMaintenanceAdmin use for their singletons).
+const NEW_EMPLOYEE_PHOTO_OWNER_ID = "00000000-0000-0000-0000-000000000001";
 
 type Props = {
   dict: Dictionary["employees"];
@@ -56,8 +63,63 @@ export default function EmployeeForm({
   const [permissionKeys, setPermissionKeys] = useState<Set<string>>(
     new Set(initial?.permissions ?? [])
   );
+  const [photoAttachmentId, setPhotoAttachmentId] = useState<string | null>(initial?.photoAttachmentId ?? null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initial?.photoUrl ?? null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setPhotoUploading(true);
+    try {
+      const ownerId = initial?.id ?? NEW_EMPLOYEE_PHOTO_OWNER_ID;
+      const previousId = photoAttachmentId;
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploaded = await apiUpload<AttachmentDto>(
+        `/attachments?ownerType=EMPLOYEE&ownerId=${ownerId}`,
+        formData
+      );
+      setPhotoAttachmentId(uploaded.id);
+      setPhotoUrl(uploaded.url);
+      // Replacing a not-yet-saved photo would otherwise leave the
+      // superseded upload orphaned in storage forever.
+      if (previousId && previousId !== uploaded.id) {
+        try {
+          await apiFetch(`/attachments/${previousId}`, { method: "DELETE" });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : errorsDict.generic);
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  async function handlePhotoRemove() {
+    if (!photoAttachmentId || photoUploading) return;
+    setError(null);
+    setPhotoUploading(true);
+    try {
+      const attachmentId = photoAttachmentId;
+      setPhotoAttachmentId(null);
+      setPhotoUrl(null);
+      try {
+        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : errorsDict.generic);
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
 
   function toggleDepartment(id: string) {
     const next = new Set(departmentIds);
@@ -85,6 +147,7 @@ export default function EmployeeForm({
             jobTitleId: jobTitleId || null,
             departmentIds: Array.from(departmentIds),
             permissionKeys: Array.from(permissionKeys),
+            photoAttachmentId,
           }),
         });
         onSubmitted(created);
@@ -98,6 +161,7 @@ export default function EmployeeForm({
             nationalId: nationalId || null,
             jobTitleId: jobTitleId || null,
             departmentIds: Array.from(departmentIds),
+            photoAttachmentId,
             version: initial.version,
           }),
         });
@@ -136,20 +200,59 @@ export default function EmployeeForm({
     <form onSubmit={handleSubmit}>
       <div className="panel">
         <div className="panel-body">
+          <div className="field" style={{ marginBottom: 18 }}>
+            <label>{dict.photoLabel}</label>
+            <div className="filebox">
+              <label className="upl">
+                {dict.photoLabel}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} disabled={photoUploading} />
+              </label>
+              {photoUploading && <span className="spinner" />}
+            </div>
+            {photoUrl && (
+              <div className="thumb-strip" style={{ marginTop: 10, alignItems: "flex-start" }}>
+                <img src={photoUrl} alt="" style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
+                <button type="button" className="btn btn-outline btn-sm" onClick={handlePhotoRemove} disabled={photoUploading}>
+                  {dict.removePhoto}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="form-grid">
             <div className="field">
               <label>{dict.nameLabel}</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={dict.namePlaceholder}
+                required
+              />
             </div>
             <div className="field">
               <label>{dict.phoneLabel}</label>
-              <input type="tel" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={dict.phonePlaceholder}
+                required
+              />
             </div>
             {mode === "create" && (
               <>
                 <div className="field">
                   <label>{dict.pinLabel}</label>
-                  <input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} required />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    placeholder={dict.pinPlaceholder}
+                    required
+                  />
                 </div>
                 <div className="field">
                   <label>{dict.pinConfirmLabel}</label>
@@ -165,11 +268,21 @@ export default function EmployeeForm({
             )}
             <div className="field">
               <label>{dict.emailLabel}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={dict.emailPlaceholder}
+              />
             </div>
             <div className="field">
               <label>{dict.nationalIdLabel}</label>
-              <input type="text" value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
+              <input
+                type="text"
+                value={nationalId}
+                onChange={(e) => setNationalId(e.target.value)}
+                placeholder={dict.nationalIdPlaceholder}
+              />
             </div>
             {mode === "create" && (
               <div className="field">

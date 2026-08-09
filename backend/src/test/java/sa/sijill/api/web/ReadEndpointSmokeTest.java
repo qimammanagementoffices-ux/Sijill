@@ -104,7 +104,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
         var employee = new CreateEmployeeRequest(
                 "Smoke Test Employee", "0598222222", "1234", "1234", null, null, null,
-                UUID.fromString(jobTitleId), null, java.util.Set.of());
+                UUID.fromString(jobTitleId), null, java.util.Set.of(), null);
         String employeeBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
