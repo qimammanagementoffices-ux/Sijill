@@ -17,6 +17,7 @@ type EmployeeSummary = {
   employeeNumber: string;
   name: string;
   phone: string;
+  photoUrl: string | null;
   permissions: string[];
 };
 
@@ -255,8 +256,11 @@ export default function AppShell({
           </button>
           <div className="topbar-right" style={{ marginInlineStart: "auto" }}>
             <LocaleSwitcher locales={locales} current={currentLocale} />
-            <div className="avatar" title={employee.name}>
-              {initial}
+            <div className="topbar-user" title={employee.name}>
+              <div className="avatar">
+                {employee.photoUrl ? <img src={employee.photoUrl} alt="" /> : initial}
+              </div>
+              <span className="topbar-user-name">{employee.name}</span>
             </div>
             <button type="button" className="logout-btn" onClick={handleLogout}>
               {dict.logout}

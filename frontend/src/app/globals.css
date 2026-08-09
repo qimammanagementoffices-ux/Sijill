@@ -349,6 +349,17 @@ body.lang-en .brand h1 {
   height: 100%;
   object-fit: cover;
 }
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-user-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
 .logout-btn {
   border: 1px solid var(--line);
   background: #fff;
