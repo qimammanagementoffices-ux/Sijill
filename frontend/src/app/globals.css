@@ -1099,6 +1099,7 @@ img[data-viewable] {
   overflow: auto;
 }
 .modal {
+  position: relative;
   background: #fff;
   border-radius: 16px;
   width: 100%;
@@ -1142,18 +1143,23 @@ body.lang-en .modal-head h3 {
   font-weight: 800;
 }
 .modal-close {
-  border: none;
-  background: var(--paper-dim);
-  width: 30px;
-  height: 30px;
+  position: absolute;
+  top: -16px;
+  inset-inline-start: -16px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--slate);
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
+  box-shadow: 0 6px 16px -4px rgba(27, 42, 74, 0.3);
+  z-index: 2;
 }
 .modal-body {
   padding: 20px 22px;
