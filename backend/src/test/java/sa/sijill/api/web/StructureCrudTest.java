@@ -72,7 +72,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
 
         var noPermsEmployee = new sa.sijill.api.web.dto.CreateEmployeeRequest(
                 "No Structure Perm", "0583333333", "1234", "1234", null, null, null, null, null,
-                java.util.Set.of("emp.view"));
+                java.util.Set.of("emp.view"), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
