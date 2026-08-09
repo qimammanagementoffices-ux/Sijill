@@ -16,9 +16,10 @@ public record RoomDto(
         UUID custodianId,
         String custodianName,
         boolean active,
-        int version) {
+        int version,
+        long assetCount) {
 
-    public static RoomDto from(Room room) {
+    public static RoomDto from(Room room, long assetCount) {
         return new RoomDto(
                 room.getId(),
                 room.getRoomNumber(),
@@ -32,6 +33,7 @@ public record RoomDto(
                 room.getCustodian() == null ? null : room.getCustodian().getId(),
                 room.getCustodian() == null ? null : room.getCustodian().getName(),
                 room.isActive(),
-                room.getVersion());
+                room.getVersion(),
+                assetCount);
     }
 }

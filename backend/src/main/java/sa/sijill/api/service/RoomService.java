@@ -10,6 +10,7 @@ import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.Room;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.error.StaleVersionException;
+import sa.sijill.api.repository.AssetRepository;
 import sa.sijill.api.repository.DepartmentRepository;
 import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.repository.RoomRepository;
@@ -23,14 +24,17 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
+    private final AssetRepository assetRepository;
 
     public RoomService(
             RoomRepository roomRepository,
             DepartmentRepository departmentRepository,
-            EmployeeRepository employeeRepository) {
+            EmployeeRepository employeeRepository,
+            AssetRepository assetRepository) {
         this.roomRepository = roomRepository;
         this.departmentRepository = departmentRepository;
         this.employeeRepository = employeeRepository;
+        this.assetRepository = assetRepository;
     }
 
     public List<Room> list() {
@@ -60,7 +64,7 @@ public class RoomService {
         validate(request);
         Room room = get(id);
         if (request.version() == null || !request.version().equals(room.getVersion())) {
-            throw new StaleVersionException(RoomDto.from(room));
+            throw new StaleVersionException(RoomDto.from(room, assetRepository.countByRoom_Id(room.getId())));
         }
         room.setRoomNumber(request.roomNumber());
         room.setNameAr(request.nameAr());

@@ -31,4 +31,11 @@ public interface AssetRepository extends JpaRepository<Asset, UUID> {
             Pageable pageable);
 
     java.util.List<Asset> findByCustodianId(UUID custodianId);
+
+    long countByRoom_Id(UUID roomId);
+
+    @Query(
+            value = "select room_id as roomId, count(*) as count from asset where room_id is not null group by room_id",
+            nativeQuery = true)
+    java.util.List<RoomAssetCount> countAssetsByRoom();
 }

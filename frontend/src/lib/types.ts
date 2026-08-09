@@ -231,6 +231,7 @@ export type RoomDto = {
   custodianName: string | null;
   active: boolean;
   version: number;
+  assetCount: number;
 };
 
 export type AssetStatusValue = "ACTIVE" | "MAINTENANCE" | "RETIRED";

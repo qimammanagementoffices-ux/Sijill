@@ -1,9 +1,14 @@
 package sa.sijill.api.web;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import sa.sijill.api.domain.Room;
+import sa.sijill.api.repository.AssetRepository;
+import sa.sijill.api.repository.RoomAssetCount;
 import sa.sijill.api.service.RoomService;
 import sa.sijill.api.web.dto.RoomDto;
 import sa.sijill.api.web.dto.UpsertRoomRequest;
@@ -13,32 +18,41 @@ import sa.sijill.api.web.dto.UpsertRoomRequest;
 public class RoomController {
 
     private final RoomService roomService;
+    private final AssetRepository assetRepository;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, AssetRepository assetRepository) {
         this.roomService = roomService;
+        this.assetRepository = assetRepository;
     }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
     public List<RoomDto> list() {
-        return roomService.list().stream().map(RoomDto::from).toList();
+        Map<UUID, Long> counts = assetRepository.countAssetsByRoom().stream()
+                .collect(Collectors.toMap(RoomAssetCount::getRoomId, RoomAssetCount::getCount));
+        List<Room> rooms = roomService.list();
+        return rooms.stream()
+                .map(room -> RoomDto.from(room, counts.getOrDefault(room.getId(), 0L)))
+                .toList();
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
     public RoomDto get(@PathVariable UUID id) {
-        return RoomDto.from(roomService.get(id));
+        Room room = roomService.get(id);
+        return RoomDto.from(room, assetRepository.countByRoom_Id(room.getId()));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('as.manage')")
     public RoomDto create(@RequestBody UpsertRoomRequest request) {
-        return RoomDto.from(roomService.create(request));
+        return RoomDto.from(roomService.create(request), 0);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('as.manage')")
     public RoomDto update(@PathVariable UUID id, @RequestBody UpsertRoomRequest request) {
-        return RoomDto.from(roomService.update(id, request));
+        Room room = roomService.update(id, request);
+        return RoomDto.from(room, assetRepository.countByRoom_Id(room.getId()));
     }
 }

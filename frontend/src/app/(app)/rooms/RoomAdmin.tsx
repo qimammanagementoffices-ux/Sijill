@@ -150,6 +150,7 @@ export default function RoomAdmin({
         { header: dict.floorLabel, value: (r: RoomDto) => r.floor ?? "" },
         { header: dict.departmentLabel, value: (r: RoomDto) => r.departmentNameAr ?? "" },
         { header: dict.custodianLabel, value: (r: RoomDto) => r.custodianName ?? "" },
+        { header: dict.assetCountLabel, value: (r: RoomDto) => r.assetCount },
       ],
       rooms ?? []
     );
@@ -203,6 +204,7 @@ export default function RoomAdmin({
                   <th>{dict.floorLabel}</th>
                   <th>{dict.departmentLabel}</th>
                   <th>{dict.custodianLabel}</th>
+                  <th>{dict.assetCountLabel}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -286,6 +288,9 @@ export default function RoomAdmin({
                             ))}
                           </select>
                         </td>
+                        <td>
+                          <span className="count-badge">{room.assetCount}</span>
+                        </td>
                         <td style={{ display: "flex", gap: 6 }}>
                           <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(room)}>
                             {dict.save}
@@ -301,7 +306,7 @@ export default function RoomAdmin({
                       </tr>
                       {photosOpenFor === room.id && (
                         <tr>
-                          <td colSpan={8} style={{ background: "var(--paper-dim)" }}>
+                          <td colSpan={9} style={{ background: "var(--paper-dim)" }}>
                             <AttachmentUploader
                               ownerType="ROOM"
                               ownerId={room.id}
