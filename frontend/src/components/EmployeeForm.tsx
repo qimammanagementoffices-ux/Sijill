@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import PermissionGrid from "@/components/PermissionGrid";
 import type {
@@ -31,6 +31,12 @@ type Props = {
   onConflict?: () => void;
   onCancel?: () => void;
   cancelLabel?: string;
+  // When set, the form's submit/cancel buttons render in an external sticky
+  // footer (via <button form={formId}>) instead of inline at the end of the
+  // form's own content -- needed inside a modal, where the form scrolls but
+  // the action buttons shouldn't have to be scrolled to.
+  formId?: string;
+  onSubmittingChange?: (submitting: boolean) => void;
 };
 
 export default function EmployeeForm({
@@ -47,6 +53,8 @@ export default function EmployeeForm({
   onConflict,
   onCancel,
   cancelLabel,
+  formId,
+  onSubmittingChange,
 }: Props) {
   const localizedName = (entity: LocalizedEntityDto) => (locale === "ar" ? entity.nameAr : entity.nameEn);
   const [name, setName] = useState(initial?.name ?? "");
@@ -68,6 +76,11 @@ export default function EmployeeForm({
   const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    onSubmittingChange?.(submitting);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitting]);
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -197,7 +210,7 @@ export default function EmployeeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form id={formId} onSubmit={handleSubmit}>
       <div className="panel">
         <div className="panel-body">
           <div className="field" style={{ marginBottom: 18 }}>
@@ -339,17 +352,19 @@ export default function EmployeeForm({
           {error}
         </p>
       )}
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting && <span className="spinner" />}
-          {mode === "create" ? dict.submitCreate : dict.submitUpdate}
-        </button>
-        {onCancel && (
-          <button type="button" className="btn btn-outline" onClick={onCancel} disabled={submitting}>
-            {cancelLabel}
+      {!formId && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting && <span className="spinner" />}
+            {mode === "create" ? dict.submitCreate : dict.submitUpdate}
           </button>
-        )}
-      </div>
+          {onCancel && (
+            <button type="button" className="btn btn-outline" onClick={onCancel} disabled={submitting}>
+              {cancelLabel}
+            </button>
+          )}
+        </div>
+      )}
     </form>
   );
 }

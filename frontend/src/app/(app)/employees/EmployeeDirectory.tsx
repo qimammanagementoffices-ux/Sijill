@@ -33,6 +33,7 @@ export default function EmployeeDirectory({
   const [jobTitles, setJobTitles] = useState<LocalizedEntityDto[] | null>(null);
   const [allPermissions, setAllPermissions] = useState<PermissionDto[] | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [addSubmitting, setAddSubmitting] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -197,10 +198,24 @@ export default function EmployeeDirectory({
                   jobTitles={jobTitles}
                   allPermissions={allPermissions}
                   onSubmitted={handleAdded}
-                  onCancel={() => setShowAddModal(false)}
-                  cancelLabel={commonDict.cancel}
+                  formId="employee-add-form"
+                  onSubmittingChange={setAddSubmitting}
                 />
               )}
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button
+                type="submit"
+                form="employee-add-form"
+                className="btn btn-primary btn-sm"
+                disabled={addSubmitting || !departments || !jobTitles || !allPermissions}
+              >
+                {addSubmitting && <span className="spinner" />}
+                {dict.submitCreate}
+              </button>
             </div>
           </div>
         </div>

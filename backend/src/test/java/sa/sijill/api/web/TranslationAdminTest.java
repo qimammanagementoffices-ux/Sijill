@@ -44,7 +44,7 @@ class TranslationAdminTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0597111111");
 
         var noPermsEmployee = new CreateEmployeeRequest(
-                "No Perms", "0597222222", "1234", "1234", null, null, null, null, null, Set.of());
+                "No Perms", "0597222222", "1234", "1234", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
