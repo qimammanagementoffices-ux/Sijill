@@ -59,6 +59,16 @@ export default function PermissionsOverviewView({
     return permissionDict[key.replace(/\./g, "_")] ?? key;
   }
 
+  function row(p: PermissionDto) {
+    const count = counts!.get(p.key) ?? 0;
+    return (
+      <div key={p.key} className="perm-row">
+        <span>{label(p.key)}</span>
+        <span className={`perm-count-badge${count === 0 ? " zero" : ""}`}>{count}</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="eyebrow">{dict.title}</div>
@@ -68,18 +78,27 @@ export default function PermissionsOverviewView({
         <div className="panel-body">
           {Array.from(groups.entries()).map(([prefix, perms]) => {
             const Icon = GROUP_ICON[prefix];
+            const pages = perms.filter((p) => !p.key.includes(".act."));
+            const actions = perms.filter((p) => p.key.includes(".act."));
             return (
-              <div key={prefix} className="perm-group">
+              <div key={prefix} className="perm-group" style={{ marginBottom: 14 }}>
                 <div className="perm-group-head">
                   {Icon && <Icon className="ic" />}
                   {permissionDict[`group_${prefix}`] ?? prefix}
                 </div>
-                <div className="preset-row" style={{ marginBottom: 20 }}>
-                  {perms.map((p) => (
-                    <span key={p.key} className="chip">
-                      {label(p.key)} · {counts.get(p.key) ?? 0}
-                    </span>
-                  ))}
+                <div className="perm-list">
+                  {pages.length > 0 && (
+                    <>
+                      <div className="perm-sub">{permissionDict.subPages}</div>
+                      {pages.map(row)}
+                    </>
+                  )}
+                  {actions.length > 0 && (
+                    <>
+                      <div className="perm-sub">{permissionDict.subActions}</div>
+                      {actions.map(row)}
+                    </>
+                  )}
                 </div>
               </div>
             );
