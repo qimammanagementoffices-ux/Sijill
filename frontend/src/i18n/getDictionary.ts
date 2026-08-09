@@ -481,10 +481,16 @@ function setPath(target: Record<string, unknown>, path: string[], value: string)
 }
 
 async function fetchFlatDictionary(locale: string): Promise<Record<string, string>> {
-  const res = await fetch(`${API_URL}/i18n/dictionary?locale=${locale}`, {
-    next: { revalidate: 60, tags: ["dictionary"] },
-  });
-  return res.ok ? res.json() : {};
+  // See lib/getBranding.ts's comment -- a 200-with-HTML cold-start response
+  // used to reach res.json() and throw, crashing every page using this.
+  try {
+    const res = await fetch(`${API_URL}/i18n/dictionary?locale=${locale}`, {
+      next: { revalidate: 60, tags: ["dictionary"] },
+    });
+    return res.ok ? await res.json() : {};
+  } catch {
+    return {};
+  }
 }
 
 // Accepts any locale string, not just the built-in Locale union -- admin-

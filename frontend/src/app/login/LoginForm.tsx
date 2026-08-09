@@ -16,8 +16,24 @@ type AuthResponse = {
 // Same key BackupAdmin.tsx writes to before forcing a post-restore logout.
 const RESTORE_FLASH_KEY = "sijill.restoredFlash";
 
+// If the server-side dictionary fetch failed (e.g. a backend cold-start
+// returning a non-JSON holding page), `dict` can arrive undefined -- fall
+// back to hardcoded Arabic so the login form still renders and works
+// instead of crashing the highest-traffic page in the app.
+const FALLBACK_DICT: Dictionary["login"] = {
+  title: "تسجيل الدخول",
+  phoneLabel: "رقم الجوال",
+  phonePlaceholder: "05xxxxxxxx",
+  pinLabel: "رمز الدخول",
+  pinPlaceholder: "أدخل رمز الدخول",
+  submit: "تحقق ودخول",
+  genericError: "تعذر تسجيل الدخول",
+  rateLimited: "محاولات كثيرة، حاول لاحقاً",
+  pinHint: "رمز الدخول يحدده مدير النظام عند إنشاء حسابك، ويمكنك تغييره بنفسك بعد الدخول من القائمة العلوية.",
+};
+
 export default function LoginForm({
-  dict,
+  dict: dictProp,
   locales,
   currentLocale,
 }: {
@@ -25,6 +41,7 @@ export default function LoginForm({
   locales: LocaleInfo[];
   currentLocale: string;
 }) {
+  const dict = dictProp ?? FALLBACK_DICT;
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
