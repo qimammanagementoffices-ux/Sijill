@@ -5,9 +5,13 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sa.sijill.api.domain.Department;
+import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.Room;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.error.StaleVersionException;
+import sa.sijill.api.repository.DepartmentRepository;
+import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.repository.RoomRepository;
 import sa.sijill.api.web.dto.RoomDto;
 import sa.sijill.api.web.dto.UpsertRoomRequest;
@@ -17,9 +21,16 @@ import sa.sijill.api.web.dto.UpsertRoomRequest;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final DepartmentRepository departmentRepository;
+    private final EmployeeRepository employeeRepository;
 
-    public RoomService(RoomRepository roomRepository) {
+    public RoomService(
+            RoomRepository roomRepository,
+            DepartmentRepository departmentRepository,
+            EmployeeRepository employeeRepository) {
         this.roomRepository = roomRepository;
+        this.departmentRepository = departmentRepository;
+        this.employeeRepository = employeeRepository;
     }
 
     public List<Room> list() {
@@ -39,6 +50,8 @@ public class RoomService {
         room.setNameEn(request.nameEn());
         room.setBuilding(request.building());
         room.setFloor(request.floor());
+        room.setDepartment(resolveDepartment(request.departmentId()));
+        room.setCustodian(resolveEmployee(request.custodianId()));
         return roomRepository.save(room);
     }
 
@@ -54,6 +67,8 @@ public class RoomService {
         room.setNameEn(request.nameEn());
         room.setBuilding(request.building());
         room.setFloor(request.floor());
+        room.setDepartment(resolveDepartment(request.departmentId()));
+        room.setCustodian(resolveEmployee(request.custodianId()));
         return roomRepository.save(room);
     }
 
@@ -74,5 +89,17 @@ public class RoomService {
         if (request.nameEn() == null || request.nameEn().isBlank()) {
             throw ApiException.validation("English name is required", Map.of("nameEn", "must not be blank"));
         }
+    }
+
+    private Department resolveDepartment(UUID id) {
+        if (id == null) return null;
+        return departmentRepository.findById(id).orElseThrow(() -> ApiException.validation(
+                "Department not found", Map.of("departmentId", "does not exist")));
+    }
+
+    private Employee resolveEmployee(UUID id) {
+        if (id == null) return null;
+        return employeeRepository.findById(id).orElseThrow(() -> ApiException.validation(
+                "Employee not found", Map.of("custodianId", "does not exist")));
     }
 }

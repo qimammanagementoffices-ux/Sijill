@@ -366,6 +366,8 @@ export type Dictionary = {
     nameEnLabel: string;
     buildingLabel: string;
     floorLabel: string;
+    departmentLabel: string;
+    custodianLabel: string;
     save: string;
   };
   assets: {

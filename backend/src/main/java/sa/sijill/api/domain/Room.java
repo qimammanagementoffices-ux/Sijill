@@ -33,6 +33,17 @@ public class Room {
     @Column(name = "floor")
     private String floor;
 
+    // EAGER for the same open-in-view-off reason as elsewhere (e.g.
+    // Employee.jobTitle/photoAttachment) -- the DTO mapping happens in the
+    // controller after the request's transaction closes.
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_id")
+    private Department department;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "custodian_employee_id")
+    private Employee custodian;
+
     @Column(name = "active", nullable = false)
     private boolean active = true;
 

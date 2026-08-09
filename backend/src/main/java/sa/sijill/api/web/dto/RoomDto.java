@@ -4,7 +4,19 @@ import java.util.UUID;
 import sa.sijill.api.domain.Room;
 
 public record RoomDto(
-        UUID id, String roomNumber, String nameAr, String nameEn, String building, String floor, boolean active, int version) {
+        UUID id,
+        String roomNumber,
+        String nameAr,
+        String nameEn,
+        String building,
+        String floor,
+        UUID departmentId,
+        String departmentNameAr,
+        String departmentNameEn,
+        UUID custodianId,
+        String custodianName,
+        boolean active,
+        int version) {
 
     public static RoomDto from(Room room) {
         return new RoomDto(
@@ -14,6 +26,11 @@ public record RoomDto(
                 room.getNameEn(),
                 room.getBuilding(),
                 room.getFloor(),
+                room.getDepartment() == null ? null : room.getDepartment().getId(),
+                room.getDepartment() == null ? null : room.getDepartment().getNameAr(),
+                room.getDepartment() == null ? null : room.getDepartment().getNameEn(),
+                room.getCustodian() == null ? null : room.getCustodian().getId(),
+                room.getCustodian() == null ? null : room.getCustodian().getName(),
                 room.isActive(),
                 room.getVersion());
     }

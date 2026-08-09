@@ -224,6 +224,11 @@ export type RoomDto = {
   nameEn: string;
   building: string | null;
   floor: string | null;
+  departmentId: string | null;
+  departmentNameAr: string | null;
+  departmentNameEn: string | null;
+  custodianId: string | null;
+  custodianName: string | null;
   active: boolean;
   version: number;
 };

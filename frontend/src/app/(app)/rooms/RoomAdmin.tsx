@@ -9,10 +9,18 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
-import type { RoomDto } from "@/lib/types";
+import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-type Edited = { roomNumber: string; nameAr: string; nameEn: string; building: string; floor: string };
+type Edited = {
+  roomNumber: string;
+  nameAr: string;
+  nameEn: string;
+  building: string;
+  floor: string;
+  departmentId: string;
+  custodianId: string;
+};
 
 export default function RoomAdmin({
   dict,
@@ -32,11 +40,15 @@ export default function RoomAdmin({
   const [newNameEn, setNewNameEn] = useState("");
   const [newBuilding, setNewBuilding] = useState("");
   const [newFloor, setNewFloor] = useState("");
+  const [newDepartmentId, setNewDepartmentId] = useState("");
+  const [newCustodianId, setNewCustodianId] = useState("");
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
 
   function load() {
     apiFetch<RoomDto[]>("/rooms")
@@ -53,8 +65,19 @@ export default function RoomAdmin({
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanManage(me.permissions.includes("as.manage")))
       .catch(() => {});
+    Promise.all([
+      apiFetch<LocalizedEntityDto[]>("/departments"),
+      apiFetch<PagedResponse<EmployeeListItem>>("/employees?size=200"),
+    ]).then(([d, e]) => {
+      setDepartments(d);
+      setEmployees(e.content);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  function openAddModal() {
+    setShowAddModal(true);
+  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -69,6 +92,8 @@ export default function RoomAdmin({
           nameEn: newNameEn,
           building: newBuilding || null,
           floor: newFloor || null,
+          departmentId: newDepartmentId || null,
+          custodianId: newCustodianId || null,
           version: null,
         }),
       });
@@ -77,6 +102,8 @@ export default function RoomAdmin({
       setNewNameEn("");
       setNewBuilding("");
       setNewFloor("");
+      setNewDepartmentId("");
+      setNewCustodianId("");
       setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
@@ -100,6 +127,8 @@ export default function RoomAdmin({
           nameEn: edited.nameEn,
           building: edited.building || null,
           floor: edited.floor || null,
+          departmentId: edited.departmentId || null,
+          custodianId: edited.custodianId || null,
           version: room.version,
         }),
       });
@@ -119,6 +148,8 @@ export default function RoomAdmin({
         { header: dict.nameArLabel, value: (r: RoomDto) => r.nameAr },
         { header: dict.buildingLabel, value: (r: RoomDto) => r.building ?? "" },
         { header: dict.floorLabel, value: (r: RoomDto) => r.floor ?? "" },
+        { header: dict.departmentLabel, value: (r: RoomDto) => r.departmentNameAr ?? "" },
+        { header: dict.custodianLabel, value: (r: RoomDto) => r.custodianName ?? "" },
       ],
       rooms ?? []
     );
@@ -150,7 +181,7 @@ export default function RoomAdmin({
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               {commonDict.print}
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>
               {dict.addNew}
             </button>
           </div>
@@ -170,6 +201,8 @@ export default function RoomAdmin({
                   <th>{dict.nameEnLabel}</th>
                   <th>{dict.buildingLabel}</th>
                   <th>{dict.floorLabel}</th>
+                  <th>{dict.departmentLabel}</th>
+                  <th>{dict.custodianLabel}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -181,6 +214,8 @@ export default function RoomAdmin({
                     nameEn: room.nameEn,
                     building: room.building ?? "",
                     floor: room.floor ?? "",
+                    departmentId: room.departmentId ?? "",
+                    custodianId: room.custodianId ?? "",
                   };
                   return (
                     <>
@@ -225,6 +260,32 @@ export default function RoomAdmin({
                             style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 70 }}
                           />
                         </td>
+                        <td>
+                          <select
+                            value={edited.departmentId}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, departmentId: e.target.value } })}
+                          >
+                            <option value="">—</option>
+                            {(departments ?? []).map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.nameAr} / {d.nameEn}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            value={edited.custodianId}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, custodianId: e.target.value } })}
+                          >
+                            <option value="">—</option>
+                            {(employees ?? []).map((emp) => (
+                              <option key={emp.id} value={emp.id}>
+                                {emp.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
                         <td style={{ display: "flex", gap: 6 }}>
                           <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(room)}>
                             {dict.save}
@@ -240,7 +301,7 @@ export default function RoomAdmin({
                       </tr>
                       {photosOpenFor === room.id && (
                         <tr>
-                          <td colSpan={6} style={{ background: "var(--paper-dim)" }}>
+                          <td colSpan={8} style={{ background: "var(--paper-dim)" }}>
                             <AttachmentUploader
                               ownerType="ROOM"
                               ownerId={room.id}
@@ -297,6 +358,28 @@ export default function RoomAdmin({
                 <div className="field">
                   <label>{dict.floorLabel}</label>
                   <input type="text" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>{dict.departmentLabel}</label>
+                  <select value={newDepartmentId} onChange={(e) => setNewDepartmentId(e.target.value)}>
+                    <option value="">—</option>
+                    {(departments ?? []).map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.nameAr} / {d.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{dict.custodianLabel}</label>
+                  <select value={newCustodianId} onChange={(e) => setNewCustodianId(e.target.value)}>
+                    <option value="">—</option>
+                    {(employees ?? []).map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </form>
             </div>

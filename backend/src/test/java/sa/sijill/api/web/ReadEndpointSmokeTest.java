@@ -258,7 +258,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", "Main", "1", null))))
+                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", "Main", "1", null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
