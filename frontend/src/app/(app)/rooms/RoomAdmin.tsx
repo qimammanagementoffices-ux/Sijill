@@ -35,6 +35,8 @@ export default function RoomAdmin({
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
 
   function load() {
     apiFetch<RoomDto[]>("/rooms")
@@ -57,6 +59,7 @@ export default function RoomAdmin({
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setAddSubmitting(true);
     try {
       await apiFetch("/rooms", {
         method: "POST",
@@ -74,10 +77,13 @@ export default function RoomAdmin({
       setNewNameEn("");
       setNewBuilding("");
       setNewFloor("");
+      setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setAddSubmitting(false);
     }
   }
 
@@ -143,6 +149,9 @@ export default function RoomAdmin({
             </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               {commonDict.print}
+            </button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+              {dict.addNew}
             </button>
           </div>
         </div>
@@ -250,36 +259,59 @@ export default function RoomAdmin({
           </div>
         )}
 
-        <div className="panel-body no-print" style={{ borderTop: "1px solid var(--line-soft)" }}>
-          <form onSubmit={handleCreate} className="form-grid">
-            <div className="field">
-              <label>{dict.roomNumberLabel}</label>
-              <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} required />
+      </div>
+
+      {showAddModal && (
+        <div className="overlay no-print" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowAddModal(false)}
+                aria-label="close"
+                disabled={addSubmitting}
+              >
+                ×
+              </button>
             </div>
-            <div className="field">
-              <label>{dict.nameArLabel}</label>
-              <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
+            <div className="modal-body">
+              <form id="room-add-form" onSubmit={handleCreate} className="form-grid">
+                <div className="field">
+                  <label>{dict.roomNumberLabel}</label>
+                  <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} required />
+                </div>
+                <div className="field">
+                  <label>{dict.nameArLabel}</label>
+                  <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
+                </div>
+                <div className="field">
+                  <label>{dict.nameEnLabel}</label>
+                  <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
+                </div>
+                <div className="field">
+                  <label>{dict.buildingLabel}</label>
+                  <input type="text" value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>{dict.floorLabel}</label>
+                  <input type="text" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} />
+                </div>
+              </form>
             </div>
-            <div className="field">
-              <label>{dict.nameEnLabel}</label>
-              <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
-            </div>
-            <div className="field">
-              <label>{dict.buildingLabel}</label>
-              <input type="text" value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>{dict.floorLabel}</label>
-              <input type="text" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} />
-            </div>
-            <div className="field span2">
-              <button type="submit" className="btn btn-primary btn-sm">
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="room-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+                {addSubmitting && <span className="spinner" />}
                 {dict.addNew}
               </button>
             </div>
-          </form>
+          </div>
         </div>
-      </div>
+      )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>

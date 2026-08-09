@@ -27,6 +27,8 @@ export default function FaultTypeAdmin({
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
 
   function load() {
     Promise.all([
@@ -52,6 +54,7 @@ export default function FaultTypeAdmin({
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setAddSubmitting(true);
     try {
       await apiFetch("/maintenance/fault-types", {
         method: "POST",
@@ -65,10 +68,13 @@ export default function FaultTypeAdmin({
       setNewNameAr("");
       setNewNameEn("");
       setNewCategoryId("");
+      setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setAddSubmitting(false);
     }
   }
 
@@ -106,6 +112,12 @@ export default function FaultTypeAdmin({
       )}
 
       <div className="panel">
+        <div className="panel-head" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+            {dict.addNew}
+          </button>
+        </div>
+
         {faultTypes.length === 0 ? (
           <div className="empty">
             <b>{dict.title}</b>
@@ -181,35 +193,58 @@ export default function FaultTypeAdmin({
           </div>
         )}
 
-        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
-          <form onSubmit={handleCreate} className="form-grid">
-            <div className="field">
-              <label>{dict.nameArLabel}</label>
-              <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
+      </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowAddModal(false)}
+                aria-label="close"
+                disabled={addSubmitting}
+              >
+                ×
+              </button>
             </div>
-            <div className="field">
-              <label>{dict.nameEnLabel}</label>
-              <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
+            <div className="modal-body">
+              <form id="fault-type-add-form" onSubmit={handleCreate} className="form-grid">
+                <div className="field">
+                  <label>{dict.nameArLabel}</label>
+                  <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
+                </div>
+                <div className="field">
+                  <label>{dict.nameEnLabel}</label>
+                  <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
+                </div>
+                <div className="field span2">
+                  <label>{dict.suggestedCategoryLabel}</label>
+                  <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)}>
+                    <option value="">—</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nameAr} / {c.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </form>
             </div>
-            <div className="field span2">
-              <label>{dict.suggestedCategoryLabel}</label>
-              <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)}>
-                <option value="">—</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nameAr} / {c.nameEn}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field span2">
-              <button type="submit" className="btn btn-primary btn-sm">
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="fault-type-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+                {addSubmitting && <span className="spinner" />}
                 {dict.addNew}
               </button>
             </div>
-          </form>
+          </div>
         </div>
-      </div>
+      )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>

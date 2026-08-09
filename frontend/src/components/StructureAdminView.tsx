@@ -30,6 +30,8 @@ export default function StructureAdminView({
   const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string }>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
 
   function load() {
     apiFetch<LocalizedEntityDto[]>(`/${entity}`)
@@ -49,6 +51,7 @@ export default function StructureAdminView({
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setAddSubmitting(true);
     try {
       await apiFetch(`/${entity}`, {
         method: "POST",
@@ -56,10 +59,13 @@ export default function StructureAdminView({
       });
       setNewNameAr("");
       setNewNameEn("");
+      setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setAddSubmitting(false);
     }
   }
 
@@ -92,6 +98,12 @@ export default function StructureAdminView({
       )}
 
       <div className="panel">
+        <div className="panel-head" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+            {dict.addNew}
+          </button>
+        </div>
+
         {items.length === 0 ? (
           <div className="empty">
             <b>{dict.nameArLabel}</b>
@@ -140,43 +152,47 @@ export default function StructureAdminView({
           </div>
         )}
 
-        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
-          <h3 style={{ marginTop: 0 }}>{dict.addNew}</h3>
-          <form onSubmit={handleCreate} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <input
-              type="text"
-              value={newNameAr}
-              onChange={(e) => setNewNameAr(e.target.value)}
-              placeholder={dict.nameArLabel}
-              dir="rtl"
-              required
-              style={{
-                flex: "1 1 200px",
-                border: "1.5px solid var(--line)",
-                borderRadius: 9,
-                padding: "10px 12px",
-              }}
-            />
-            <input
-              type="text"
-              value={newNameEn}
-              onChange={(e) => setNewNameEn(e.target.value)}
-              placeholder={dict.nameEnLabel}
-              dir="rtl"
-              required
-              style={{
-                flex: "1 1 200px",
-                border: "1.5px solid var(--line)",
-                borderRadius: 9,
-                padding: "10px 12px",
-              }}
-            />
-            <button type="submit" className="btn btn-primary btn-sm">
-              {dict.addNew}
-            </button>
-          </form>
-        </div>
       </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowAddModal(false)}
+                aria-label="close"
+                disabled={addSubmitting}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <form id="structure-add-form" onSubmit={handleCreate} className="form-grid">
+                <div className="field">
+                  <label>{dict.nameArLabel}</label>
+                  <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} dir="rtl" required />
+                </div>
+                <div className="field">
+                  <label>{dict.nameEnLabel}</label>
+                  <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
+                </div>
+              </form>
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="structure-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+                {addSubmitting && <span className="spinner" />}
+                {dict.addNew}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
