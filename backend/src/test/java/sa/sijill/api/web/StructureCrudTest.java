@@ -40,7 +40,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
     void departmentReadsAreOpenToAnyAuthenticatedUserWritesRequireEmpStructure() throws Exception {
         String token = createAdminAndGetToken("0581111111");
 
-        var create = new UpsertLocalizedEntityRequest("العلوم", "Science", null);
+        var create = new UpsertLocalizedEntityRequest("العلوم", "Science", null, null);
         String createBody = mockMvc.perform(post("/api/v1/departments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +57,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/departments")).andExpect(status().isUnauthorized());
 
-        var badVersionUpdate = new UpsertLocalizedEntityRequest("العلوم والتقنية", "Science & Tech", 999);
+        var badVersionUpdate = new UpsertLocalizedEntityRequest("العلوم والتقنية", "Science & Tech", 999, null);
         mockMvc.perform(put("/api/v1/departments/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +87,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String limitedToken = objectMapper.readTree(loginBody).get("token").asText();
 
-        var request = new UpsertLocalizedEntityRequest("معلم", "Teacher", null);
+        var request = new UpsertLocalizedEntityRequest("معلم", "Teacher", null, null);
         mockMvc.perform(post("/api/v1/job-titles")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + limitedToken)
                         .contentType(MediaType.APPLICATION_JSON)

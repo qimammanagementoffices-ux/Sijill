@@ -55,7 +55,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     }
 
     private String createItemWithStock(String adminToken, String code, int stock) throws Exception {
-        var createItem = new CreateInventoryItemRequest(code, "صنف", "Item", null, "pcs", null, null, 0);
+        var createItem = new CreateInventoryItemRequest(code, "صنف", "Item", null, "pcs", null, null, 0, null);
         String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)

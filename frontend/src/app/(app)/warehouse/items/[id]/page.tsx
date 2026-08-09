@@ -11,6 +11,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
       attachmentsDict={dict.attachments}
       errorsDict={dict.errors}
       commonDict={dict.common}
+      categoriesModalDict={dict.categoriesModal}
       itemBasePath="/warehouse/items"
       categoriesPath="/warehouse/categories"
     />

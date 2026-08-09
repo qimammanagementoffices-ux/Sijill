@@ -24,6 +24,9 @@ public class JobTitle {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
+    @Column(name = "name_ur")
+    private String nameUr;
+
     @Version
     private Integer version;
 

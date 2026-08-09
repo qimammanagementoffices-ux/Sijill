@@ -8,20 +8,22 @@ import type { LocalizedEntityDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "./SectionLoading";
 import Toast from "./Toast";
+import TrilingualNameFields from "./TrilingualNameFields";
 
 // Shared by /departments and /job-titles — same CRUD shape (localized
-// nameAr/nameEn, no delete, version-checked updates) for both. The three
-// category domains (warehouse/maintenance/asset) moved to CategoriesModal,
-// which has its own icon/Urdu-name/auto-translate fields these two don't
-// need.
+// nameAr/nameEn/nameUr, no delete, version-checked updates) for both.
 export default function StructureAdminView({
   dict,
   commonDict,
+  categoriesModalDict,
+  errorsDict,
   entity,
   title,
 }: {
   dict: Dictionary["structure"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
+  errorsDict: Dictionary["errors"];
   entity: "departments" | "job-titles";
   title: string;
 }) {
@@ -29,7 +31,8 @@ export default function StructureAdminView({
   const [items, setItems] = useState<LocalizedEntityDto[] | null>(null);
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
-  const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string }>>({});
+  const [newNameUr, setNewNameUr] = useState("");
+  const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string; nameUr: string }>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,10 +60,11 @@ export default function StructureAdminView({
     try {
       await apiFetch(`/${entity}`, {
         method: "POST",
-        body: JSON.stringify({ nameAr: newNameAr, nameEn: newNameEn, version: null }),
+        body: JSON.stringify({ nameAr: newNameAr, nameEn: newNameEn, nameUr: newNameUr || null, version: null }),
       });
       setNewNameAr("");
       setNewNameEn("");
+      setNewNameUr("");
       setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
@@ -78,7 +82,12 @@ export default function StructureAdminView({
     try {
       await apiFetch(`/${entity}/${item.id}`, {
         method: "PUT",
-        body: JSON.stringify({ nameAr: edited.nameAr, nameEn: edited.nameEn, version: item.version }),
+        body: JSON.stringify({
+          nameAr: edited.nameAr,
+          nameEn: edited.nameEn,
+          nameUr: edited.nameUr || null,
+          version: item.version,
+        }),
       });
       load();
       setToast(commonDict.actionSuccess);
@@ -116,13 +125,14 @@ export default function StructureAdminView({
               <thead>
                 <tr>
                   <th>{dict.nameArLabel}</th>
+                  <th>{categoriesModalDict.nameUrLabel}</th>
                   <th>{dict.nameEnLabel}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const edited = editing[item.id] ?? { nameAr: item.nameAr, nameEn: item.nameEn };
+                  const edited = editing[item.id] ?? { nameAr: item.nameAr, nameEn: item.nameEn, nameUr: item.nameUr ?? "" };
                   return (
                     <tr key={item.id}>
                       <td>
@@ -131,6 +141,15 @@ export default function StructureAdminView({
                           value={edited.nameAr}
                           onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameAr: e.target.value } })}
                           style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={edited.nameUr}
+                          onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameUr: e.target.value } })}
+                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                          dir="rtl"
                         />
                       </td>
                       <td>
@@ -173,14 +192,16 @@ export default function StructureAdminView({
             </div>
             <div className="modal-body">
               <form id="structure-add-form" onSubmit={handleCreate} className="form-grid">
-                <div className="field">
-                  <label>{dict.nameArLabel}</label>
-                  <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} dir="rtl" required />
-                </div>
-                <div className="field">
-                  <label>{dict.nameEnLabel}</label>
-                  <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
-                </div>
+                <TrilingualNameFields
+                  nameAr={newNameAr}
+                  setNameAr={setNewNameAr}
+                  nameEn={newNameEn}
+                  setNameEn={setNewNameEn}
+                  nameUr={newNameUr}
+                  setNameUr={setNewNameUr}
+                  dict={categoriesModalDict}
+                  errorsDict={errorsDict}
+                />
               </form>
             </div>
             <div className="modal-foot">

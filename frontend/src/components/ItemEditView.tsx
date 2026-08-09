@@ -17,6 +17,7 @@ export default function ItemEditView({
   attachmentsDict,
   errorsDict,
   commonDict,
+  categoriesModalDict,
   itemBasePath,
   categoriesPath,
 }: {
@@ -25,6 +26,7 @@ export default function ItemEditView({
   attachmentsDict: Dictionary["attachments"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
   itemBasePath: string;
   categoriesPath: string;
 }) {
@@ -76,6 +78,7 @@ export default function ItemEditView({
         key={item.version}
         dict={dict}
         errorsDict={errorsDict}
+        categoriesModalDict={categoriesModalDict}
         mode="edit"
         initial={item}
         categories={categories}

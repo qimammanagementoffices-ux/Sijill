@@ -92,7 +92,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String token = objectMapper.readTree(onboardBody).get("token").asText();
 
         // Employee with a job title (the association that broke first).
-        var jobTitle = new UpsertLocalizedEntityRequest("معلم", "Teacher", null);
+        var jobTitle = new UpsertLocalizedEntityRequest("معلم", "Teacher", null, null);
         String jobTitleBody = mockMvc.perform(post("/api/v1/job-titles")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +133,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String categoryId = objectMapper.readTree(categoryBody).get("id").asText();
 
         var item = new CreateInventoryItemRequest(
-                "SMOKE-001", "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5);
+                "SMOKE-001", "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5, null);
         String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -204,7 +204,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String faultTypeId = objectMapper.readTree(faultTypeBody).get("id").asText();
 
-        var part = new CreateInventoryItemRequest("SMOKE-MPART-001", "قطعة", "Part", null, "pcs", null, null, 0);
+        var part = new CreateInventoryItemRequest("SMOKE-MPART-001", "قطعة", "Part", null, "pcs", null, null, 0, null);
         String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

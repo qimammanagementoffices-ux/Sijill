@@ -8,6 +8,8 @@ export default async function JobTitlesPage() {
     <StructureAdminView
       dict={dict.structure}
       commonDict={dict.common}
+      categoriesModalDict={dict.categoriesModal}
+      errorsDict={dict.errors}
       entity="job-titles"
       title={dict.structure.jobTitlesTitle}
     />

@@ -11,8 +11,6 @@ import sa.sijill.api.error.ApiException;
 import sa.sijill.api.error.StaleVersionException;
 import sa.sijill.api.repository.CategoryRepository;
 import sa.sijill.api.web.dto.CategoryDto;
-import sa.sijill.api.web.dto.TranslateCategoryNameRequest;
-import sa.sijill.api.web.dto.TranslateCategoryNameResponse;
 import sa.sijill.api.web.dto.UpsertCategoryRequest;
 
 // No hard delete — same reference-data caution as StructureService
@@ -21,11 +19,9 @@ import sa.sijill.api.web.dto.UpsertCategoryRequest;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
-    private final TranslationAiClient translationAiClient;
 
-    public CategoryService(CategoryRepository categoryRepository, TranslationAiClient translationAiClient) {
+    public CategoryService(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
-        this.translationAiClient = translationAiClient;
     }
 
     public List<Category> list(Domain domain) {
@@ -63,32 +59,6 @@ public class CategoryService {
         Category category = categoryRepository.findById(id).orElseThrow(() -> ApiException.notFound("Category not found"));
         category.setActive(false);
         categoryRepository.save(category);
-    }
-
-    public TranslateCategoryNameResponse translate(TranslateCategoryNameRequest request) {
-        if (request.text() == null || request.text().isBlank()) {
-            throw ApiException.validation("Text is required", Map.of("text", "must not be blank"));
-        }
-        String ar = request.text();
-        String en = request.text();
-        String ur = request.text();
-        switch (request.sourceLang()) {
-            case "ar" -> {
-                en = translationAiClient.translateText(request.text(), "Arabic", "English");
-                ur = translationAiClient.translateText(request.text(), "Arabic", "Urdu");
-            }
-            case "en" -> {
-                ar = translationAiClient.translateText(request.text(), "English", "Arabic");
-                ur = translationAiClient.translateText(request.text(), "English", "Urdu");
-            }
-            case "ur" -> {
-                ar = translationAiClient.translateText(request.text(), "Urdu", "Arabic");
-                en = translationAiClient.translateText(request.text(), "Urdu", "English");
-            }
-            default -> throw ApiException.validation(
-                    "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or ur"));
-        }
-        return new TranslateCategoryNameResponse(ar, en, ur);
     }
 
     private void validate(UpsertCategoryRequest request) {

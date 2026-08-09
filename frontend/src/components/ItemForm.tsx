@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type {
   CategoryDto,
   InventoryItemDetail,
@@ -11,6 +12,7 @@ import type { Dictionary } from "@/i18n/getDictionary";
 type Props = {
   dict: Dictionary["warehouseItems"];
   errorsDict: Dictionary["errors"];
+  categoriesModalDict: Dictionary["categoriesModal"];
   mode: "create" | "edit";
   initial?: InventoryItemDetail;
   categories: CategoryDto[];
@@ -26,6 +28,7 @@ type Props = {
 export default function ItemForm({
   dict,
   errorsDict,
+  categoriesModalDict,
   mode,
   initial,
   categories,
@@ -37,6 +40,7 @@ export default function ItemForm({
   const [code, setCode] = useState(initial?.code ?? "");
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? "");
   const [nameEn, setNameEn] = useState(initial?.nameEn ?? "");
+  const [nameUr, setNameUr] = useState(initial?.nameUr ?? "");
   const [categoryId, setCategoryId] = useState(initial?.category?.id ?? "");
   const [unit, setUnit] = useState(initial?.unit ?? "");
   const [minQuantity, setMinQuantity] = useState(String(initial?.minQuantity ?? 0));
@@ -60,6 +64,7 @@ export default function ItemForm({
             code,
             nameAr,
             nameEn,
+            nameUr: nameUr || null,
             categoryId: categoryId || null,
             unit: unit || null,
             weight: null,
@@ -74,6 +79,7 @@ export default function ItemForm({
           body: JSON.stringify({
             nameAr,
             nameEn,
+            nameUr: nameUr || null,
             categoryId: categoryId || null,
             unit: unit || null,
             weight: initial.weight,
@@ -100,18 +106,16 @@ export default function ItemForm({
                 <input type="text" value={code} onChange={(e) => setCode(e.target.value)} required />
               </div>
             )}
-            <div className="field">
-              <label>
-                {dict.nameLabel} ({"ar"})
-              </label>
-              <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} required dir="rtl" />
-            </div>
-            <div className="field">
-              <label>
-                {dict.nameLabel} ({"en"})
-              </label>
-              <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} required />
-            </div>
+            <TrilingualNameFields
+              nameAr={nameAr}
+              setNameAr={setNameAr}
+              nameEn={nameEn}
+              setNameEn={setNameEn}
+              nameUr={nameUr}
+              setNameUr={setNameUr}
+              dict={categoriesModalDict}
+              errorsDict={errorsDict}
+            />
             <div className="field">
               <label>{dict.categoryLabel}</label>
               <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>

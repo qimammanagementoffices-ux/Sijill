@@ -64,6 +64,7 @@ public class InventoryItemService {
         item.setCode(request.code());
         item.setNameAr(request.nameAr());
         item.setNameEn(request.nameEn());
+        item.setNameUr(request.nameUr());
         item.setCategory(resolveCategory(request.categoryId()));
         item.setUnit(request.unit());
         item.setWeight(request.weight());
@@ -89,6 +90,7 @@ public class InventoryItemService {
 
         item.setNameAr(request.nameAr());
         item.setNameEn(request.nameEn());
+        item.setNameUr(request.nameUr());
         item.setCategory(resolveCategory(request.categoryId()));
         item.setUnit(request.unit());
         item.setWeight(request.weight());

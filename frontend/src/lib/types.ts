@@ -60,7 +60,13 @@ export type PagedResponse<T> = {
 export type PermissionDto = { key: string; description: string };
 export type PermissionOverviewDto = { key: string; employeeCount: number };
 
-export type LocalizedEntityDto = { id: string; nameAr: string; nameEn: string; version: number };
+export type LocalizedEntityDto = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  nameUr: string | null;
+  version: number;
+};
 
 // --- Warehouse (Phase 3a) ---
 
@@ -92,6 +98,7 @@ export type InventoryItemDetail = {
   code: string;
   nameAr: string;
   nameEn: string;
+  nameUr: string | null;
   category: LocalizedRef | null;
   quantity: number;
   unit: string | null;

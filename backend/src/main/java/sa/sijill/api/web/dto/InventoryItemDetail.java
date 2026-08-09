@@ -10,6 +10,7 @@ public record InventoryItemDetail(
         String code,
         String nameAr,
         String nameEn,
+        String nameUr,
         LocalizedRef category,
         int quantity,
         String unit,
@@ -29,6 +30,7 @@ public record InventoryItemDetail(
                 item.getCode(),
                 item.getNameAr(),
                 item.getNameEn(),
+                item.getNameUr(),
                 item.getCategory() == null
                         ? null
                         : new LocalizedRef(

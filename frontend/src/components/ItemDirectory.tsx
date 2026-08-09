@@ -235,6 +235,7 @@ export default function ItemDirectory({
                 <ItemForm
                   dict={dict}
                   errorsDict={errorsDict}
+                  categoriesModalDict={categoriesModalDict}
                   mode="create"
                   categories={categories}
                   basePath={basePath}

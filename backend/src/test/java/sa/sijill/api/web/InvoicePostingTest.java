@@ -42,7 +42,7 @@ class InvoicePostingTest extends AbstractIntegrationTest {
     }
 
     private String createItem(String token, String code) throws Exception {
-        var request = new CreateInventoryItemRequest(code, "صنف", "Item", null, "pcs", null, null, 5);
+        var request = new CreateInventoryItemRequest(code, "صنف", "Item", null, "pcs", null, null, 5, null);
         String body = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -58,7 +58,7 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
         String categoryId = createCategory(token);
 
         var request = new CreateInventoryItemRequest(
-                "PEN-001", "قلم", "Pen", java.util.UUID.fromString(categoryId), "box", null, null, 10);
+                "PEN-001", "قلم", "Pen", java.util.UUID.fromString(categoryId), "box", null, null, 10, null);
 
         String body = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -97,7 +97,7 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String viewerToken = objectMapper.readTree(loginBody).get("token").asText();
 
-        var request = new CreateInventoryItemRequest("X-1", "س", "X", null, null, null, null, 0);
+        var request = new CreateInventoryItemRequest("X-1", "س", "X", null, null, null, null, 0, null);
         mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + viewerToken)
                         .contentType(MediaType.APPLICATION_JSON)

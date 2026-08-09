@@ -2,10 +2,9 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type { CategoryDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
-
-type SourceLang = "ar" | "en" | "ur";
 
 export default function CategoriesModal({
   basePath,
@@ -29,8 +28,6 @@ export default function CategoriesModal({
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [nameUr, setNameUr] = useState("");
-  const [lastEdited, setLastEdited] = useState<SourceLang | null>(null);
-  const [translating, setTranslating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,27 +39,6 @@ export default function CategoriesModal({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function handleAutoTranslate() {
-    if (!lastEdited) return;
-    const text = { ar: nameAr, en: nameEn, ur: nameUr }[lastEdited];
-    if (!text || !text.trim()) return;
-    setError(null);
-    setTranslating(true);
-    try {
-      const result = await apiFetch<{ nameAr: string; nameEn: string; nameUr: string }>("/categories/translate", {
-        method: "POST",
-        body: JSON.stringify({ text, sourceLang: lastEdited }),
-      });
-      setNameAr(result.nameAr);
-      setNameEn(result.nameEn);
-      setNameUr(result.nameUr);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : errorsDict.generic);
-    } finally {
-      setTranslating(false);
-    }
-  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -77,7 +53,6 @@ export default function CategoriesModal({
       setNameAr("");
       setNameEn("");
       setNameUr("");
-      setLastEdited(null);
       load();
       onChanged();
     } catch (err) {
@@ -152,44 +127,16 @@ export default function CategoriesModal({
                 style={{ textAlign: "center" }}
               />
             </div>
-            <div className="field">
-              <label>{dict.nameArLabel}</label>
-              <input
-                type="text"
-                value={nameAr}
-                onChange={(e) => {
-                  setNameAr(e.target.value);
-                  setLastEdited("ar");
-                }}
-                placeholder={dict.namePlaceholder}
-                dir="rtl"
-                required
-              />
-            </div>
-            <div className="field">
-              <label>{dict.nameUrLabel}</label>
-              <input
-                type="text"
-                value={nameUr}
-                onChange={(e) => {
-                  setNameUr(e.target.value);
-                  setLastEdited("ur");
-                }}
-                dir="rtl"
-              />
-            </div>
-            <div className="field">
-              <label>{dict.nameEnLabel}</label>
-              <input
-                type="text"
-                value={nameEn}
-                onChange={(e) => {
-                  setNameEn(e.target.value);
-                  setLastEdited("en");
-                }}
-                required
-              />
-            </div>
+            <TrilingualNameFields
+              nameAr={nameAr}
+              setNameAr={setNameAr}
+              nameEn={nameEn}
+              setNameEn={setNameEn}
+              nameUr={nameUr}
+              setNameUr={setNameUr}
+              dict={dict}
+              errorsDict={errorsDict}
+            />
 
             {error && (
               <p role="alert" className="field span2" style={{ color: "var(--seal)", fontSize: 12.5, margin: 0 }}>
@@ -197,24 +144,12 @@ export default function CategoriesModal({
               </p>
             )}
 
-            <div className="field span2" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={handleAutoTranslate}
-                disabled={!lastEdited || translating}
-              >
-                {translating && <span className="spinner" />}
-                {dict.autoTranslate}
-              </button>
+            <div className="field span2">
               <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
                 {submitting && <span className="spinner" />}
                 {dict.addNew}
               </button>
             </div>
-            <p className="panel-note field span2" style={{ padding: 0, margin: 0, fontSize: 11.5 }}>
-              {dict.autoTranslateNote}
-            </p>
           </form>
         </div>
         <div className="modal-foot">

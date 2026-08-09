@@ -12,4 +12,5 @@ public record CreateInventoryItemRequest(
         String unit,
         BigDecimal weight,
         LocalDate dateAdded,
-        int minQuantity) {}
+        int minQuantity,
+        String nameUr) {}

@@ -8,6 +8,8 @@ export default async function DepartmentsPage() {
     <StructureAdminView
       dict={dict.structure}
       commonDict={dict.common}
+      categoriesModalDict={dict.categoriesModal}
+      errorsDict={dict.errors}
       entity="departments"
       title={dict.structure.departmentsTitle}
     />

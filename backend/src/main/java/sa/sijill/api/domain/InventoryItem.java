@@ -33,6 +33,9 @@ public class InventoryItem {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
+    @Column(name = "name_ur")
+    private String nameUr;
+
     // EAGER: see Employee.jobTitle for why (DTO mapping happens after the
     // transaction that loaded this entity has already closed).
     @ManyToOne(fetch = FetchType.EAGER)

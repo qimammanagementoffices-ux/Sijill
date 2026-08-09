@@ -62,7 +62,7 @@ class FaultTypeAndPartsTest extends AbstractIntegrationTest {
     void maintenancePartsAreDomainSeparatedFromWarehouseItems() throws Exception {
         String token = createAdminAndGetToken("0599222222");
 
-        var part = new CreateInventoryItemRequest("MPART-001", "قطعة", "Part", null, "pcs", null, null, 0);
+        var part = new CreateInventoryItemRequest("MPART-001", "قطعة", "Part", null, "pcs", null, null, 0, null);
         mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
