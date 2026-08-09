@@ -22,6 +22,8 @@ type Props = {
   allPermissions: PermissionDto[];
   onSubmitted: (employee: EmployeeDetail) => void;
   onConflict?: () => void;
+  onCancel?: () => void;
+  cancelLabel?: string;
 };
 
 export default function EmployeeForm({
@@ -36,6 +38,8 @@ export default function EmployeeForm({
   allPermissions,
   onSubmitted,
   onConflict,
+  onCancel,
+  cancelLabel,
 }: Props) {
   const localizedName = (entity: LocalizedEntityDto) => (locale === "ar" ? entity.nameAr : entity.nameEn);
   const [name, setName] = useState(initial?.name ?? "");
@@ -222,10 +226,17 @@ export default function EmployeeForm({
           {error}
         </p>
       )}
-      <button type="submit" className="btn btn-primary" disabled={submitting}>
-        {submitting && <span className="spinner" />}
-        {mode === "create" ? dict.submitCreate : dict.submitUpdate}
-      </button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting && <span className="spinner" />}
+          {mode === "create" ? dict.submitCreate : dict.submitUpdate}
+        </button>
+        {onCancel && (
+          <button type="button" className="btn btn-outline" onClick={onCancel} disabled={submitting}>
+            {cancelLabel}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

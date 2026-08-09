@@ -5,15 +5,34 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
-import type { EmployeeListItem, PagedResponse } from "@/lib/types";
+import EmployeeForm from "@/components/EmployeeForm";
+import Toast from "@/components/Toast";
+import type { EmployeeDetail, EmployeeListItem, LocalizedEntityDto, PagedResponse, PermissionDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 
-export default function EmployeeDirectory({ dict }: { dict: Dictionary["employees"] }) {
+export default function EmployeeDirectory({
+  dict,
+  errorsDict,
+  permissionDict,
+  commonDict,
+  locale,
+}: {
+  dict: Dictionary["employees"];
+  errorsDict: Dictionary["errors"];
+  permissionDict: Dictionary["permission"];
+  commonDict: Dictionary["common"];
+  locale: string;
+}) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState<PagedResponse<EmployeeListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [jobTitles, setJobTitles] = useState<LocalizedEntityDto[] | null>(null);
+  const [allPermissions, setAllPermissions] = useState<PermissionDto[] | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!getToken()) {
@@ -48,6 +67,28 @@ export default function EmployeeDirectory({ dict }: { dict: Dictionary["employee
     load(0, q);
   }
 
+  function openAddModal() {
+    setShowAddModal(true);
+    if (!departments || !jobTitles || !allPermissions) {
+      Promise.all([
+        apiFetch<LocalizedEntityDto[]>("/departments"),
+        apiFetch<LocalizedEntityDto[]>("/job-titles"),
+        apiFetch<PermissionDto[]>("/permissions"),
+      ]).then(([d, j, p]) => {
+        setDepartments(d);
+        setJobTitles(j);
+        setAllPermissions(p);
+      });
+    }
+  }
+
+  function handleAdded(employee: EmployeeDetail) {
+    setShowAddModal(false);
+    load(0, q);
+    setToast(commonDict.actionSuccess);
+    void employee;
+  }
+
   if (!page) return <SectionLoading />;
 
   return (
@@ -70,9 +111,9 @@ export default function EmployeeDirectory({ dict }: { dict: Dictionary["employee
             </button>
           </form>
           {canManage && (
-            <Link href="/employees/new" className="btn btn-primary btn-sm">
+            <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>
               {dict.addNew}
-            </Link>
+            </button>
           )}
         </div>
 
@@ -132,6 +173,40 @@ export default function EmployeeDirectory({ dict }: { dict: Dictionary["employee
           </div>
         )}
       </div>
+
+      {showAddModal && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{dict.addNew}</h3>
+              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {!departments || !jobTitles || !allPermissions ? (
+                <SectionLoading />
+              ) : (
+                <EmployeeForm
+                  dict={dict}
+                  errorsDict={errorsDict}
+                  permissionDict={permissionDict}
+                  locale={locale}
+                  mode="create"
+                  departments={departments}
+                  jobTitles={jobTitles}
+                  allPermissions={allPermissions}
+                  onSubmitted={handleAdded}
+                  onCancel={() => setShowAddModal(false)}
+                  cancelLabel={commonDict.cancel}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
   );
 }

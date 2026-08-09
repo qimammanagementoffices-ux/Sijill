@@ -3,6 +3,15 @@ import { getRequestLocale } from "@/i18n/getRequestLocale";
 import EmployeeDirectory from "./EmployeeDirectory";
 
 export default async function EmployeesPage() {
-  const dict = await getDictionary(await getRequestLocale());
-  return <EmployeeDirectory dict={dict.employees} />;
+  const locale = await getRequestLocale();
+  const dict = await getDictionary(locale);
+  return (
+    <EmployeeDirectory
+      dict={dict.employees}
+      errorsDict={dict.errors}
+      permissionDict={dict.permission}
+      commonDict={dict.common}
+      locale={locale}
+    />
+  );
 }
