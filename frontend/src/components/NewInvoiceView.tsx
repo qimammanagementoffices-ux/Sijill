@@ -67,6 +67,10 @@ export default function NewInvoiceView({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    // Posting an invoice moves stock and sets each item's last purchase
+    // price, and invoices are immutable -- there is no edit or delete to
+    // fall back on, so the warning is a hard confirm rather than a note.
+    if (!window.confirm(dict.postConfirm)) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -102,7 +106,13 @@ export default function NewInvoiceView({
             <div className="form-grid">
               <div className="field">
                 <label>{dict.numberLabel}</label>
-                <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} required />
+                <input
+                  type="text"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  placeholder={dict.numberPlaceholder}
+                  required
+                />
               </div>
               <div className="field">
                 <label>{dict.dateLabel}</label>
@@ -110,7 +120,13 @@ export default function NewInvoiceView({
               </div>
               <div className="field">
                 <label>{dict.vendorLabel}</label>
-                <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} required />
+                <input
+                  type="text"
+                  value={vendor}
+                  onChange={(e) => setVendor(e.target.value)}
+                  placeholder={dict.vendorPlaceholder}
+                  required
+                />
               </div>
               <div className="field">
                 <label>{dict.taxRateLabel}</label>

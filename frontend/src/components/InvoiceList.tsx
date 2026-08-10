@@ -40,17 +40,21 @@ export default function InvoiceList({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [sort, setSort] = useState<Sort>({ field: "invoiceDate", dir: "desc" });
+  const [size, setSize] = useState(10);
 
   const filtersActive = dateFrom !== "" || dateTo !== "";
 
   // Built once and reused by load() and the export, so a filtered export
   // can never disagree with what is on screen.
-  function queryString(next: Partial<{ from: string; to: string; sortBy: Sort }> = {}) {
+  function queryString(next: Partial<{ from: string; to: string; sortBy: Sort; size: number }> = {}) {
     const from = next.from ?? dateFrom;
     const to = next.to ?? dateTo;
     const by = next.sortBy ?? sort;
+    const perPage = next.size ?? size;
     return (
-      "?sort=" + by.field + "," + by.dir + (from ? "&dateFrom=" + from : "") + (to ? "&dateTo=" + to : "")
+      "?sort=" + by.field + "," + by.dir + "&size=" + perPage +
+      (from ? "&dateFrom=" + from : "") +
+      (to ? "&dateTo=" + to : "")
     );
   }
 
@@ -67,7 +71,7 @@ export default function InvoiceList({
     load({ from: "", to: "" });
   }
 
-  function load(next: Partial<{ from: string; to: string; sortBy: Sort }> = {}) {
+  function load(next: Partial<{ from: string; to: string; sortBy: Sort; size: number }> = {}) {
     setLoading(true);
     apiFetch<PagedResponse<InvoiceDetail>>(basePath + queryString(next))
       .then(setPage)
@@ -92,7 +96,7 @@ export default function InvoiceList({
   }, [router]);
 
   async function handleExport() {
-    const all = await apiFetch<PagedResponse<InvoiceDetail>>(`${basePath}${queryString()}&size=10000`);
+    const all = await apiFetch<PagedResponse<InvoiceDetail>>(`${basePath}${queryString({ size: 10000 })}`);
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -182,6 +186,27 @@ export default function InvoiceList({
               </button>
             )}
           </div>
+        </div>
+
+        <div className="panel-note no-print" style={{ display: "flex", justifyContent: "flex-end", padding: "0 0 8px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+            {commonDict.rowsPerPage}
+            <select
+              value={size}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setSize(next);
+                load({ size: next });
+              }}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "6px 10px" }}
+            >
+              {[10, 20, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         {page.content.length === 0 ? (

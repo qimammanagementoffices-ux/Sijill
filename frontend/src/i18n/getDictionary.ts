@@ -14,6 +14,7 @@ export type Dictionary = {
     exportXlsx: string;
     exportPdf: string;
     currency: string;
+    rowsPerPage: string;
     print: string;
     generatedAt: string;
     actionSuccess: string;
@@ -250,6 +251,9 @@ export type Dictionary = {
     filterDateTo: string;
     filterClear: string;
     numberLabel: string;
+    numberPlaceholder: string;
+    vendorPlaceholder: string;
+    postConfirm: string;
     dateLabel: string;
     vendorLabel: string;
     taxRateLabel: string;
