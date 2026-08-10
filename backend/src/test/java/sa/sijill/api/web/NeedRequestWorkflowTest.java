@@ -80,7 +80,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         String itemId = createItemWithStock(adminToken, "PART-001", 10);
 
         var submit = new CreateNeedRequestRequest(
-                null, null, "need some", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
+                null, null, null, "need some", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
         String submitBody = mockMvc.perform(post("/api/v1/warehouse/requests")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,7 +125,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         String itemId = createItemWithStock(adminToken, "PART-002", 10);
 
         var submit = new CreateNeedRequestRequest(
-                null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 2)));
+                null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 2)));
         String submitBody = mockMvc.perform(post("/api/v1/warehouse/requests")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +149,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         String itemId = createItemWithStock(adminToken, "PART-003", 10);
 
         var submit = new CreateNeedRequestRequest(
-                null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
+                null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
         String submitBody = mockMvc.perform(post("/api/v1/warehouse/requests")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterAToken)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -164,7 +164,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
         // Need request — department/category/line-item/action-actor associations.
         var request = new CreateNeedRequestRequest(
-                null, null, "smoke test", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
+                null, null, null, "smoke test", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
         String requestBody = mockMvc.perform(post("/api/v1/warehouse/requests")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

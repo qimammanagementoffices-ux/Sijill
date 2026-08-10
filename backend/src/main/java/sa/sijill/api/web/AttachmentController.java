@@ -69,28 +69,34 @@ public class AttachmentController {
         return ownerType == AttachmentOwnerType.EMPLOYEE && ownerId.equals(actor.getId());
     }
 
-    private String viewPermissionFor(AttachmentOwnerType ownerType) {
+    // NEED_REQUEST accepts either key on both sides: a requester holds only
+    // wh.request (they attach quotes/photos to their own request), while an
+    // approver holds only wh.view -- mirroring NeedRequestController's
+    // hasAnyAuthority('wh.view', 'wh.request') on the request itself.
+    private List<String> viewPermissionFor(AttachmentOwnerType ownerType) {
         return switch (ownerType) {
-            case INVENTORY_ITEM -> "wh.view";
-            case ROOM, ASSET -> "as.view";
-            case BRANDING -> "sys.branding";
-            case MAINTENANCE -> "sys.maintenance";
-            case EMPLOYEE -> "emp.view";
+            case INVENTORY_ITEM -> List.of("wh.view");
+            case ROOM, ASSET -> List.of("as.view");
+            case BRANDING -> List.of("sys.branding");
+            case MAINTENANCE -> List.of("sys.maintenance");
+            case EMPLOYEE -> List.of("emp.view");
+            case NEED_REQUEST -> List.of("wh.view", "wh.request");
         };
     }
 
-    private String managePermissionFor(AttachmentOwnerType ownerType) {
+    private List<String> managePermissionFor(AttachmentOwnerType ownerType) {
         return switch (ownerType) {
-            case INVENTORY_ITEM -> "wh.items";
-            case ROOM, ASSET -> "as.manage";
-            case BRANDING -> "sys.branding";
-            case MAINTENANCE -> "sys.maintenance";
-            case EMPLOYEE -> "emp.manage";
+            case INVENTORY_ITEM -> List.of("wh.items");
+            case ROOM, ASSET -> List.of("as.manage");
+            case BRANDING -> List.of("sys.branding");
+            case MAINTENANCE -> List.of("sys.maintenance");
+            case EMPLOYEE -> List.of("emp.manage");
+            case NEED_REQUEST -> List.of("wh.request", "wh.view");
         };
     }
 
-    private void requirePermission(Employee employee, String key) {
-        boolean hasIt = employee.getPermissions().stream().map(Permission::getKey).anyMatch(key::equals);
+    private void requirePermission(Employee employee, List<String> anyOfKeys) {
+        boolean hasIt = employee.getPermissions().stream().map(Permission::getKey).anyMatch(anyOfKeys::contains);
         if (!hasIt) {
             throw ApiException.forbidden("You do not have permission to manage attachments for this item");
         }

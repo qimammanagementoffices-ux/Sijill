@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { NeedRequestDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import AttachmentUploader from "@/components/AttachmentUploader";
 import Toast from "@/components/Toast";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
@@ -21,10 +22,12 @@ export default function RequestDetailView({
   id,
   dict,
   commonDict,
+  attachmentsDict,
 }: {
   id: string;
   dict: Dictionary["warehouseRequests"];
   commonDict: Dictionary["common"];
+  attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
   const [request, setRequest] = useState<NeedRequestDetail | null>(null);
@@ -100,6 +103,11 @@ export default function RequestDetailView({
           <span className="dot" />
           {statusLabel}
         </span>
+        {request.room && (
+          <span style={{ fontSize: 12.5, color: "var(--slate)" }}>
+            {dict.roomLabel}: {request.room.ar}
+          </span>
+        )}
         {request.notes && <span style={{ fontSize: 12.5, color: "var(--slate)" }}>{request.notes}</span>}
       </div>
 
@@ -136,6 +144,18 @@ export default function RequestDetailView({
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+          <AttachmentUploader
+            ownerType="NEED_REQUEST"
+            ownerId={request.id}
+            dict={attachmentsDict}
+            // Once a request is decided, its evidence stops being editable --
+            // only an open request accepts new or removed attachments.
+            canManage={request.status === "PENDING" || request.status === "POSTPONED"}
+            onAction={() => setToast(commonDict.actionSuccess)}
+          />
         </div>
 
         {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (

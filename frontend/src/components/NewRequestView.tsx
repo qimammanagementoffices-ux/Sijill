@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useState, type FormEvent } from "react";
-import { apiFetch, ApiError } from "@/lib/apiClient";
+import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
+import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import type {
+  AttachmentDto,
   CategoryDto,
   InventoryItemListItem,
   LocalizedRef,
@@ -18,14 +19,18 @@ type LineDraft = { inventoryItemId: string; quantityRequested: string };
 
 export default function NewRequestView({
   dict,
+  commonDict,
   errorsDict,
   onSubmitted,
   onSubmittingChange,
+  onCancel,
 }: {
   dict: Dictionary["warehouseRequests"];
+  commonDict: Dictionary["common"];
   errorsDict: Dictionary["errors"];
   onSubmitted: (request: NeedRequestDetail) => void;
   onSubmittingChange?: (submitting: boolean) => void;
+  onCancel?: () => void;
 }) {
   const [me, setMe] = useState<MeData | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -36,8 +41,14 @@ export default function NewRequestView({
   const [categoryId, setCategoryId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [notes, setNotes] = useState("");
+  const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([{ inventoryItemId: "", quantityRequested: "1" }]);
+  // Attachments can only be uploaded once the request exists (the upload
+  // endpoint needs an ownerId), so step 3 queues Files in memory and posts
+  // them right after the create call returns an id.
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,9 +82,17 @@ export default function NewRequestView({
     setLines(lines.filter((_, i) => i !== index));
   }
 
+  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length) setFiles((current) => [...current, ...picked]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   const filteredItems = items?.filter((item) => !categoryId || item.category?.id === categoryId) ?? [];
 
   const departmentName = me?.departments?.[0]?.ar ?? "—";
+  const filledLines = lines.filter((l) => l.inventoryItemId);
+  const hasContent = customMode ? customText.trim().length > 0 : filledLines.length > 0;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -85,33 +104,34 @@ export default function NewRequestView({
         body: JSON.stringify({
           departmentId: me?.departments?.[0]?.id ?? null,
           categoryId: categoryId || null,
-          notes: notes || null,
-          lines: lines
-            .filter((l) => l.inventoryItemId)
-            .map((l) => ({ inventoryItemId: l.inventoryItemId, quantityRequested: Number(l.quantityRequested) })),
+          roomId: roomId || null,
+          notes: (customMode ? customText : notes) || null,
+          lines: customMode
+            ? []
+            : filledLines.map((l) => ({
+                inventoryItemId: l.inventoryItemId,
+                quantityRequested: Number(l.quantityRequested),
+              })),
         }),
       });
-      onSubmitted(created);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : errorsDict.generic);
-      setSubmitting(false);
-    }
-  }
 
-  async function handleCustomSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-    try {
-      const created = await apiFetch<NeedRequestDetail>("/warehouse/requests", {
-        method: "POST",
-        body: JSON.stringify({
-          departmentId: me?.departments?.[0]?.id ?? null,
-          categoryId: categoryId || null,
-          notes: customText,
-          lines: [],
-        }),
-      });
+      // The request is already saved at this point -- a failed upload must
+      // not look like a failed submit, so surface it and still close out.
+      let uploadFailed = false;
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          await apiUpload<AttachmentDto>(
+            `/attachments?ownerType=NEED_REQUEST&ownerId=${created.id}`,
+            formData,
+          );
+        } catch {
+          uploadFailed = true;
+        }
+      }
+      if (uploadFailed) window.alert(dict.attachmentsFailed);
+
       onSubmitted(created);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);
@@ -143,29 +163,33 @@ export default function NewRequestView({
         })}
       </div>
 
-      {/* Step 1: Department + Category */}
+      {/* Step 1: Department + Room + Category */}
       {step === 1 && (
         <div>
-          <div className="form-grid" style={{ marginBottom: 20 }}>
-            <div className="field">
-              <label>{dict.columnDepartment}</label>
-              <input type="text" value={departmentName} disabled />
+          {/* Department and requester come from the signed-in employee --
+              read-only by design, so they are rendered as plain boxes
+              rather than disabled inputs that invite a click. */}
+          <div className="readonly-pair">
+            <div className="readonly-box">
+              <span className="readonly-box-label">{dict.columnDepartment}</span>
+              <span className="readonly-box-value">{departmentName}</span>
             </div>
-            <div className="field">
-              <label>{dict.columnRequester}</label>
-              <input type="text" value={me.name} disabled />
+            <div className="readonly-box">
+              <span className="readonly-box-label">{dict.columnRequester}</span>
+              <span className="readonly-box-value">{me.name}</span>
             </div>
-            <div className="field span2">
-              <label>{dict.roomLabel}</label>
-              <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-                <option value="">—</option>
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.roomNumber} — {r.nameAr}
-                  </option>
-                ))}
-              </select>
-            </div>
+          </div>
+
+          <div className="field" style={{ marginBottom: 22 }}>
+            <label htmlFor="wizard-room">{dict.roomLabel}</label>
+            <select id="wizard-room" value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+              <option value="">—</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.roomNumber} — {r.nameAr}
+                </option>
+              ))}
+            </select>
           </div>
 
           <label style={{ display: "block", marginBottom: 10, fontWeight: 600, fontSize: 13 }}>
@@ -173,10 +197,7 @@ export default function NewRequestView({
           </label>
           <div className="category-radio-grid">
             {categories.map((cat) => (
-              <label
-                key={cat.id}
-                className={`category-radio-card ${categoryId === cat.id ? "selected" : ""}`}
-              >
+              <label key={cat.id} className={`category-radio-card ${categoryId === cat.id ? "selected" : ""}`}>
                 <input
                   type="radio"
                   name="categoryId"
@@ -190,7 +211,12 @@ export default function NewRequestView({
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+          <div className="wizard-actions">
+            {onCancel && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={onCancel}>
+                {commonDict.cancel}
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-primary btn-sm"
@@ -203,114 +229,149 @@ export default function NewRequestView({
         </div>
       )}
 
-      {/* Step 2: Items + Submit */}
+      {/* Step 2: Items (or a free-text custom request) */}
       {step === 2 && (
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            {lines.map((line, index) => (
-              <div
-                key={index}
-                className="form-grid"
-                style={{
-                  marginBottom: 10,
-                  alignItems: "end",
-                  paddingTop: index > 0 ? 14 : 0,
-                  borderTop: index > 0 ? "1px solid var(--line-soft)" : "none",
-                }}
-              >
-                <div className="field span2">
-                  <label>{dict.itemLabel}</label>
-                  <select
-                    value={line.inventoryItemId}
-                    onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
-                    required
-                  >
-                    <option value="">—</option>
-                    {filteredItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.code} — {item.nameAr}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label>{dict.quantityRequestedLabel}</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={line.quantityRequested}
-                      onChange={(e) => updateLine(index, { quantityRequested: e.target.value })}
-                    />
+        <div>
+          {!customMode && (
+            <div style={{ marginBottom: 16 }}>
+              {lines.map((line, index) => (
+                <div
+                  key={index}
+                  className="form-grid"
+                  style={{
+                    marginBottom: 10,
+                    alignItems: "end",
+                    paddingTop: index > 0 ? 14 : 0,
+                    borderTop: index > 0 ? "1px solid var(--line-soft)" : "none",
+                  }}
+                >
+                  <div className="field span2">
+                    <label>{dict.itemLabel}</label>
+                    <select
+                      value={line.inventoryItemId}
+                      onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
+                    >
+                      <option value="">—</option>
+                      {filteredItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.code} — {item.nameAr}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  {lines.length > 1 && (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLine(index)}>
-                      ×
-                    </button>
-                  )}
+                  <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <label>{dict.quantityRequestedLabel}</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={line.quantityRequested}
+                        onChange={(e) => updateLine(index, { quantityRequested: e.target.value })}
+                      />
+                    </div>
+                    {lines.length > 1 && (
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLine(index)}>
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <button type="button" className="btn btn-outline btn-sm" onClick={addLine}>
-              {dict.addLine}
-            </button>
-          </div>
-
-          <div style={{ textAlign: "center", margin: "18px 0" }}>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => setStep(3)}>
-              {dict.addCustomRequest}
-            </button>
-          </div>
-
-          <div className="field span2" style={{ marginBottom: 16 }}>
-            <label>{dict.notesLabel}</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-
-          {error && (
-            <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
-              {error}
-            </p>
+              ))}
+              <button type="button" className="btn btn-outline btn-sm" onClick={addLine}>
+                {dict.addLine}
+              </button>
+            </div>
           )}
 
-          <div style={{ display: "flex", gap: 10, justifyContent: "space-between" }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !lines.some((l) => l.inventoryItemId)}>
-              {submitting && <span className="spinner" />}
-              {dict.submit}
+          {customMode && (
+            <div className="field span2" style={{ marginBottom: 16 }}>
+              <textarea
+                rows={5}
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder={dict.customRequestPlaceholder}
+              />
+            </div>
+          )}
+
+          <div style={{ textAlign: "center", margin: "18px 0" }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setCustomMode(!customMode)}>
+              {customMode ? dict.backToItems : dict.addCustomRequest}
             </button>
+          </div>
+
+          {!customMode && (
+            <div className="field span2" style={{ marginBottom: 16 }}>
+              <label>{dict.notesLabel}</label>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+          )}
+
+          <div className="wizard-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={() => setStep(1)}>
               {dict.prevStep}
             </button>
+            <button type="button" className="btn btn-primary btn-sm" disabled={!hasContent} onClick={() => setStep(3)}>
+              {dict.nextStep}
+            </button>
           </div>
-        </form>
+        </div>
       )}
 
-      {/* Step 3: Custom / unlisted request */}
+      {/* Step 3: Attachments + submit */}
       {step === 3 && (
-        <form onSubmit={handleCustomSubmit}>
-          <div className="field span2" style={{ marginBottom: 20 }}>
-            <textarea
-              rows={5}
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              placeholder={dict.customRequestPlaceholder}
-              required
-            />
+        <form onSubmit={handleSubmit}>
+          <p style={{ fontSize: 12.5, color: "var(--slate)", margin: "0 0 12px" }}>{dict.attachmentsHint}</p>
+
+          {files.length === 0 && (
+            <p style={{ fontSize: 12.5, color: "var(--slate)" }}>{dict.noAttachments}</p>
+          )}
+
+          <ul style={{ listStyle: "none", padding: 0, margin: "0 0 12px" }}>
+            {files.map((file, index) => (
+              <li
+                key={`${file.name}-${index}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, padding: "4px 0" }}
+              >
+                <span style={{ flex: 1 }}>{file.name}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setFiles(files.filter((_, i) => i !== index))}
+                >
+                  {dict.removeAttachment}
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <div className="filebox">
+            <label className="upl">
+              {dict.addAttachment}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={handleFilesSelected}
+                style={{ display: "none" }}
+              />
+            </label>
           </div>
 
           {error && (
-            <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+            <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, margin: "12px 0 0" }}>
               {error}
             </p>
           )}
 
-          <div style={{ display: "flex", gap: 10, justifyContent: "space-between" }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !customText.trim()}>
+          <div className="wizard-actions">
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setStep(2)} disabled={submitting}>
+              {dict.prevStep}
+            </button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !hasContent}>
               {submitting && <span className="spinner" />}
               {dict.submit}
-            </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => setStep(2)}>
-              {dict.prevStep}
             </button>
           </div>
         </form>

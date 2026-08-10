@@ -2,6 +2,7 @@ package sa.sijill.api.service;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ public class NeedRequestService {
     private final DepartmentRepository departmentRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryItemRepository inventoryItemRepository;
+    private final RoomRepository roomRepository;
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
 
@@ -39,12 +41,14 @@ public class NeedRequestService {
             DepartmentRepository departmentRepository,
             CategoryRepository categoryRepository,
             InventoryItemRepository inventoryItemRepository,
+            RoomRepository roomRepository,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
             AuditService auditService) {
         this.needRequestRepository = needRequestRepository;
         this.departmentRepository = departmentRepository;
         this.categoryRepository = categoryRepository;
         this.inventoryItemRepository = inventoryItemRepository;
+        this.roomRepository = roomRepository;
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
     }
@@ -59,19 +63,27 @@ public class NeedRequestService {
 
     @Transactional
     public NeedRequest submit(CreateNeedRequestRequest request, Employee requester) {
-        if (request.lines() == null || request.lines().isEmpty()) {
-            throw ApiException.validation("At least one line is required", Map.of("lines", "must not be empty"));
+        // A "custom request" (something not in the catalogue) has no lines --
+        // it is described entirely in notes. Either shape is valid, an empty
+        // one is not.
+        boolean hasLines = request.lines() != null && !request.lines().isEmpty();
+        boolean hasNotes = request.notes() != null && !request.notes().isBlank();
+        if (!hasLines && !hasNotes) {
+            throw ApiException.validation(
+                    "A request needs at least one line, or notes describing it",
+                    Map.of("lines", "must not be empty unless notes are provided"));
         }
 
         NeedRequest needRequest = new NeedRequest();
         needRequest.setRequester(requester);
         needRequest.setDepartment(resolveDepartment(request.departmentId()));
         needRequest.setCategory(resolveCategory(request.categoryId()));
+        needRequest.setRoom(resolveRoom(request.roomId()));
         needRequest.setNotes(request.notes());
         needRequest.setStatus(NeedRequestStatus.PENDING);
         needRequest.setSuggestedStartDate(suggestedStartDateCalculator.from(LocalDate.now()));
 
-        for (NeedRequestLineRequest lineRequest : request.lines()) {
+        for (NeedRequestLineRequest lineRequest : hasLines ? request.lines() : List.<NeedRequestLineRequest>of()) {
             if (lineRequest.quantityRequested() <= 0) {
                 throw ApiException.validation(
                         "Line quantity must be positive", Map.of("quantityRequested", "must be > 0"));
@@ -192,5 +204,11 @@ public class NeedRequestService {
         if (id == null) return null;
         return categoryRepository.findById(id).orElseThrow(() -> ApiException.validation(
                 "Category not found", Map.of("categoryId", "does not exist")));
+    }
+
+    private Room resolveRoom(UUID id) {
+        if (id == null) return null;
+        return roomRepository.findById(id).orElseThrow(() -> ApiException.validation(
+                "Room not found", Map.of("roomId", "does not exist")));
     }
 }
