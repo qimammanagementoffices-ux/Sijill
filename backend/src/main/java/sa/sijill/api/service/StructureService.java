@@ -44,7 +44,7 @@ public class StructureService {
         Department department = new Department();
         department.setNameAr(request.nameAr());
         department.setNameEn(request.nameEn());
-        department.setNameUr(request.nameUr());
+        department.setNameHi(request.nameHi());
         return departmentRepository.save(department);
     }
 
@@ -58,7 +58,7 @@ public class StructureService {
         }
         department.setNameAr(request.nameAr());
         department.setNameEn(request.nameEn());
-        department.setNameUr(request.nameUr());
+        department.setNameHi(request.nameHi());
         return departmentRepository.save(department);
     }
 
@@ -68,7 +68,7 @@ public class StructureService {
         JobTitle jobTitle = new JobTitle();
         jobTitle.setNameAr(request.nameAr());
         jobTitle.setNameEn(request.nameEn());
-        jobTitle.setNameUr(request.nameUr());
+        jobTitle.setNameHi(request.nameHi());
         return jobTitleRepository.save(jobTitle);
     }
 
@@ -82,7 +82,7 @@ public class StructureService {
         }
         jobTitle.setNameAr(request.nameAr());
         jobTitle.setNameEn(request.nameEn());
-        jobTitle.setNameUr(request.nameUr());
+        jobTitle.setNameHi(request.nameHi());
         return jobTitleRepository.save(jobTitle);
     }
 

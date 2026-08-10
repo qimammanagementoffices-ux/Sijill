@@ -56,8 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       {/* lang-{locale} drives globals.css's per-language font selection
           (Cairo for ar and any unlisted locale, Inter for en, Noto Sans
-          Devanagari for hi) -- see the CSS file's comment on why "hi" not
-          "ur" is used, matching this project's own Hindi-not-Urdu rule. */}
+          Devanagari for hi) -- see the CSS file's comment. */}
       <body className={`lang-${locale}`}>
         <MaintenanceGate status={maintenance} dict={dict.siteMaintenancePage}>
           {children}

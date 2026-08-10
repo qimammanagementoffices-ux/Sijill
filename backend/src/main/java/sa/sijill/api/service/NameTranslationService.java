@@ -25,23 +25,23 @@ public class NameTranslationService {
         }
         String ar = request.text();
         String en = request.text();
-        String ur = request.text();
+        String hi = request.text();
         switch (request.sourceLang()) {
             case "ar" -> {
                 en = googleTranslateClient.translate(request.text(), "ar", "en");
-                ur = googleTranslateClient.translate(request.text(), "ar", "ur");
+                hi = googleTranslateClient.translate(request.text(), "ar", "hi");
             }
             case "en" -> {
                 ar = googleTranslateClient.translate(request.text(), "en", "ar");
-                ur = googleTranslateClient.translate(request.text(), "en", "ur");
+                hi = googleTranslateClient.translate(request.text(), "en", "hi");
             }
-            case "ur" -> {
-                ar = googleTranslateClient.translate(request.text(), "ur", "ar");
-                en = googleTranslateClient.translate(request.text(), "ur", "en");
+            case "hi" -> {
+                ar = googleTranslateClient.translate(request.text(), "hi", "ar");
+                en = googleTranslateClient.translate(request.text(), "hi", "en");
             }
             default -> throw ApiException.validation(
-                    "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or ur"));
+                    "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or hi"));
         }
-        return new TranslateNameResponse(ar, en, ur);
+        return new TranslateNameResponse(ar, en, hi);
     }
 }

@@ -18,4 +18,8 @@ public record UpdateAssetRequest(
         String vendor,
         String notes,
         int version,
-        String nameUr) {}
+        String nameHi,
+        BigDecimal depreciationRate,
+        BigDecimal accumulatedDepreciation,
+        BigDecimal periodEndBalance,
+        LocalDate periodEndDate) {}

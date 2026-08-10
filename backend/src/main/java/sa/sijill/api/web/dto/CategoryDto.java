@@ -4,14 +4,14 @@ import java.util.UUID;
 import sa.sijill.api.domain.Category;
 
 public record CategoryDto(
-        UUID id, String nameAr, String nameEn, String nameUr, String icon, boolean active, int version) {
+        UUID id, String nameAr, String nameEn, String nameHi, String icon, boolean active, int version) {
 
     public static CategoryDto from(Category category) {
         return new CategoryDto(
                 category.getId(),
                 category.getNameAr(),
                 category.getNameEn(),
-                category.getNameUr(),
+                category.getNameHi(),
                 category.getIcon(),
                 category.isActive(),
                 category.getVersion());

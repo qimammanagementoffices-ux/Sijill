@@ -27,7 +27,7 @@ export default function CategoriesModal({
   const [icon, setIcon] = useState("");
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [nameUr, setNameUr] = useState("");
+  const [nameHi, setNameHi] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,12 +47,12 @@ export default function CategoriesModal({
     try {
       await apiFetch(basePath, {
         method: "POST",
-        body: JSON.stringify({ nameAr, nameEn, nameUr: nameUr || null, icon: icon || null, version: null }),
+        body: JSON.stringify({ nameAr, nameEn, nameHi: nameHi || null, icon: icon || null, version: null }),
       });
       setIcon("");
       setNameAr("");
       setNameEn("");
-      setNameUr("");
+      setNameHi("");
       load();
       onChanged();
     } catch (err) {
@@ -132,8 +132,8 @@ export default function CategoriesModal({
               setNameAr={setNameAr}
               nameEn={nameEn}
               setNameEn={setNameEn}
-              nameUr={nameUr}
-              setNameUr={setNameUr}
+              nameHi={nameHi}
+              setNameHi={setNameHi}
               dict={dict}
               errorsDict={errorsDict}
             />

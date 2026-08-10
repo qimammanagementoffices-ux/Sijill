@@ -11,7 +11,7 @@ public record AssetDetail(
         String assetNumber,
         String nameAr,
         String nameEn,
-        String nameUr,
+        String nameHi,
         LocalizedRef category,
         LocalizedRef room,
         UUID custodianId,
@@ -21,6 +21,10 @@ public record AssetDetail(
         BigDecimal acquisitionCost,
         String vendor,
         String notes,
+        BigDecimal depreciationRate,
+        BigDecimal accumulatedDepreciation,
+        BigDecimal periodEndBalance,
+        LocalDate periodEndDate,
         UUID publicToken,
         int version) {
 
@@ -30,7 +34,7 @@ public record AssetDetail(
                 asset.getAssetNumber(),
                 asset.getNameAr(),
                 asset.getNameEn(),
-                asset.getNameUr(),
+                asset.getNameHi(),
                 asset.getCategory() == null ? null : LocalizedRef.from(asset.getCategory()),
                 asset.getRoom() == null ? null : LocalizedRef.from(asset.getRoom()),
                 asset.getCustodian() == null ? null : asset.getCustodian().getId(),
@@ -40,6 +44,10 @@ public record AssetDetail(
                 asset.getAcquisitionCost(),
                 asset.getVendor(),
                 asset.getNotes(),
+                asset.getDepreciationRate(),
+                asset.getAccumulatedDepreciation(),
+                asset.getPeriodEndBalance(),
+                asset.getPeriodEndDate(),
                 asset.getPublicToken(),
                 asset.getVersion());
     }

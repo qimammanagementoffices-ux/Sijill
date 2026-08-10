@@ -11,7 +11,7 @@ import Toast from "./Toast";
 import TrilingualNameFields from "./TrilingualNameFields";
 
 // Shared by /departments and /job-titles — same CRUD shape (localized
-// nameAr/nameEn/nameUr, no delete, version-checked updates) for both.
+// nameAr/nameEn/nameHi, no delete, version-checked updates) for both.
 export default function StructureAdminView({
   dict,
   commonDict,
@@ -31,8 +31,8 @@ export default function StructureAdminView({
   const [items, setItems] = useState<LocalizedEntityDto[] | null>(null);
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
-  const [newNameUr, setNewNameUr] = useState("");
-  const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string; nameUr: string }>>({});
+  const [newNameHi, setNewNameHi] = useState("");
+  const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string; nameHi: string }>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -60,11 +60,11 @@ export default function StructureAdminView({
     try {
       await apiFetch(`/${entity}`, {
         method: "POST",
-        body: JSON.stringify({ nameAr: newNameAr, nameEn: newNameEn, nameUr: newNameUr || null, version: null }),
+        body: JSON.stringify({ nameAr: newNameAr, nameEn: newNameEn, nameHi: newNameHi || null, version: null }),
       });
       setNewNameAr("");
       setNewNameEn("");
-      setNewNameUr("");
+      setNewNameHi("");
       setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
@@ -85,7 +85,7 @@ export default function StructureAdminView({
         body: JSON.stringify({
           nameAr: edited.nameAr,
           nameEn: edited.nameEn,
-          nameUr: edited.nameUr || null,
+          nameHi: edited.nameHi || null,
           version: item.version,
         }),
       });
@@ -125,14 +125,14 @@ export default function StructureAdminView({
               <thead>
                 <tr>
                   <th>{dict.nameArLabel}</th>
-                  <th>{categoriesModalDict.nameUrLabel}</th>
+                  <th>{categoriesModalDict.nameHiLabel}</th>
                   <th>{dict.nameEnLabel}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const edited = editing[item.id] ?? { nameAr: item.nameAr, nameEn: item.nameEn, nameUr: item.nameUr ?? "" };
+                  const edited = editing[item.id] ?? { nameAr: item.nameAr, nameEn: item.nameEn, nameHi: item.nameHi ?? "" };
                   return (
                     <tr key={item.id}>
                       <td>
@@ -146,8 +146,8 @@ export default function StructureAdminView({
                       <td>
                         <input
                           type="text"
-                          value={edited.nameUr}
-                          onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameUr: e.target.value } })}
+                          value={edited.nameHi}
+                          onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameHi: e.target.value } })}
                           style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
                           dir="rtl"
                         />
@@ -197,8 +197,8 @@ export default function StructureAdminView({
                   setNameAr={setNewNameAr}
                   nameEn={newNameEn}
                   setNameEn={setNewNameEn}
-                  nameUr={newNameUr}
-                  setNameUr={setNewNameUr}
+                  nameHi={newNameHi}
+                  setNameHi={setNewNameHi}
                   dict={categoriesModalDict}
                   errorsDict={errorsDict}
                 />

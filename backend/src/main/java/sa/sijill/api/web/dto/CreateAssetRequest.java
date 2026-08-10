@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 import sa.sijill.api.domain.AssetStatus;
 
+// No assetNumber field: server-assigned from asset_number_seq.
 public record CreateAssetRequest(
-        String assetNumber,
         String nameAr,
         String nameEn,
         UUID categoryId,
@@ -17,4 +17,8 @@ public record CreateAssetRequest(
         BigDecimal acquisitionCost,
         String vendor,
         String notes,
-        String nameUr) {}
+        String nameHi,
+        BigDecimal depreciationRate,
+        BigDecimal accumulatedDepreciation,
+        BigDecimal periodEndBalance,
+        LocalDate periodEndDate) {}
