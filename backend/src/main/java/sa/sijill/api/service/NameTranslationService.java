@@ -13,6 +13,11 @@ import sa.sijill.api.web.dto.TranslateNameResponse;
 @Service
 public class NameTranslationService {
 
+    // The third language is Hindi. The field/param is still called "ur" across
+    // the API and DB columns (name_ur, sourceLang "ur"); only the code sent to
+    // Google was ever meant to name a real language, and "ur" gave Urdu.
+    private static final String THIRD_LANG = "hi";
+
     private final GoogleTranslateClient googleTranslateClient;
 
     public NameTranslationService(GoogleTranslateClient googleTranslateClient) {
@@ -29,15 +34,15 @@ public class NameTranslationService {
         switch (request.sourceLang()) {
             case "ar" -> {
                 en = googleTranslateClient.translate(request.text(), "ar", "en");
-                ur = googleTranslateClient.translate(request.text(), "ar", "ur");
+                ur = googleTranslateClient.translate(request.text(), "ar", THIRD_LANG);
             }
             case "en" -> {
                 ar = googleTranslateClient.translate(request.text(), "en", "ar");
-                ur = googleTranslateClient.translate(request.text(), "en", "ur");
+                ur = googleTranslateClient.translate(request.text(), "en", THIRD_LANG);
             }
             case "ur" -> {
-                ar = googleTranslateClient.translate(request.text(), "ur", "ar");
-                en = googleTranslateClient.translate(request.text(), "ur", "en");
+                ar = googleTranslateClient.translate(request.text(), THIRD_LANG, "ar");
+                en = googleTranslateClient.translate(request.text(), THIRD_LANG, "en");
             }
             default -> throw ApiException.validation(
                     "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or ur"));
