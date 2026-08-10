@@ -88,3 +88,44 @@ export function IconKey({ className }: IconProps) {
     </svg>
   );
 }
+
+// Action icons for toolbar buttons (export/print/filter). Same stroke
+// style as the nav set above -- still no icon library.
+export function IconSheet({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M14 3v5h5" />
+      <path d="m9 13 4 5m0-5-4 5" />
+    </svg>
+  );
+}
+
+export function IconFilePdf({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M14 3v5h5" />
+      <path d="M8 17v-4h1.5a1.5 1.5 0 0 1 0 3H8m5 1v-4h1.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H13Z" />
+    </svg>
+  );
+}
+
+export function IconPrinter({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M7 9V3h10v6" />
+      <path d="M5 9h14a2 2 0 0 1 2 2v6h-4v4H7v-4H3v-6a2 2 0 0 1 2-2Z" />
+      <path d="M7 17h10" />
+    </svg>
+  );
+}
+
+export function IconTag({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z" />
+      <circle cx="8" cy="8" r="1.4" />
+    </svg>
+  );
+}

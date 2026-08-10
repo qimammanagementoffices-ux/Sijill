@@ -1,9 +1,12 @@
 package sa.sijill.api.web;
 
+import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Domain;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.InventoryItem;
+import sa.sijill.api.repository.AttachmentRepository;
 import sa.sijill.api.service.InventoryItemService;
 import sa.sijill.api.web.dto.*;
 
@@ -24,9 +28,12 @@ import sa.sijill.api.web.dto.*;
 public class MaintenancePartController {
 
     private final InventoryItemService inventoryItemService;
+    private final AttachmentRepository attachmentRepository;
 
-    public MaintenancePartController(InventoryItemService inventoryItemService) {
+    public MaintenancePartController(
+            InventoryItemService inventoryItemService, AttachmentRepository attachmentRepository) {
         this.inventoryItemService = inventoryItemService;
+        this.attachmentRepository = attachmentRepository;
     }
 
     @GetMapping
@@ -34,9 +41,14 @@ public class MaintenancePartController {
     public PagedResponse<InventoryItemListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "false") boolean lowStockOnly,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
-        Page<InventoryItem> page = inventoryItemService.search(Domain.MAINTENANCE, q, lowStockOnly, pageable);
-        return PagedResponse.from(page, InventoryItemListItem::from);
+        Page<InventoryItem> page = inventoryItemService.search(
+                Domain.MAINTENANCE, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
+        Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
+        return PagedResponse.from(page, item -> InventoryItemListItem.from(item, images.get(item.getId())));
     }
 
     @GetMapping("/{id}")

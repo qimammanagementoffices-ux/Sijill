@@ -1,5 +1,6 @@
 package sa.sijill.api.repository;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,11 +22,17 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
                 or lower(i.nameEn) like lower(concat('%', :q, '%'))
                 or lower(i.code) like lower(concat('%', :q, '%')))
               and (:lowStockOnly = false or i.quantity <= i.minQuantity)
+              and (:categoryId is null or i.category.id = :categoryId)
+              and (:dateFrom is null or i.dateAdded >= :dateFrom)
+              and (:dateTo is null or i.dateAdded <= :dateTo)
             """)
     Page<InventoryItem> search(
             @Param("domain") Domain domain,
             @Param("q") String q,
             @Param("lowStockOnly") boolean lowStockOnly,
+            @Param("categoryId") UUID categoryId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo,
             Pageable pageable);
 
     long countByDomain(Domain domain);

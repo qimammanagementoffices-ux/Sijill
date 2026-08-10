@@ -217,6 +217,10 @@ export type Dictionary = {
     cardQuantityRequested: string;
     cardQuantityIssued: string;
     cardEdit: string;
+    filterAllCategories: string;
+    filterDateFrom: string;
+    filterDateTo: string;
+    filterClear: string;
     minQuantityLabel: string;
     submitCreate: string;
     submitUpdate: string;

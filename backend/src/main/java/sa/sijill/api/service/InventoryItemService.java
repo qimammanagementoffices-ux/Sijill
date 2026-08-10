@@ -1,6 +1,7 @@
 package sa.sijill.api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -40,7 +41,20 @@ public class InventoryItemService {
     }
 
     public Page<InventoryItem> search(Domain domain, String q, boolean lowStockOnly, Pageable pageable) {
-        return inventoryItemRepository.search(domain, q, lowStockOnly, pageable);
+        return search(domain, q, lowStockOnly, null, null, null, pageable);
+    }
+
+    // Null filter = "no filter", so the query's `:x is null or ...` guards
+    // keep a request with nothing selected identical to the old behaviour.
+    public Page<InventoryItem> search(
+            Domain domain,
+            String q,
+            boolean lowStockOnly,
+            UUID categoryId,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            Pageable pageable) {
+        return inventoryItemRepository.search(domain, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
     }
 
     public InventoryItem get(UUID id) {

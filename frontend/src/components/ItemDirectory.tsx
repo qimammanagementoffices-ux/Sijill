@@ -12,11 +12,16 @@ import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
 import ItemViewModal from "@/components/ItemViewModal";
 import Lightbox from "@/components/Lightbox";
+import { IconSheet, IconPrinter, IconTag } from "@/components/NavIcons";
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Sort = { field: string; dir: "asc" | "desc" };
+type Filters = { categoryId: string; dateFrom: string; dateTo: string };
+
+const NO_FILTERS: Filters = { categoryId: "", dateFrom: "", dateTo: "" };
 
 // Shared by /warehouse/items and /maintenance/parts — same reusable
 // inventory module on the backend (Domain-parameterized), same shape here.
@@ -40,6 +45,7 @@ export default function ItemDirectory({
   categoriesPath: string;
 }) {
   const router = useRouter();
+  const entityLocale = useEntityLocale();
   const [q, setQ] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState<PagedResponse<InventoryItemListItem> | null>(null);
@@ -60,6 +66,23 @@ export default function ItemDirectory({
   // Newest entry first: what you added last is what you are most likely
   // looking for.
   const [sort, setSort] = useState<Sort>({ field: "dateAdded", dir: "desc" });
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+
+  const filtersActive =
+    filters.categoryId !== "" || filters.dateFrom !== "" || filters.dateTo !== "" || lowStockOnly || q !== "";
+
+  function applyFilter(patch: Partial<Filters>) {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    load(0, q, lowStockOnly, sort, next);
+  }
+
+  function clearFilters() {
+    setFilters(NO_FILTERS);
+    setQ("");
+    setLowStockOnly(false);
+    load(0, "", false, sort, NO_FILTERS);
+  }
 
   function toggleSort(field: string) {
     const next: Sort =
@@ -68,11 +91,23 @@ export default function ItemDirectory({
     load(0, q, lowStockOnly, next);
   }
 
-  function load(pageNumber: number, query: string, lowStock: boolean, sortBy: Sort = sort) {
+  function load(
+    pageNumber: number,
+    query: string,
+    lowStock: boolean,
+    sortBy: Sort = sort,
+    filterBy: Filters = filters
+  ) {
     setLoadingPage(pageNumber);
+    // Empty filter = omitted, not sent blank: the endpoint treats a missing
+    // param as "no filter", and an empty string would fail date parsing.
+    const extra =
+      (filterBy.categoryId ? `&categoryId=${filterBy.categoryId}` : "") +
+      (filterBy.dateFrom ? `&dateFrom=${filterBy.dateFrom}` : "") +
+      (filterBy.dateTo ? `&dateTo=${filterBy.dateTo}` : "");
     apiFetch<PagedResponse<InventoryItemListItem>>(
       `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}` +
-        `&sort=${sortBy.field},${sortBy.dir}`
+        `&sort=${sortBy.field},${sortBy.dir}${extra}`
     )
       .then(setPage)
       .catch((err) => {
@@ -89,6 +124,7 @@ export default function ItemDirectory({
       return;
     }
     load(0, "", false);
+    apiFetch<CategoryDto[]>(categoriesPath).then(setCategories).catch(() => {});
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanManage(me.permissions.includes("wh.items")))
       .catch(() => {});
@@ -154,6 +190,36 @@ export default function ItemDirectory({
               placeholder={dict.searchPlaceholder}
               style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 260 }}
             />
+            <select
+              value={filters.categoryId}
+              onChange={(e) => applyFilter({ categoryId: e.target.value })}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
+            >
+              <option value="">{dict.filterAllCategories}</option>
+              {(categories ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {entityName(c, entityLocale)}
+                </option>
+              ))}
+            </select>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+              {dict.filterDateFrom}
+              <input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => applyFilter({ dateFrom: e.target.value })}
+                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
+              />
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+              {dict.filterDateTo}
+              <input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => applyFilter({ dateTo: e.target.value })}
+                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
+              />
+            </label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
               <input
                 type="checkbox"
@@ -168,16 +234,30 @@ export default function ItemDirectory({
             <button type="submit" className="btn btn-outline btn-sm">
               {dict.search}
             </button>
+            {filtersActive && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={clearFilters}
+                title={dict.filterClear}
+                aria-label={dict.filterClear}
+              >
+                ×
+              </button>
+            )}
           </form>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}
             </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              <IconPrinter className="ic-sm" />
               {commonDict.print}
             </button>
             {canManage && (
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowCategoriesModal(true)}>
+                <IconTag className="ic-sm" />
                 {dict.categoriesButton}
               </button>
             )}
