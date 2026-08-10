@@ -262,6 +262,7 @@ export type AssetListItem = {
   room: LocalizedRef | null;
   custodianName: string | null;
   status: AssetStatusValue;
+  thumbnailUrl: string | null;
 };
 
 export type AssetDetail = {

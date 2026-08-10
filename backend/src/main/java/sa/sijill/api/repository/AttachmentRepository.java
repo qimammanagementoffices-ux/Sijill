@@ -12,4 +12,6 @@ public interface AttachmentRepository extends JpaRepository<Attachment, UUID> {
     List<Attachment> findByOwnerTypeAndOwnerIdOrderByCreatedAtAsc(AttachmentOwnerType ownerType, UUID ownerId);
 
     Optional<Attachment> findFirstByOwnerTypeAndOwnerIdOrderByCreatedAtAsc(AttachmentOwnerType ownerType, UUID ownerId);
+
+    List<Attachment> findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType ownerType, java.util.Collection<UUID> ownerIds);
 }

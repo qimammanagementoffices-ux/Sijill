@@ -156,6 +156,7 @@ export default function AssetDirectory({
             <table>
               <thead>
                 <tr>
+                  <th>{dict.columnImage}</th>
                   <th>{dict.columnAssetNumber}</th>
                   <th>{dict.columnName}</th>
                   <th>{dict.columnCategory}</th>
@@ -167,6 +168,17 @@ export default function AssetDirectory({
               <tbody>
                 {page.content.map((asset) => (
                   <tr key={asset.id} className="clickable" onClick={() => router.push(`/assets/${asset.id}`)}>
+                    <td>
+                      {asset.thumbnailUrl ? (
+                        <img
+                          src={asset.thumbnailUrl}
+                          alt=""
+                          style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6, display: "block" }}
+                        />
+                      ) : (
+                        <span style={{ display: "inline-block", width: 40, height: 40, borderRadius: 6, background: "var(--paper-dim)" }} />
+                      )}
+                    </td>
                     <td className="mono">
                       <Link href={`/assets/${asset.id}`}>{asset.assetNumber}</Link>
                     </td>

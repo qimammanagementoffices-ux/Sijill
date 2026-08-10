@@ -12,9 +12,14 @@ public record AssetListItem(
         LocalizedRef category,
         LocalizedRef room,
         String custodianName,
-        AssetStatus status) {
+        AssetStatus status,
+        String thumbnailUrl) {
 
     public static AssetListItem from(Asset asset) {
+        return from(asset, null);
+    }
+
+    public static AssetListItem from(Asset asset, String thumbnailUrl) {
         return new AssetListItem(
                 asset.getId(),
                 asset.getAssetNumber(),
@@ -23,6 +28,7 @@ public record AssetListItem(
                 asset.getCategory() == null ? null : LocalizedRef.from(asset.getCategory()),
                 asset.getRoom() == null ? null : LocalizedRef.from(asset.getRoom()),
                 asset.getCustodian() == null ? null : asset.getCustodian().getName(),
-                asset.getStatus());
+                asset.getStatus(),
+                thumbnailUrl);
     }
 }

@@ -395,6 +395,7 @@ export type Dictionary = {
     title: string;
     addNew: string;
     noResults: string;
+    columnImage: string;
     columnAssetNumber: string;
     columnName: string;
     columnCategory: string;
