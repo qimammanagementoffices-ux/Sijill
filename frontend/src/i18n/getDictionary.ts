@@ -229,6 +229,17 @@ export type Dictionary = {
     quantityRequestedLabel: string;
     quantityIssuedLabel: string;
     reasonLabel: string;
+    itemLabel: string;
+    categoryLabel: string;
+    roomLabel: string;
+    stepDeptType: string;
+    stepItems: string;
+    stepAttachments: string;
+    nextStep: string;
+    prevStep: string;
+    finishStep: string;
+    addCustomRequest: string;
+    customRequestPlaceholder: string;
     submit: string;
     approve: string;
     reject: string;

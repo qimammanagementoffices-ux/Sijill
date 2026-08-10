@@ -36,7 +36,7 @@ export default function RequestList({
   const [page, setPage] = useState<PagedResponse<NeedRequestListItem> | null>(null);
   const [filtering, setFiltering] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   function load(statusFilter: string) {
@@ -189,18 +189,8 @@ export default function RequestList({
                 dict={dict}
                 errorsDict={errorsDict}
                 onSubmitted={handleAdded}
-                formId="request-add-form"
                 onSubmittingChange={setAddSubmitting}
               />
-            </div>
-            <div className="modal-foot">
-              <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
-                {commonDict.cancel}
-              </button>
-              <button type="submit" form="request-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
-                {addSubmitting && <span className="spinner" />}
-                {dict.submit}
-              </button>
             </div>
           </div>
         </div>

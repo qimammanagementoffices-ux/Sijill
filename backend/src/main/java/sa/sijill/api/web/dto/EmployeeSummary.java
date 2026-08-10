@@ -12,7 +12,8 @@ public record EmployeeSummary(
         String photoUrl,
         UUID photoAttachmentId,
         int version,
-        List<String> permissions) {
+        List<String> permissions,
+        List<LocalizedRef> departments) {
 
     public static EmployeeSummary from(Employee employee) {
         return new EmployeeSummary(
@@ -23,6 +24,7 @@ public record EmployeeSummary(
                 employee.getPhotoAttachment() == null ? null : employee.getPhotoAttachment().getUrl(),
                 employee.getPhotoAttachment() == null ? null : employee.getPhotoAttachment().getId(),
                 employee.getVersion(),
-                employee.getPermissions().stream().map(p -> p.getKey()).sorted().toList());
+                employee.getPermissions().stream().map(p -> p.getKey()).sorted().toList(),
+                employee.getDepartments().stream().map(LocalizedRef::from).toList());
     }
 }

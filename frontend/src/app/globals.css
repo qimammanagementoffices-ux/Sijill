@@ -1822,3 +1822,91 @@ body.lang-en .modal-head h3 {
     break-after: auto;
   }
 }
+
+/* ── Wizard stepper ────────────────────────────────────── */
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+  padding: 0 10px;
+}
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--slate);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wizard-step.active { color: var(--ink); }
+.wizard-step.done { color: var(--forest); }
+.wizard-step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  border: 2px solid var(--line);
+  color: var(--slate);
+  flex: none;
+}
+.wizard-step.active .wizard-step-num {
+  border-color: var(--forest);
+  background: var(--forest);
+  color: #fff;
+}
+.wizard-step.done .wizard-step-num {
+  border-color: var(--forest);
+  color: var(--forest);
+}
+.wizard-step-line {
+  display: block;
+  width: 40px;
+  height: 2px;
+  background: var(--line);
+  margin: 0 8px;
+  flex: none;
+}
+.wizard-step.done + .wizard-step .wizard-step-line,
+.wizard-step.done .wizard-step-line {
+  background: var(--forest);
+}
+
+/* ── Category radio cards ──────────────────────────────── */
+.category-radio-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.category-radio-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1 1 140px;
+  min-width: 140px;
+}
+.category-radio-card:hover { border-color: var(--slate); }
+.category-radio-card.selected {
+  border-color: var(--forest);
+  box-shadow: 0 0 0 1px var(--forest);
+}
+.category-radio-card input[type="radio"] {
+  order: 1;
+  margin: 0;
+  accent-color: var(--forest);
+}
+.category-radio-icon { font-size: 20px; order: 0; }
+.category-radio-name { order: 0; flex: 1; }
