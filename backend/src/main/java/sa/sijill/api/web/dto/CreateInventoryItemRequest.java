@@ -4,8 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+// No code field: the server assigns it from a per-domain sequence
+// (V63__code_sequences.sql), so a client cannot pick or collide with one.
 public record CreateInventoryItemRequest(
-        String code,
         String nameAr,
         String nameEn,
         UUID categoryId,
@@ -13,4 +14,4 @@ public record CreateInventoryItemRequest(
         BigDecimal weight,
         LocalDate dateAdded,
         int minQuantity,
-        String nameUr) {}
+        String nameHi) {}

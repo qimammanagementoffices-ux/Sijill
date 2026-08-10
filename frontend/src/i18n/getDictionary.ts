@@ -148,7 +148,7 @@ export type Dictionary = {
     iconPlaceholder: string;
     nameArLabel: string;
     nameEnLabel: string;
-    nameUrLabel: string;
+    nameHiLabel: string;
     namePlaceholder: string;
     autoTranslate: string;
     autoTranslateNote: string;
@@ -262,7 +262,7 @@ export type Dictionary = {
     addNew: string;
     nameArLabel: string;
     nameEnLabel: string;
-    nameUrLabel: string;
+    nameHiLabel: string;
     suggestedCategoryLabel: string;
     save: string;
   };
@@ -400,7 +400,7 @@ export type Dictionary = {
     roomNumberLabel: string;
     nameArLabel: string;
     nameEnLabel: string;
-    nameUrLabel: string;
+    nameHiLabel: string;
     buildingLabel: string;
     floorLabel: string;
     departmentLabel: string;
@@ -422,7 +422,7 @@ export type Dictionary = {
     assetNumberLabel: string;
     nameArLabel: string;
     nameEnLabel: string;
-    nameUrLabel: string;
+    nameHiLabel: string;
     categoryLabel: string;
     roomLabel: string;
     custodianLabel: string;

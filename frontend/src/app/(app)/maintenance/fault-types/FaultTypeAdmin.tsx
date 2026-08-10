@@ -10,7 +10,7 @@ import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 
-type Edited = { nameAr: string; nameEn: string; nameUr: string; suggestedCategoryId: string };
+type Edited = { nameAr: string; nameEn: string; nameHi: string; suggestedCategoryId: string };
 
 export default function FaultTypeAdmin({
   dict,
@@ -28,7 +28,7 @@ export default function FaultTypeAdmin({
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
-  const [newNameUr, setNewNameUr] = useState("");
+  const [newNameHi, setNewNameHi] = useState("");
   const [newCategoryId, setNewCategoryId] = useState("");
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
@@ -67,14 +67,14 @@ export default function FaultTypeAdmin({
         body: JSON.stringify({
           nameAr: newNameAr,
           nameEn: newNameEn,
-          nameUr: newNameUr || null,
+          nameHi: newNameHi || null,
           suggestedCategoryId: newCategoryId || null,
           version: null,
         }),
       });
       setNewNameAr("");
       setNewNameEn("");
-      setNewNameUr("");
+      setNewNameHi("");
       setNewCategoryId("");
       setShowAddModal(false);
       load();
@@ -96,7 +96,7 @@ export default function FaultTypeAdmin({
         body: JSON.stringify({
           nameAr: edited.nameAr,
           nameEn: edited.nameEn,
-          nameUr: edited.nameUr || null,
+          nameHi: edited.nameHi || null,
           suggestedCategoryId: edited.suggestedCategoryId || null,
           version: faultType.version,
         }),
@@ -137,7 +137,7 @@ export default function FaultTypeAdmin({
               <thead>
                 <tr>
                   <th>{dict.nameArLabel}</th>
-                  <th>{dict.nameUrLabel}</th>
+                  <th>{dict.nameHiLabel}</th>
                   <th>{dict.nameEnLabel}</th>
                   <th>{dict.suggestedCategoryLabel}</th>
                   <th></th>
@@ -148,7 +148,7 @@ export default function FaultTypeAdmin({
                   const edited = editing[faultType.id] ?? {
                     nameAr: faultType.nameAr,
                     nameEn: faultType.nameEn,
-                    nameUr: faultType.nameUr ?? "",
+                    nameHi: faultType.nameHi ?? "",
                     suggestedCategoryId: faultType.suggestedCategory?.id ?? "",
                   };
                   return (
@@ -167,9 +167,9 @@ export default function FaultTypeAdmin({
                       <td>
                         <input
                           type="text"
-                          value={edited.nameUr}
+                          value={edited.nameHi}
                           onChange={(e) =>
-                            setEditing({ ...editing, [faultType.id]: { ...edited, nameUr: e.target.value } })
+                            setEditing({ ...editing, [faultType.id]: { ...edited, nameHi: e.target.value } })
                           }
                           style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
                           dir="rtl"
@@ -240,8 +240,8 @@ export default function FaultTypeAdmin({
                   setNameAr={setNewNameAr}
                   nameEn={newNameEn}
                   setNameEn={setNewNameEn}
-                  nameUr={newNameUr}
-                  setNameUr={setNewNameUr}
+                  nameHi={newNameHi}
+                  setNameHi={setNewNameHi}
                   dict={categoriesModalDict}
                   errorsDict={errorsDict}
                 />

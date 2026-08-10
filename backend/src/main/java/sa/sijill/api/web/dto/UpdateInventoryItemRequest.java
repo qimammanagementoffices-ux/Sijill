@@ -11,4 +11,4 @@ public record UpdateInventoryItemRequest(
         BigDecimal weight,
         int minQuantity,
         int version,
-        String nameUr) {}
+        String nameHi) {}

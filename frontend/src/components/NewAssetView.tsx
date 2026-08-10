@@ -27,10 +27,10 @@ export default function NewAssetView({
 }) {
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
-  const [assetNumber, setAssetNumber] = useState("");
+  // No assetNumber field: the server assigns AST-#### from a sequence.
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [nameUr, setNameUr] = useState("");
+  const [nameHi, setNameHi] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [status, setStatus] = useState<AssetStatusValue>("ACTIVE");
@@ -62,10 +62,9 @@ export default function NewAssetView({
       const created = await apiFetch<AssetDetail>("/assets", {
         method: "POST",
         body: JSON.stringify({
-          assetNumber,
           nameAr,
           nameEn,
-          nameUr: nameUr || null,
+          nameHi: nameHi || null,
           categoryId: categoryId || null,
           roomId: roomId || null,
           custodianId: null,
@@ -90,17 +89,13 @@ export default function NewAssetView({
       <div className="panel">
         <div className="panel-body">
           <div className="form-grid">
-            <div className="field">
-              <label>{dict.assetNumberLabel}</label>
-              <input type="text" value={assetNumber} onChange={(e) => setAssetNumber(e.target.value)} required />
-            </div>
             <TrilingualNameFields
               nameAr={nameAr}
               setNameAr={setNameAr}
               nameEn={nameEn}
               setNameEn={setNameEn}
-              nameUr={nameUr}
-              setNameUr={setNameUr}
+              nameHi={nameHi}
+              setNameHi={setNameHi}
               dict={categoriesModalDict}
               errorsDict={errorsDict}
             />

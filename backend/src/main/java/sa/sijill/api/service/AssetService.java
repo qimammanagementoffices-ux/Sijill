@@ -59,21 +59,17 @@ public class AssetService {
 
     @Transactional
     public Asset create(CreateAssetRequest request, Employee actor) {
-        if (request.assetNumber() == null || request.assetNumber().isBlank()) {
-            throw ApiException.validation("Asset number is required", Map.of("assetNumber", "must not be blank"));
-        }
         if (request.nameAr() == null || request.nameAr().isBlank() || request.nameEn() == null || request.nameEn().isBlank()) {
             throw ApiException.validation("Name is required", Map.of("nameAr", "must not be blank"));
         }
-        if (assetRepository.existsByAssetNumber(request.assetNumber())) {
-            throw ApiException.validation("Asset number already in use", Map.of("assetNumber", "already in use"));
-        }
 
         Asset asset = new Asset();
-        asset.setAssetNumber(request.assetNumber());
+        // Server-generated, never client-supplied -- see the note on
+        // InventoryItemService.nextCode and V63__code_sequences.sql.
+        asset.setAssetNumber("AST-" + String.format("%04d", assetRepository.nextAssetNumberSequence()));
         asset.setNameAr(request.nameAr());
         asset.setNameEn(request.nameEn());
-        asset.setNameUr(request.nameUr());
+        asset.setNameHi(request.nameHi());
         asset.setCategory(resolveCategory(request.categoryId()));
         asset.setRoom(resolveRoom(request.roomId()));
         asset.setCustodian(resolveEmployee(request.custodianId()));
@@ -82,6 +78,10 @@ public class AssetService {
         asset.setAcquisitionCost(request.acquisitionCost());
         asset.setVendor(request.vendor());
         asset.setNotes(request.notes());
+        asset.setDepreciationRate(request.depreciationRate());
+        asset.setAccumulatedDepreciation(request.accumulatedDepreciation());
+        asset.setPeriodEndBalance(request.periodEndBalance());
+        asset.setPeriodEndDate(request.periodEndDate());
 
         Asset saved = assetRepository.save(asset);
         auditService.record(actor, "ASSET_CREATED", "Asset", saved.getId());
@@ -100,13 +100,17 @@ public class AssetService {
 
         asset.setNameAr(request.nameAr());
         asset.setNameEn(request.nameEn());
-        asset.setNameUr(request.nameUr());
+        asset.setNameHi(request.nameHi());
         asset.setCategory(resolveCategory(request.categoryId()));
         asset.setStatus(request.status() != null ? request.status() : asset.getStatus());
         asset.setAcquisitionDate(request.acquisitionDate());
         asset.setAcquisitionCost(request.acquisitionCost());
         asset.setVendor(request.vendor());
         asset.setNotes(request.notes());
+        asset.setDepreciationRate(request.depreciationRate());
+        asset.setAccumulatedDepreciation(request.accumulatedDepreciation());
+        asset.setPeriodEndBalance(request.periodEndBalance());
+        asset.setPeriodEndDate(request.periodEndDate());
 
         Asset saved = assetRepository.save(asset);
         auditService.record(actor, "ASSET_UPDATED", "Asset", saved.getId());

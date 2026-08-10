@@ -37,10 +37,11 @@ export default function ItemForm({
   formId,
   onSubmittingChange,
 }: Props) {
-  const [code, setCode] = useState(initial?.code ?? "");
+  // No code field: the server assigns WH-/MN- codes from a sequence on
+  // create, and they were already immutable on update.
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? "");
   const [nameEn, setNameEn] = useState(initial?.nameEn ?? "");
-  const [nameUr, setNameUr] = useState(initial?.nameUr ?? "");
+  const [nameHi, setNameHi] = useState(initial?.nameHi ?? "");
   const [categoryId, setCategoryId] = useState(initial?.category?.id ?? "");
   const [unit, setUnit] = useState(initial?.unit ?? "");
   const [minQuantity, setMinQuantity] = useState(String(initial?.minQuantity ?? 0));
@@ -61,10 +62,9 @@ export default function ItemForm({
         const created = await apiFetch<InventoryItemDetail>(basePath, {
           method: "POST",
           body: JSON.stringify({
-            code,
             nameAr,
             nameEn,
-            nameUr: nameUr || null,
+            nameHi: nameHi || null,
             categoryId: categoryId || null,
             unit: unit || null,
             weight: null,
@@ -79,7 +79,7 @@ export default function ItemForm({
           body: JSON.stringify({
             nameAr,
             nameEn,
-            nameUr: nameUr || null,
+            nameHi: nameHi || null,
             categoryId: categoryId || null,
             unit: unit || null,
             weight: initial.weight,
@@ -100,19 +100,13 @@ export default function ItemForm({
       <div className="panel">
         <div className="panel-body">
           <div className="form-grid">
-            {mode === "create" && (
-              <div className="field">
-                <label>{dict.codeLabel}</label>
-                <input type="text" value={code} onChange={(e) => setCode(e.target.value)} required />
-              </div>
-            )}
             <TrilingualNameFields
               nameAr={nameAr}
               setNameAr={setNameAr}
               nameEn={nameEn}
               setNameEn={setNameEn}
-              nameUr={nameUr}
-              setNameUr={setNameUr}
+              nameHi={nameHi}
+              setNameHi={setNameHi}
               dict={categoriesModalDict}
               errorsDict={errorsDict}
             />

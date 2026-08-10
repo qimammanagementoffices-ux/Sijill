@@ -4,7 +4,7 @@ import { useState } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-type SourceLang = "ar" | "en" | "ur";
+type SourceLang = "ar" | "en" | "hi";
 
 // Shared by every bilingual/trilingual name form in the app (departments,
 // job titles, categories, items, assets, rooms, fault types) -- three name
@@ -16,8 +16,8 @@ export default function TrilingualNameFields({
   setNameAr,
   nameEn,
   setNameEn,
-  nameUr,
-  setNameUr,
+  nameHi,
+  setNameHi,
   dict,
   errorsDict,
 }: {
@@ -25,8 +25,8 @@ export default function TrilingualNameFields({
   setNameAr: (v: string) => void;
   nameEn: string;
   setNameEn: (v: string) => void;
-  nameUr: string;
-  setNameUr: (v: string) => void;
+  nameHi: string;
+  setNameHi: (v: string) => void;
   dict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
 }) {
@@ -36,18 +36,18 @@ export default function TrilingualNameFields({
 
   async function handleAutoTranslate() {
     if (!lastEdited) return;
-    const text = { ar: nameAr, en: nameEn, ur: nameUr }[lastEdited];
+    const text = { ar: nameAr, en: nameEn, hi: nameHi }[lastEdited];
     if (!text || !text.trim()) return;
     setError(null);
     setTranslating(true);
     try {
-      const result = await apiFetch<{ nameAr: string; nameEn: string; nameUr: string }>("/translate", {
+      const result = await apiFetch<{ nameAr: string; nameEn: string; nameHi: string }>("/translate", {
         method: "POST",
         body: JSON.stringify({ text, sourceLang: lastEdited }),
       });
       setNameAr(result.nameAr);
       setNameEn(result.nameEn);
-      setNameUr(result.nameUr);
+      setNameHi(result.nameHi);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);
     } finally {
@@ -71,15 +71,15 @@ export default function TrilingualNameFields({
         />
       </div>
       <div className="field">
-        <label>{dict.nameUrLabel}</label>
+        <label>{dict.nameHiLabel}</label>
         <input
           type="text"
-          value={nameUr}
+          value={nameHi}
           onChange={(e) => {
-            setNameUr(e.target.value);
-            setLastEdited("ur");
+            setNameHi(e.target.value);
+            setLastEdited("hi");
           }}
-          dir="rtl"
+          dir="ltr"
         />
       </div>
       <div className="field">

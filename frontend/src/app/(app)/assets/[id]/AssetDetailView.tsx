@@ -51,7 +51,7 @@ export default function AssetDetailView({
 
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [nameUr, setNameUr] = useState("");
+  const [nameHi, setNameHi] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [status, setStatus] = useState<AssetStatusValue>("ACTIVE");
   const [acquisitionDate, setAcquisitionDate] = useState("");
@@ -70,7 +70,7 @@ export default function AssetDetailView({
         setAsset(a);
         setNameAr(a.nameAr);
         setNameEn(a.nameEn);
-        setNameUr(a.nameUr ?? "");
+        setNameHi(a.nameHi ?? "");
         setCategoryId(a.category?.id ?? "");
         setStatus(a.status);
         setAcquisitionDate(a.acquisitionDate ?? "");
@@ -111,7 +111,7 @@ export default function AssetDetailView({
         body: JSON.stringify({
           nameAr,
           nameEn,
-          nameUr: nameUr || null,
+          nameHi: nameHi || null,
           categoryId: categoryId || null,
           status,
           acquisitionDate: acquisitionDate || null,
@@ -196,8 +196,8 @@ export default function AssetDetailView({
                 setNameAr={setNameAr}
                 nameEn={nameEn}
                 setNameEn={setNameEn}
-                nameUr={nameUr}
-                setNameUr={setNameUr}
+                nameHi={nameHi}
+                setNameHi={setNameHi}
                 dict={categoriesModalDict}
                 errorsDict={errorsDict}
               />

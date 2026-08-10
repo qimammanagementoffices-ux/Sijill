@@ -13,11 +13,6 @@ import sa.sijill.api.web.dto.TranslateNameResponse;
 @Service
 public class NameTranslationService {
 
-    // The third language is Hindi. The field/param is still called "ur" across
-    // the API and DB columns (name_ur, sourceLang "ur"); only the code sent to
-    // Google was ever meant to name a real language, and "ur" gave Urdu.
-    private static final String THIRD_LANG = "hi";
-
     private final GoogleTranslateClient googleTranslateClient;
 
     public NameTranslationService(GoogleTranslateClient googleTranslateClient) {
@@ -30,23 +25,23 @@ public class NameTranslationService {
         }
         String ar = request.text();
         String en = request.text();
-        String ur = request.text();
+        String hi = request.text();
         switch (request.sourceLang()) {
             case "ar" -> {
                 en = googleTranslateClient.translate(request.text(), "ar", "en");
-                ur = googleTranslateClient.translate(request.text(), "ar", THIRD_LANG);
+                hi = googleTranslateClient.translate(request.text(), "ar", "hi");
             }
             case "en" -> {
                 ar = googleTranslateClient.translate(request.text(), "en", "ar");
-                ur = googleTranslateClient.translate(request.text(), "en", THIRD_LANG);
+                hi = googleTranslateClient.translate(request.text(), "en", "hi");
             }
-            case "ur" -> {
-                ar = googleTranslateClient.translate(request.text(), THIRD_LANG, "ar");
-                en = googleTranslateClient.translate(request.text(), THIRD_LANG, "en");
+            case "hi" -> {
+                ar = googleTranslateClient.translate(request.text(), "hi", "ar");
+                en = googleTranslateClient.translate(request.text(), "hi", "en");
             }
             default -> throw ApiException.validation(
-                    "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or ur"));
+                    "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or hi"));
         }
-        return new TranslateNameResponse(ar, en, ur);
+        return new TranslateNameResponse(ar, en, hi);
     }
 }

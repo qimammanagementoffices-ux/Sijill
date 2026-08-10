@@ -35,7 +35,7 @@ public class CategoryService {
         category.setDomain(domain);
         category.setNameAr(request.nameAr());
         category.setNameEn(request.nameEn());
-        category.setNameUr(request.nameUr());
+        category.setNameHi(request.nameHi());
         category.setIcon(request.icon());
         return categoryRepository.save(category);
     }
@@ -49,7 +49,7 @@ public class CategoryService {
         }
         category.setNameAr(request.nameAr());
         category.setNameEn(request.nameEn());
-        category.setNameUr(request.nameUr());
+        category.setNameHi(request.nameHi());
         category.setIcon(request.icon());
         return categoryRepository.save(category);
     }

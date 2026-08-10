@@ -24,8 +24,8 @@ public class FaultType {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
-    @Column(name = "name_ur")
-    private String nameUr;
+    @Column(name = "name_hi")
+    private String nameHi;
 
     // Hint for the finish-flow parts picker, not an enforced constraint —
     // master spec §7: "should suggest the matching parts category from

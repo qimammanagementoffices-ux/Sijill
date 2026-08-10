@@ -29,8 +29,8 @@ public class Asset {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
-    @Column(name = "name_ur")
-    private String nameUr;
+    @Column(name = "name_hi")
+    private String nameHi;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
@@ -59,6 +59,18 @@ public class Asset {
 
     @Column(name = "notes")
     private String notes;
+
+    @Column(name = "depreciation_rate")
+    private BigDecimal depreciationRate;
+
+    @Column(name = "accumulated_depreciation")
+    private BigDecimal accumulatedDepreciation;
+
+    @Column(name = "period_end_balance")
+    private BigDecimal periodEndBalance;
+
+    @Column(name = "period_end_date")
+    private LocalDate periodEndDate;
 
     // Public QR addressing token — never the primary key or asset number,
     // per docs/decision-record.md D2 (avoids exposing sequential/guessable

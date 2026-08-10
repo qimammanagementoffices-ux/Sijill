@@ -11,4 +11,4 @@ public record UpsertRoomRequest(
         Integer version,
         UUID departmentId,
         UUID custodianId,
-        String nameUr) {}
+        String nameHi) {}

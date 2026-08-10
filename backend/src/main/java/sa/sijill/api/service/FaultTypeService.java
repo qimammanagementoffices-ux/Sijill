@@ -36,7 +36,7 @@ public class FaultTypeService {
         FaultType faultType = new FaultType();
         faultType.setNameAr(request.nameAr());
         faultType.setNameEn(request.nameEn());
-        faultType.setNameUr(request.nameUr());
+        faultType.setNameHi(request.nameHi());
         faultType.setSuggestedCategory(resolveCategory(request.suggestedCategoryId()));
         return faultTypeRepository.save(faultType);
     }
@@ -51,7 +51,7 @@ public class FaultTypeService {
         }
         faultType.setNameAr(request.nameAr());
         faultType.setNameEn(request.nameEn());
-        faultType.setNameUr(request.nameUr());
+        faultType.setNameHi(request.nameHi());
         faultType.setSuggestedCategory(resolveCategory(request.suggestedCategoryId()));
         return faultTypeRepository.save(faultType);
     }

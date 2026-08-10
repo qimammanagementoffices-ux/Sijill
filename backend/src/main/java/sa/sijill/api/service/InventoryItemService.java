@@ -49,22 +49,16 @@ public class InventoryItemService {
 
     @Transactional
     public InventoryItem create(Domain domain, CreateInventoryItemRequest request, Employee actor) {
-        if (request.code() == null || request.code().isBlank()) {
-            throw ApiException.validation("Code is required", Map.of("code", "must not be blank"));
-        }
         if (request.nameAr() == null || request.nameAr().isBlank() || request.nameEn() == null || request.nameEn().isBlank()) {
             throw ApiException.validation("Name is required", Map.of("nameAr", "must not be blank"));
-        }
-        if (inventoryItemRepository.existsByDomainAndCode(domain, request.code())) {
-            throw ApiException.validation("Item code already in use", Map.of("code", "already in use"));
         }
 
         InventoryItem item = new InventoryItem();
         item.setDomain(domain);
-        item.setCode(request.code());
+        item.setCode(nextCode(domain));
         item.setNameAr(request.nameAr());
         item.setNameEn(request.nameEn());
-        item.setNameUr(request.nameUr());
+        item.setNameHi(request.nameHi());
         item.setCategory(resolveCategory(request.categoryId()));
         item.setUnit(request.unit());
         item.setWeight(request.weight());
@@ -90,7 +84,7 @@ public class InventoryItemService {
 
         item.setNameAr(request.nameAr());
         item.setNameEn(request.nameEn());
-        item.setNameUr(request.nameUr());
+        item.setNameHi(request.nameHi());
         item.setCategory(resolveCategory(request.categoryId()));
         item.setUnit(request.unit());
         item.setWeight(request.weight());
@@ -145,5 +139,23 @@ public class InventoryItemService {
         if (categoryId == null) return null;
         return categoryRepository.findById(categoryId).orElseThrow(() -> ApiException.validation(
                 "Category not found", Map.of("categoryId", "does not exist")));
+    }
+
+    // Codes are server-generated, never client-supplied: the old flow let a
+    // user type one and only checked existsByDomainAndCode first, which two
+    // concurrent creates could both pass. A sequence hands out each number
+    // once, so the unique constraint is now a backstop rather than a
+    // routine failure mode. See V63__code_sequences.sql.
+    // Domain also carries ASSET and ROOM, which are category-only and never
+    // reach inventory_item (the table's own check constraint allows just the
+    // two below) -- hence the explicit reject rather than a silent prefix.
+    private String nextCode(Domain domain) {
+        return switch (domain) {
+            case WAREHOUSE -> "WH-" + String.format("%04d", inventoryItemRepository.nextWarehouseCodeSequence());
+            case MAINTENANCE -> "MN-" + String.format("%04d", inventoryItemRepository.nextMaintenanceCodeSequence());
+            case ASSET, ROOM -> throw ApiException.validation(
+                    "Inventory items exist only in the warehouse and maintenance domains",
+                    Map.of("domain", "must be WAREHOUSE or MAINTENANCE"));
+        };
     }
 }

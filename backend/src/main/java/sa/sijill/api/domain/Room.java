@@ -27,8 +27,8 @@ public class Room {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
-    @Column(name = "name_ur")
-    private String nameUr;
+    @Column(name = "name_hi")
+    private String nameHi;
 
     @Column(name = "building")
     private String building;
