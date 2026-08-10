@@ -1,5 +1,6 @@
 package sa.sijill.api.web;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Domain;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.InventoryItem;
+import sa.sijill.api.repository.ItemHistoryRepository;
 import sa.sijill.api.service.InventoryItemService;
 import sa.sijill.api.web.dto.*;
 
@@ -19,9 +21,12 @@ import sa.sijill.api.web.dto.*;
 public class InventoryItemController {
 
     private final InventoryItemService inventoryItemService;
+    private final ItemHistoryRepository itemHistoryRepository;
 
-    public InventoryItemController(InventoryItemService inventoryItemService) {
+    public InventoryItemController(
+            InventoryItemService inventoryItemService, ItemHistoryRepository itemHistoryRepository) {
         this.inventoryItemService = inventoryItemService;
+        this.itemHistoryRepository = itemHistoryRepository;
     }
 
     @GetMapping
@@ -38,6 +43,25 @@ public class InventoryItemController {
     @PreAuthorize("hasAuthority('wh.view')")
     public InventoryItemDetail get(@PathVariable UUID id) {
         return InventoryItemDetail.from(inventoryItemService.get(id));
+    }
+
+    // The item card's two history sections. Separate endpoints rather than
+    // fields on the detail DTO: the list screen fetches details too, and it
+    // has no use for either history.
+    @GetMapping("/{id}/purchases")
+    @PreAuthorize("hasAuthority('wh.view')")
+    public List<ItemPurchaseLineDto> purchases(@PathVariable UUID id) {
+        return itemHistoryRepository.findPurchasesByItem(id).stream()
+                .map(ItemPurchaseLineDto::from)
+                .toList();
+    }
+
+    @GetMapping("/{id}/requests")
+    @PreAuthorize("hasAuthority('wh.view')")
+    public List<ItemRequestLineDto> requests(@PathVariable UUID id) {
+        return itemHistoryRepository.findRequestsByItem(id).stream()
+                .map(ItemRequestLineDto::from)
+                .toList();
     }
 
     @PostMapping

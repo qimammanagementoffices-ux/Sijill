@@ -95,6 +95,25 @@ export type InventoryItemListItem = {
   active: boolean;
 };
 
+export type ItemPurchaseLine = {
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceDate: string | null;
+  vendor: string | null;
+  quantity: number;
+  unitPrice: number | null;
+  lineTotal: number | null;
+};
+
+export type ItemRequestLine = {
+  requestId: string;
+  createdAt: string;
+  status: string;
+  requesterName: string | null;
+  quantityRequested: number;
+  quantityIssued: number | null;
+};
+
 export type InventoryItemDetail = {
   id: string;
   code: string;

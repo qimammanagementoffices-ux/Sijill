@@ -10,11 +10,12 @@ import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
+import ItemViewModal from "@/components/ItemViewModal";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
+import type { Dictionary } from "@/i18n/getDictionary";
 
 type Sort = { field: string; dir: "asc" | "desc" };
-import type { Dictionary } from "@/i18n/getDictionary";
 
 // Shared by /warehouse/items and /maintenance/parts — same reusable
 // inventory module on the backend (Domain-parameterized), same shape here.
@@ -25,6 +26,7 @@ export default function ItemDirectory({
   errorsDict,
   commonDict,
   categoriesModalDict,
+  attachmentsDict,
   basePath,
   categoriesPath,
 }: {
@@ -32,6 +34,7 @@ export default function ItemDirectory({
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   categoriesModalDict: Dictionary["categoriesModal"];
+  attachmentsDict: Dictionary["attachments"];
   basePath: string;
   categoriesPath: string;
 }) {
@@ -48,10 +51,13 @@ export default function ItemDirectory({
   // Which page is being fetched -- drives the spinner on the page button
   // that was clicked, rather than one shared "loading" flag.
   const [loadingPage, setLoadingPage] = useState<number | null>(null);
+  const [viewItemId, setViewItemId] = useState<string | null>(null);
   // Sorting is entirely server-side: the endpoint already takes a Pageable,
   // so ?sort=field,dir works without a backend change. Sorting the current
   // page client-side would only order the 20 rows on screen.
-  const [sort, setSort] = useState<Sort>({ field: "nameAr", dir: "asc" });
+  // Newest entry first: what you added last is what you are most likely
+  // looking for.
+  const [sort, setSort] = useState<Sort>({ field: "dateAdded", dir: "desc" });
 
   function toggleSort(field: string) {
     const next: Sort =
@@ -218,7 +224,7 @@ export default function ItemDirectory({
               </thead>
               <tbody>
                 {page.content.map((item) => (
-                  <tr key={item.id} className="clickable" onClick={() => router.push(`${basePath}/${item.id}`)}>
+                  <tr key={item.id} className="clickable" onClick={() => setViewItemId(item.id)}>
                     <td className="mono">
                       <Link href={`${basePath}/${item.id}`}>{item.code}</Link>
                     </td>
@@ -314,6 +320,18 @@ export default function ItemDirectory({
           commonDict={commonDict}
           onClose={() => setShowCategoriesModal(false)}
           onChanged={() => apiFetch<CategoryDto[]>(categoriesPath).then(setCategories)}
+        />
+      )}
+
+      {viewItemId && (
+        <ItemViewModal
+          itemId={viewItemId}
+          dict={dict}
+          attachmentsDict={attachmentsDict}
+          commonDict={commonDict}
+          canManage={canManage}
+          onClose={() => setViewItemId(null)}
+          onEdit={() => router.push(`${basePath}/${viewItemId}`)}
         />
       )}
 
