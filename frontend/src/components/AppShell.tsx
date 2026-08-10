@@ -68,6 +68,12 @@ export default function AppShell({
 
   useEffect(() => {
     setNavOpen(false);
+    // Drop the manual open/closed override on navigation. Without this the
+    // first group the user ever toggles wins forever: isOpen stops
+    // consulting the route, so moving to a page in another group leaves
+    // that group collapsed and the old one hanging open.
+    setUserToggledGroup(false);
+    setOpenGroup(null);
   }, [pathname]);
 
   function handleLogout() {
