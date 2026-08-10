@@ -10,7 +10,10 @@ import SectionLoading from "@/components/SectionLoading";
 import NewInvoiceView from "@/components/NewInvoiceView";
 import Toast from "@/components/Toast";
 import type { InvoiceDetail, PagedResponse } from "@/lib/types";
+import { IconSheet, IconFilePdf } from "@/components/NavIcons";
 import type { Dictionary } from "@/i18n/getDictionary";
+
+type Sort = { field: string; dir: "asc" | "desc" };
 
 // Shared by /warehouse/invoices and /maintenance/invoices.
 export default function InvoiceList({
@@ -32,15 +35,48 @@ export default function InvoiceList({
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [viewInvoice, setViewInvoice] = useState<InvoiceDetail | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sort, setSort] = useState<Sort>({ field: "invoiceDate", dir: "desc" });
 
-  function load() {
-    apiFetch<PagedResponse<InvoiceDetail>>(basePath)
+  const filtersActive = dateFrom !== "" || dateTo !== "";
+
+  // Built once and reused by load() and the export, so a filtered export
+  // can never disagree with what is on screen.
+  function queryString(next: Partial<{ from: string; to: string; sortBy: Sort }> = {}) {
+    const from = next.from ?? dateFrom;
+    const to = next.to ?? dateTo;
+    const by = next.sortBy ?? sort;
+    return (
+      "?sort=" + by.field + "," + by.dir + (from ? "&dateFrom=" + from : "") + (to ? "&dateTo=" + to : "")
+    );
+  }
+
+  function toggleSort(field: string) {
+    const next: Sort =
+      sort.field === field ? { field, dir: sort.dir === "asc" ? "desc" : "asc" } : { field, dir: "asc" };
+    setSort(next);
+    load({ sortBy: next });
+  }
+
+  function clearFilters() {
+    setDateFrom("");
+    setDateTo("");
+    load({ from: "", to: "" });
+  }
+
+  function load(next: Partial<{ from: string; to: string; sortBy: Sort }> = {}) {
+    setLoading(true);
+    apiFetch<PagedResponse<InvoiceDetail>>(basePath + queryString(next))
       .then(setPage)
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
         }
-      });
+      })
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -56,7 +92,7 @@ export default function InvoiceList({
   }, [router]);
 
   async function handleExport() {
-    const all = await apiFetch<PagedResponse<InvoiceDetail>>(`${basePath}?size=10000`);
+    const all = await apiFetch<PagedResponse<InvoiceDetail>>(`${basePath}${queryString()}&size=10000`);
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -92,13 +128,53 @@ export default function InvoiceList({
       </div>
 
       <div className="panel">
-        <div className="panel-head no-print" style={{ justifyContent: "flex-end" }}>
+        <div className="panel-head no-print">
+          <div className="filter-row" style={{ flex: 1 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+              {dict.filterDateFrom}
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value);
+                  load({ from: e.target.value });
+                }}
+                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
+              />
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+              {dict.filterDateTo}
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  load({ to: e.target.value });
+                }}
+                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
+              />
+            </label>
+            {filtersActive && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={clearFilters}
+                title={dict.filterClear}
+                aria-label={dict.filterClear}
+              >
+                ×
+              </button>
+            )}
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}
             </button>
+            {/* Same print path as the item list: "PDF" is the A4 print view. */}
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
-              {commonDict.print}
+              <IconFilePdf className="ic-sm" />
+              {commonDict.exportPdf}
             </button>
             {canPost && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
@@ -113,23 +189,70 @@ export default function InvoiceList({
             <b>{dict.noResults}</b>
           </div>
         ) : (
-          <div className="table-scroll">
+          <div className="table-scroll table-loading-wrap">
+            {loading && (
+              <div className="table-loading-veil no-print">
+                <span className="spinner spinner-lg" />
+              </div>
+            )}
             <table>
               <thead>
                 <tr>
-                  <th>{dict.columnNumber}</th>
-                  <th>{dict.columnDate}</th>
-                  <th>{dict.columnVendor}</th>
-                  <th>{dict.columnTotal}</th>
+                  {(
+                    [
+                      ["invoiceNumber", dict.columnNumber],
+                      ["invoiceDate", dict.columnDate],
+                      ["vendor", dict.columnVendor],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <th key={field}>
+                      <button type="button" className="th-sort" onClick={() => toggleSort(field)}>
+                        {label}
+                        <span className="th-sort-arrow">
+                          {sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
+                  {/* Line count is derived from the lines collection, not a
+                      column the database can order by. */}
+                  <th>{dict.columnLineCount}</th>
+                  {(
+                    [
+                      ["subtotal", dict.subtotalLabel],
+                      ["taxTotal", dict.taxTotalLabel],
+                      ["total", dict.columnTotal],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <th key={field}>
+                      <button type="button" className="th-sort" onClick={() => toggleSort(field)}>
+                        {label}
+                        <span className="th-sort-arrow">
+                          {sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {page.content.map((invoice) => (
-                  <tr key={invoice.id}>
+                  <tr key={invoice.id} className="clickable" onClick={() => setViewInvoice(invoice)}>
                     <td className="mono">{invoice.invoiceNumber}</td>
                     <td className="mono">{invoice.invoiceDate}</td>
                     <td>{invoice.vendor}</td>
-                    <td className="qty-num">{invoice.total}</td>
+                    <td className="qty-num">
+                      <span className="chip">{invoice.lines.length}</span>
+                    </td>
+                    <td className="qty-num">
+                      {invoice.subtotal} {commonDict.currency}
+                    </td>
+                    <td className="qty-num">
+                      <span className="chip">{invoice.taxRate}%</span> {invoice.taxTotal} {commonDict.currency}
+                    </td>
+                    <td className="qty-num">
+                      {invoice.total} {commonDict.currency}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -165,6 +288,87 @@ export default function InvoiceList({
               <button type="submit" form="invoice-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
                 {addSubmitting && <span className="spinner" />}
                 {dict.submit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only by design: posting an invoice moves stock and sets each
+          item's last purchase price, so invoices are immutable and a
+          mistake is corrected with a new entry rather than an edit. */}
+      {viewInvoice && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>
+                {dict.cardTitle} ({viewInvoice.invoiceNumber})
+              </h3>
+              <button type="button" className="modal-close" onClick={() => setViewInvoice(null)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <dl className="info-grid">
+                <dt>{dict.dateLabel}</dt>
+                <dd className="mono">{viewInvoice.invoiceDate}</dd>
+                <dt>{dict.vendorLabel}</dt>
+                <dd>{viewInvoice.vendor}</dd>
+                <dt>{dict.taxRateLabel}</dt>
+                <dd>{viewInvoice.taxRate}%</dd>
+              </dl>
+
+              <div className="table-scroll" style={{ marginTop: 14 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{dict.itemLabel}</th>
+                      <th>{dict.quantityLabel}</th>
+                      <th>{dict.unitPriceLabel}</th>
+                      <th>{dict.totalLabel}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewInvoice.lines.map((line) => (
+                      <tr key={line.inventoryItemId}>
+                        <td>
+                          <span className="mono">{line.itemCode}</span> — {line.itemNameAr}
+                        </td>
+                        <td className="qty-num">{line.quantity}</td>
+                        <td className="qty-num">
+                          {line.unitPrice} {commonDict.currency}
+                        </td>
+                        <td className="qty-num">
+                          {line.lineTotal} {commonDict.currency}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <dl className="info-grid" style={{ marginTop: 14 }}>
+                <dt>{dict.subtotalLabel}</dt>
+                <dd>
+                  {viewInvoice.subtotal} {commonDict.currency}
+                </dd>
+                <dt>{dict.taxTotalLabel}</dt>
+                <dd>
+                  {viewInvoice.taxTotal} {commonDict.currency}
+                </dd>
+                <dt>
+                  <b>{dict.totalLabel}</b>
+                </dt>
+                <dd>
+                  <b>
+                    {viewInvoice.total} {commonDict.currency}
+                  </b>
+                </dd>
+              </dl>
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setViewInvoice(null)}>
+                {commonDict.cancel}
               </button>
             </div>
           </div>

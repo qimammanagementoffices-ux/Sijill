@@ -243,7 +243,12 @@ export type Dictionary = {
     columnNumber: string;
     columnDate: string;
     columnVendor: string;
+    columnLineCount: string;
     columnTotal: string;
+    cardTitle: string;
+    filterDateFrom: string;
+    filterDateTo: string;
+    filterClear: string;
     numberLabel: string;
     dateLabel: string;
     vendorLabel: string;
