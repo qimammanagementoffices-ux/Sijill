@@ -12,7 +12,7 @@ import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
 import ItemViewModal from "@/components/ItemViewModal";
 import Lightbox from "@/components/Lightbox";
-import { IconSheet, IconPrinter, IconTag } from "@/components/NavIcons";
+import { IconSheet, IconPrinter, IconFilePdf, IconTag } from "@/components/NavIcons";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
@@ -151,8 +151,16 @@ export default function ItemDirectory({
   }
 
   async function handleExport() {
+    // Exports what is on screen, filters included -- exporting the whole
+    // list while the view is filtered would silently hand back the wrong
+    // rows. Same params as load(), minus paging.
+    const extra =
+      (filters.categoryId ? `&categoryId=${filters.categoryId}` : "") +
+      (filters.dateFrom ? `&dateFrom=${filters.dateFrom}` : "") +
+      (filters.dateTo ? `&dateTo=${filters.dateTo}` : "");
     const all = await apiFetch<PagedResponse<InventoryItemListItem>>(
-      `${basePath}?q=${encodeURIComponent(q)}&lowStockOnly=${lowStockOnly}&size=10000`
+      `${basePath}?q=${encodeURIComponent(q)}&lowStockOnly=${lowStockOnly}` +
+        `&sort=${sort.field},${sort.dir}${extra}&size=10000`
     );
     await exportToXlsx(
       dict.title,
@@ -161,7 +169,10 @@ export default function ItemDirectory({
         { header: dict.columnCode, value: (i: InventoryItemListItem) => i.code },
         { header: dict.columnName, value: (i: InventoryItemListItem) => i.nameAr },
         { header: dict.columnCategory, value: (i: InventoryItemListItem) => i.category?.ar ?? "" },
+        { header: dict.columnDateAdded, value: (i: InventoryItemListItem) => i.dateAdded ?? "" },
+        { header: dict.columnLastPurchase, value: (i: InventoryItemListItem) => i.lastPurchasePrice ?? "" },
         { header: dict.columnQuantity, value: (i: InventoryItemListItem) => i.quantity },
+        { header: dict.columnUnit, value: (i: InventoryItemListItem) => i.unit ?? "" },
         { header: dict.columnMinQuantity, value: (i: InventoryItemListItem) => i.minQuantity },
       ],
       all.content
@@ -250,6 +261,13 @@ export default function ItemDirectory({
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}
+            </button>
+            {/* Same window.print() as the print button: "PDF" here means the
+                A4 print view saved as PDF, which is what the legacy app's
+                export-pdf action did too. */}
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+              <IconFilePdf className="ic-sm" />
+              {commonDict.exportPdf}
             </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               <IconPrinter className="ic-sm" />

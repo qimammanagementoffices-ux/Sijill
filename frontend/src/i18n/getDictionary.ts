@@ -12,6 +12,7 @@ export type Dictionary = {
     save: string;
     cancel: string;
     exportXlsx: string;
+    exportPdf: string;
     print: string;
     generatedAt: string;
     actionSuccess: string;
