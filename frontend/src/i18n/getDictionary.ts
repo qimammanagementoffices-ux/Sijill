@@ -177,7 +177,10 @@ export type Dictionary = {
     columnCode: string;
     columnName: string;
     columnCategory: string;
+    columnDateAdded: string;
+    columnLastPurchase: string;
     columnQuantity: string;
+    columnUnit: string;
     columnMinQuantity: string;
     columnStatus: string;
     lowStockBadge: string;

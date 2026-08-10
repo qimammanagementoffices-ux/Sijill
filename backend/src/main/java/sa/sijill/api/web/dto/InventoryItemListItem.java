@@ -1,5 +1,7 @@
 package sa.sijill.api.web.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 import sa.sijill.api.domain.InventoryItem;
 
@@ -13,6 +15,8 @@ public record InventoryItemListItem(
         int minQuantity,
         boolean lowStock,
         String unit,
+        LocalDate dateAdded,
+        BigDecimal lastPurchasePrice,
         boolean active) {
 
     public static InventoryItemListItem from(InventoryItem item) {
@@ -29,6 +33,8 @@ public record InventoryItemListItem(
                 item.getMinQuantity(),
                 item.isLowStock(),
                 item.getUnit(),
+                item.getDateAdded(),
+                item.getLastPurchasePrice(),
                 item.isActive());
     }
 }

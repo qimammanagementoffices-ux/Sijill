@@ -90,6 +90,8 @@ export type InventoryItemListItem = {
   minQuantity: number;
   lowStock: boolean;
   unit: string | null;
+  dateAdded: string | null;
+  lastPurchasePrice: number | null;
   active: boolean;
 };
 

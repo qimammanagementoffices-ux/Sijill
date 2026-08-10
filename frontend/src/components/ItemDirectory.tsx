@@ -43,8 +43,12 @@ export default function ItemDirectory({
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Which page is being fetched -- drives the spinner on the page button
+  // that was clicked, rather than one shared "loading" flag.
+  const [loadingPage, setLoadingPage] = useState<number | null>(null);
 
   function load(pageNumber: number, query: string, lowStock: boolean) {
+    setLoadingPage(pageNumber);
     apiFetch<PagedResponse<InventoryItemListItem>>(
       `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}`
     )
@@ -53,7 +57,8 @@ export default function ItemDirectory({
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
         }
-      });
+      })
+      .finally(() => setLoadingPage(null));
   }
 
   useEffect(() => {
@@ -174,7 +179,10 @@ export default function ItemDirectory({
                   <th>{dict.columnCode}</th>
                   <th>{dict.columnName}</th>
                   <th>{dict.columnCategory}</th>
+                  <th>{dict.columnDateAdded}</th>
+                  <th>{dict.columnLastPurchase}</th>
                   <th>{dict.columnQuantity}</th>
+                  <th>{dict.columnUnit}</th>
                   <th>{dict.columnMinQuantity}</th>
                   <th>{dict.columnStatus}</th>
                 </tr>
@@ -187,7 +195,10 @@ export default function ItemDirectory({
                     </td>
                     <td>{item.nameAr}</td>
                     <td>{item.category ? item.category.ar : ""}</td>
+                    <td className="mono">{item.dateAdded ?? "—"}</td>
+                    <td className="qty-num">{item.lastPurchasePrice ?? "—"}</td>
                     <td className="qty-num">{item.quantity}</td>
+                    <td>{item.unit ?? "—"}</td>
                     <td className="qty-num">{item.minQuantity}</td>
                     <td>
                       <span className={`chip ${item.lowStock ? "s-rejected" : "s-approved"}`}>
@@ -210,8 +221,9 @@ export default function ItemDirectory({
                 type="button"
                 className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
                 onClick={() => load(i, q, lowStockOnly)}
-                disabled={i === page.page}
+                disabled={i === page.page || loadingPage !== null}
               >
+                {loadingPage === i && <span className="spinner" />}
                 {i + 1}
               </button>
             ))}
