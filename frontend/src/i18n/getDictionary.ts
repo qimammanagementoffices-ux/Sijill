@@ -285,6 +285,8 @@ export type Dictionary = {
     columnStatus: string;
     columnSuggestedStart: string;
     statusFilterAll: string;
+    cardTitle: string;
+    cardOpen: string;
     notesLabel: string;
     addLine: string;
     quantityRequestedLabel: string;

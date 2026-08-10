@@ -143,34 +143,43 @@ export default function RequestList({
             <b>{dict.noResults}</b>
           </div>
         ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>{dict.columnRequester}</th>
-                  <th>{dict.columnDepartment}</th>
-                  <th>{dict.columnStatus}</th>
-                  <th>{dict.columnSuggestedStart}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {page.content.map((request) => (
-                  <tr key={request.id} className="clickable" onClick={() => router.push(`/warehouse/requests/${request.id}`)}>
-                    <td>
-                      <Link href={`/warehouse/requests/${request.id}`}>{request.requesterName}</Link>
-                    </td>
-                    <td>{request.department ? request.department.ar : ""}</td>
-                    <td>
-                      <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
-                        <span className="dot" />
-                        {statusLabel(request.status)}
-                      </span>
-                    </td>
-                    <td className="mono">{request.suggestedStartDate}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          // Cards, not rows: the legacy screen leads with the status stamp
+          // and puts the request's own details underneath, which a table
+          // cannot carry without a column per fact.
+          <div className="request-cards">
+            {page.content.map((request) => (
+              <article key={request.id} className="request-card">
+                <header className="request-card-head">
+                  <h3 className="request-card-title">
+                    {dict.cardTitle} — {request.department ? request.department.ar : "—"}
+                  </h3>
+                  <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
+                    <span className="dot" />
+                    {statusLabel(request.status)}
+                  </span>
+                </header>
+
+                <div className="request-card-meta">
+                  <span>{request.requesterName}</span>
+                  {request.department && <span>{request.department.ar}</span>}
+                  {request.suggestedStartDate && (
+                    <span className="mono">{request.suggestedStartDate}</span>
+                  )}
+                </div>
+
+                {request.suggestedStartDate && (
+                  <p className="request-card-banner">
+                    {dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b>
+                  </p>
+                )}
+
+                <div className="request-card-actions">
+                  <Link className="btn btn-outline btn-sm" href={`/warehouse/requests/${request.id}`}>
+                    {dict.cardOpen}
+                  </Link>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </div>
