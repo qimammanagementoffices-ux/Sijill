@@ -237,6 +237,16 @@ export type Dictionary = {
     categoriesTitle: string;
     categoriesDescription: string;
   };
+  // Overrides layered over warehouseItems on the maintenance-parts screen,
+  // which is the same component against the MAINTENANCE domain.
+  maintenanceParts: {
+    title: string;
+    reportTitle: string;
+    addNew: string;
+    noResults: string;
+    categoriesTitle: string;
+    categoriesDescription: string;
+  };
   warehouseInvoices: {
     title: string;
     addNew: string;

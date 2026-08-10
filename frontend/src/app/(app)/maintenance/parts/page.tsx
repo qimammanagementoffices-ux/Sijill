@@ -6,7 +6,11 @@ export default async function MaintenancePartsPage() {
   const dict = await getDictionary(await getRequestLocale());
   return (
     <ItemDirectory
-      dict={dict.warehouseItems}
+      // Same screen as warehouse items (one Domain-parameterized module),
+      // so it reuses that dictionary section and overrides only the strings
+      // that name the screen -- otherwise the parts page calls itself
+      // "أصناف المستودع".
+      dict={{ ...dict.warehouseItems, ...dict.maintenanceParts }}
       errorsDict={dict.errors}
       commonDict={dict.common}
       categoriesModalDict={dict.categoriesModal}
