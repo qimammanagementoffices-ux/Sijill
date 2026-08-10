@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import type {
   CategoryDto,
@@ -132,11 +132,13 @@ export default function NewRequestView({
           const isDone = step > num;
           const isActive = step === num;
           return (
-            <div key={num} className={`wizard-step ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}>
-              <span className="wizard-step-num">{num}</span>
-              <span className="wizard-step-label">{label}</span>
-              {i < stepLabels.length - 1 && <span className="wizard-step-line" />}
-            </div>
+            <Fragment key={num}>
+              {i > 0 && <span className={`wizard-step-line ${step > num ? "done" : step >= num ? "active" : ""}`} />}
+              <div className={`wizard-step ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}>
+                <span className="wizard-step-num">{num}</span>
+                <span className="wizard-step-label">{label}</span>
+              </div>
+            </Fragment>
           );
         })}
       </div>

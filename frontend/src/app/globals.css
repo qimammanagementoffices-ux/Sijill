@@ -1826,31 +1826,33 @@ body.lang-en .modal-head h3 {
 /* ── Wizard stepper ────────────────────────────────────── */
 .wizard-stepper {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 0;
   margin-bottom: 28px;
-  padding: 0 10px;
 }
 .wizard-step {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--slate);
   font-weight: 600;
   white-space: nowrap;
+  min-width: 80px;
+  text-align: center;
 }
 .wizard-step.active { color: var(--ink); }
 .wizard-step.done { color: var(--forest); }
 .wizard-step-num {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   border: 2px solid var(--line);
   color: var(--slate);
@@ -1865,16 +1867,19 @@ body.lang-en .modal-head h3 {
   border-color: var(--forest);
   color: var(--forest);
 }
+.wizard-step-label {
+  display: block;
+}
 .wizard-step-line {
   display: block;
   width: 40px;
   height: 2px;
   background: var(--line);
-  margin: 0 8px;
+  margin-top: 13px;
   flex: none;
 }
-.wizard-step.done + .wizard-step .wizard-step-line,
-.wizard-step.done .wizard-step-line {
+.wizard-step-line.done,
+.wizard-step-line.active {
   background: var(--forest);
 }
 
