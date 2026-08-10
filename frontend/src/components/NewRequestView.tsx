@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
   AttachmentDto,
   CategoryDto,
@@ -33,6 +34,7 @@ export default function NewRequestView({
   onCancel?: () => void;
 }) {
   const [me, setMe] = useState<MeData | null>(null);
+  const entityLocale = useEntityLocale();
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
@@ -206,7 +208,7 @@ export default function NewRequestView({
                   onChange={() => setCategoryId(cat.id)}
                 />
                 {cat.icon && <span className="category-radio-icon">{cat.icon}</span>}
-                <span className="category-radio-name">{cat.nameAr}</span>
+                <span className="category-radio-name">{entityName(cat, entityLocale)}</span>
               </label>
             ))}
           </div>

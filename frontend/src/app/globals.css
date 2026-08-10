@@ -17,6 +17,11 @@
   --seal-soft: #f4e4e3;
   --sage: #3e7a57;
   --sage-soft: #e3efe4;
+  /* The wizard stepper and its controls were written against --forest,
+     which was never declared: `background: var(--forest)` fell back to
+     transparent, so the active step's white number sat on a white circle
+     and read as missing. Aliased to --sage, the palette's green. */
+  --forest: var(--sage);
   --amber: #b4791e;
   --amber-soft: #f7ead3;
   --slate: #5b6472;
