@@ -1,9 +1,4 @@
-insert into translation_value (language_id, key, value)
-select l.id, k.key, k.val
-from language l
-cross join (values
-    ('assets.columnImage', 'الصورة', 'ar'),
-    ('assets.columnImage', 'Image',  'en')
-) as k(key, val, lang)
-where l.code = k.lang
-on conflict do nothing;
+-- See V55 for why this targets translation rather than translation_value.
+insert into translation (key, value_ar, value_en) values
+    ('assets.columnImage', 'الصورة', 'Image')
+on conflict (key) do nothing;

@@ -1,25 +1,12 @@
-insert into translation_value (language_id, key, value)
-select l.id, k.key, k.val
-from language l
-cross join (values
-    ('warehouseRequests.itemLabel',        'الصنف',                'ar'),
-    ('warehouseRequests.itemLabel',        'Item',                 'en'),
-    ('warehouseRequests.categoryLabel',    'نوع الاحتياج (نوع واحد لكل طلب)', 'ar'),
-    ('warehouseRequests.categoryLabel',    'Request type (one per request)',    'en'),
-    ('warehouseRequests.roomLabel',        'الغرفة (اختياري)',     'ar'),
-    ('warehouseRequests.roomLabel',        'Room (optional)',      'en'),
-    ('warehouseRequests.stepDeptType',     'القسم والنوع',        'ar'),
-    ('warehouseRequests.stepDeptType',     'Dept & Type',         'en'),
-    ('warehouseRequests.stepItems',        'الأصناف',             'ar'),
-    ('warehouseRequests.stepItems',        'Items',               'en'),
-    ('warehouseRequests.stepAttachments',  'المرفقات والإرسال',   'ar'),
-    ('warehouseRequests.stepAttachments',  'Attachments & Submit','en'),
-    ('warehouseRequests.nextStep',         'التالي',              'ar'),
-    ('warehouseRequests.nextStep',         'Next',                'en'),
-    ('warehouseRequests.prevStep',         'السابق',              'ar'),
-    ('warehouseRequests.prevStep',         'Previous',            'en'),
-    ('warehouseRequests.finishStep',       'تم',                  'ar'),
-    ('warehouseRequests.finishStep',       'Done',                'en')
-) as k(key, val, lang)
-where l.code = k.lang
-on conflict do nothing;
+-- See V55 for why this targets translation rather than translation_value.
+insert into translation (key, value_ar, value_en) values
+    ('warehouseRequests.itemLabel',       'الصنف',                          'Item'),
+    ('warehouseRequests.categoryLabel',   'نوع الاحتياج (نوع واحد لكل طلب)', 'Request type (one per request)'),
+    ('warehouseRequests.roomLabel',       'الغرفة (اختياري)',               'Room (optional)'),
+    ('warehouseRequests.stepDeptType',    'القسم والنوع',                   'Dept & Type'),
+    ('warehouseRequests.stepItems',       'الأصناف',                        'Items'),
+    ('warehouseRequests.stepAttachments', 'المرفقات والإرسال',              'Attachments & Submit'),
+    ('warehouseRequests.nextStep',        'التالي',                         'Next'),
+    ('warehouseRequests.prevStep',        'السابق',                         'Previous'),
+    ('warehouseRequests.finishStep',      'تم',                             'Done')
+on conflict (key) do nothing;
