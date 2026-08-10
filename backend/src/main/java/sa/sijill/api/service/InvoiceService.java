@@ -2,6 +2,7 @@ package sa.sijill.api.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.Page;
@@ -43,6 +44,12 @@ public class InvoiceService {
 
     public Page<PurchaseInvoice> list(Domain domain, Pageable pageable) {
         return purchaseInvoiceRepository.findByDomain(domain, pageable);
+    }
+
+    // Null bound = open-ended, so an unfiltered request behaves exactly like
+    // the overload above.
+    public Page<PurchaseInvoice> list(Domain domain, LocalDate dateFrom, LocalDate dateTo, Pageable pageable) {
+        return purchaseInvoiceRepository.search(domain, dateFrom, dateTo, pageable);
     }
 
     public PurchaseInvoice get(java.util.UUID id) {
