@@ -12,6 +12,7 @@ public record ItemRequestLineDto(
         Instant createdAt,
         String status,
         String requesterName,
+        String departmentName,
         int quantityRequested,
         Integer quantityIssued) {
 
@@ -23,6 +24,9 @@ public record ItemRequestLineDto(
                 line.getNeedRequest().getRequester() == null
                         ? null
                         : line.getNeedRequest().getRequester().getName(),
+                line.getNeedRequest().getDepartment() == null
+                        ? null
+                        : line.getNeedRequest().getDepartment().getNameAr(),
                 line.getQuantityRequested(),
                 line.getQuantityIssued());
     }

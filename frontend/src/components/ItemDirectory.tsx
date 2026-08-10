@@ -12,7 +12,7 @@ import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
 import ItemViewModal from "@/components/ItemViewModal";
 import Lightbox from "@/components/Lightbox";
-import { IconSheet, IconPrinter, IconFilePdf, IconTag } from "@/components/NavIcons";
+import { IconSheet, IconFilePdf, IconTag } from "@/components/NavIcons";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
@@ -33,6 +33,7 @@ export default function ItemDirectory({
   commonDict,
   categoriesModalDict,
   attachmentsDict,
+  requestsDict,
   basePath,
   categoriesPath,
 }: {
@@ -41,6 +42,7 @@ export default function ItemDirectory({
   commonDict: Dictionary["common"];
   categoriesModalDict: Dictionary["categoriesModal"];
   attachmentsDict: Dictionary["attachments"];
+  requestsDict: Dictionary["warehouseRequests"];
   basePath: string;
   categoriesPath: string;
 }) {
@@ -60,6 +62,8 @@ export default function ItemDirectory({
   const [loadingPage, setLoadingPage] = useState<number | null>(null);
   const [viewItemId, setViewItemId] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
+  const [editItem, setEditItem] = useState<InventoryItemDetail | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
   // Sorting is entirely server-side: the endpoint already takes a Pageable,
   // so ?sort=field,dir works without a backend change. Sorting the current
   // page client-side would only order the 20 rows on screen.
@@ -75,6 +79,20 @@ export default function ItemDirectory({
     const next = { ...filters, ...patch };
     setFilters(next);
     load(0, q, lowStockOnly, sort, next);
+  }
+
+  // Printed reports state what they are scoped to -- otherwise a filtered
+  // printout is indistinguishable from the full list.
+  function printFiltersSummary() {
+    const category = filters.categoryId
+      ? (categories ?? []).find((c) => c.id === filters.categoryId)
+      : null;
+    const parts = [`${dict.columnCategory}: ${category ? entityName(category, entityLocale) : dict.filterAllCategories}`];
+    if (filters.dateFrom || filters.dateTo) {
+      parts.push(`${dict.columnDateAdded}: ${filters.dateFrom || "—"} → ${filters.dateTo || "—"}`);
+    }
+    if (lowStockOnly) parts.push(dict.lowStockOnly);
+    return parts.join(" · ");
   }
 
   function clearFilters() {
@@ -188,7 +206,8 @@ export default function ItemDirectory({
         <h1 className="section-title disp">{dict.title}</h1>
       </div>
       <div className="print-only">
-        <PrintReportHeader title={dict.title} dict={commonDict} />
+        <PrintReportHeader title={dict.reportTitle} filtersSummary={printFiltersSummary()} dict={commonDict} />
+        <h2 className="ps-report-title">{dict.reportTitle}</h2>
       </div>
 
       <div className="panel">
@@ -269,10 +288,6 @@ export default function ItemDirectory({
               <IconFilePdf className="ic-sm" />
               {commonDict.exportPdf}
             </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
-              <IconPrinter className="ic-sm" />
-              {commonDict.print}
-            </button>
             {canManage && (
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowCategoriesModal(true)}>
                 <IconTag className="ic-sm" />
@@ -292,7 +307,12 @@ export default function ItemDirectory({
             <b>{dict.noResults}</b>
           </div>
         ) : (
-          <div className="table-scroll">
+          <div className="table-scroll table-loading-wrap">
+            {loadingPage !== null && (
+              <div className="table-loading-veil no-print">
+                <span className="spinner spinner-lg" />
+              </div>
+            )}
             <table>
               <thead>
                 <tr>
@@ -379,7 +399,6 @@ export default function ItemDirectory({
                 onClick={() => load(i, q, lowStockOnly)}
                 disabled={i === page.page || loadingPage !== null}
               >
-                {loadingPage === i && <span className="spinner" />}
                 {i + 1}
               </button>
             ))}
@@ -444,20 +463,87 @@ export default function ItemDirectory({
         />
       )}
 
+      {editItem && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{dict.cardEdit}</h3>
+              <button type="button" className="modal-close" onClick={() => setEditItem(null)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {!categories ? (
+                <SectionLoading />
+              ) : (
+                <ItemForm
+                  dict={dict}
+                  errorsDict={errorsDict}
+                  categoriesModalDict={categoriesModalDict}
+                  mode="edit"
+                  initial={editItem}
+                  categories={categories}
+                  basePath={basePath}
+                  onSubmitted={() => {
+                    setEditItem(null);
+                    load(page.page, q, lowStockOnly);
+                    setToast(commonDict.actionSuccess);
+                  }}
+                  formId="item-edit-form"
+                  onSubmittingChange={setEditSubmitting}
+                />
+              )}
+            </div>
+            <div className="modal-foot">
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setEditItem(null)}
+                disabled={editSubmitting}
+              >
+                {commonDict.cancel}
+              </button>
+              <button
+                type="submit"
+                form="item-edit-form"
+                className="btn btn-primary btn-sm"
+                disabled={editSubmitting || !categories}
+              >
+                {editSubmitting && <span className="spinner" />}
+                {dict.submitUpdate}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewItemId && (
         <ItemViewModal
           itemId={viewItemId}
           dict={dict}
           attachmentsDict={attachmentsDict}
+          requestsDict={requestsDict}
           commonDict={commonDict}
           canManage={canManage}
           onClose={() => setViewItemId(null)}
-          onEdit={() => router.push(`${basePath}/${viewItemId}`)}
+          onEdit={() => {
+            apiFetch<InventoryItemDetail>(`${basePath}/${viewItemId}`).then((detail) => {
+              setViewItemId(null);
+              setEditItem(detail);
+            });
+          }}
         />
       )}
 
       {lightbox && (
-        <Lightbox url={lightbox.url} filename={lightbox.filename} onClose={() => setLightbox(null)} />
+        <Lightbox
+          url={lightbox.url}
+          filename={lightbox.filename}
+          title={attachmentsDict.viewImage}
+          downloadLabel={attachmentsDict.download}
+          closeLabel={commonDict.cancel}
+          onClose={() => setLightbox(null)}
+        />
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

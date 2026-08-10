@@ -901,6 +901,86 @@ img[data-viewable] {
 .filebox input[type="file"] {
   display: none;
 }
+/* Report title under the printed header, e.g. "تقرير سجل الأصناف". */
+.ps-report-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  margin: 14px 0 12px;
+  color: var(--ink);
+}
+
+/* Attachment tile: image thumb or file link, with its delete action, boxed
+   so a mixed strip of images and PDFs lines up instead of drifting. */
+.attachment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 96px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.attachment-thumb {
+  width: 74px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  cursor: zoom-in;
+  background: #fff;
+}
+.attachment-file {
+  font-size: 11px;
+  text-align: center;
+  word-break: break-word;
+  display: flex;
+  align-items: center;
+  min-height: 74px;
+}
+
+/* Lightbox image stage -- the parchment mat behind the image, matching the
+   legacy "عرض الصورة" dialog. */
+.lightbox-body {
+  background: var(--paper-dim);
+  padding: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 70vh;
+  overflow: auto;
+}
+.lightbox-img {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* Loading veil over a table while a filter/sort/page refetches. Sits over
+   the rows rather than on the button that was clicked, so it reads as "the
+   whole list is being replaced". */
+.table-loading-wrap {
+  position: relative;
+}
+.table-loading-veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(2.5px);
+  -webkit-backdrop-filter: blur(2.5px);
+  z-index: 5;
+  border-radius: 10px;
+}
+
 /* Item-list thumbnail. Fixed box so rows keep an even height whatever the
    image's aspect ratio, and an empty placeholder so a row without an image
    does not collapse the column. */

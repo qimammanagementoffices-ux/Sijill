@@ -111,6 +111,7 @@ export type ItemRequestLine = {
   createdAt: string;
   status: string;
   requesterName: string | null;
+  departmentName: string | null;
   quantityRequested: number;
   quantityIssued: number | null;
 };

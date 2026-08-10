@@ -11,6 +11,7 @@ export default async function MaintenancePartsPage() {
       commonDict={dict.common}
       categoriesModalDict={dict.categoriesModal}
       attachmentsDict={dict.attachments}
+      requestsDict={dict.warehouseRequests}
       basePath="/maintenance/parts"
       categoriesPath="/maintenance/categories"
     />

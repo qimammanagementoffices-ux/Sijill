@@ -215,6 +215,8 @@ export type Dictionary = {
     cardUnitPrice: string;
     cardLineTotal: string;
     cardRequester: string;
+    cardRequestDate: string;
+    cardDepartment: string;
     cardQuantityRequested: string;
     cardQuantityIssued: string;
     cardEdit: string;
@@ -222,6 +224,7 @@ export type Dictionary = {
     filterDateFrom: string;
     filterDateTo: string;
     filterClear: string;
+    reportTitle: string;
     minQuantityLabel: string;
     submitCreate: string;
     submitUpdate: string;
@@ -341,6 +344,8 @@ export type Dictionary = {
   };
   attachments: {
     title: string;
+    viewImage: string;
+    download: string;
     upload: string;
     delete: string;
     deleteConfirm: string;

@@ -13,12 +13,17 @@ export default function AttachmentUploader({
   ownerId,
   dict,
   canManage,
+  showUpload = true,
   onAction,
 }: {
   ownerType: AttachmentOwnerType;
   ownerId: string;
   dict: Dictionary["attachments"];
   canManage: boolean;
+  // The item card shows attachments read-only -- uploading happens in the
+  // edit dialog, so the card would otherwise carry a second upload button
+  // labelled with the section title.
+  showUpload?: boolean;
   // Fires after a successful upload/delete -- the toast text itself lives
   // with the caller (commonDict.actionSuccess) so this component doesn't
   // need Dictionary["common"] threaded through just for one string.
@@ -87,17 +92,11 @@ export default function AttachmentUploader({
 
       <div className="thumb-strip">
         {attachments.map((a) => (
-          <div key={a.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div key={a.id} className="attachment-card">
             {a.contentType.startsWith("image/") ? (
-              <img
-                src={a.url}
-                alt={a.filename}
-                data-viewable
-                onClick={() => setPreview(a)}
-                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }}
-              />
+              <img src={a.url} alt={a.filename} data-viewable onClick={() => setPreview(a)} className="attachment-thumb" />
             ) : (
-              <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11 }}>
+              <a href={a.url} target="_blank" rel="noopener noreferrer" className="attachment-file">
                 {a.filename}
               </a>
             )}
@@ -110,7 +109,7 @@ export default function AttachmentUploader({
         ))}
       </div>
 
-      {canManage && (
+      {canManage && showUpload && (
         <div className="filebox" style={{ marginTop: 10 }}>
           <label className="upl">
             {dict.title}

@@ -11,6 +11,7 @@ export default async function WarehouseItemsPage() {
       commonDict={dict.common}
       categoriesModalDict={dict.categoriesModal}
       attachmentsDict={dict.attachments}
+      requestsDict={dict.warehouseRequests}
       basePath="/warehouse/items"
       categoriesPath="/warehouse/categories"
     />

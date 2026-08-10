@@ -7,12 +7,23 @@ import AttachmentUploader from "@/components/AttachmentUploader";
 import type { InventoryItemDetail, ItemPurchaseLine, ItemRequestLine } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
+// Same status palette the request list uses, so a status reads identically
+// wherever it appears.
+const REQUEST_STATUS_CLASS: Record<string, string> = {
+  PENDING: "s-pending",
+  APPROVED: "s-approved",
+  POSTPONED: "s-postponed",
+  REJECTED: "s-rejected",
+  CLOSED: "s-closed",
+};
+
 // The legacy app's "بطاقة الصنف" card: basic info, purchase history, and
 // need-request history, opened from a row click rather than a page load.
 export default function ItemViewModal({
   itemId,
   dict,
   attachmentsDict,
+  requestsDict,
   commonDict,
   canManage,
   onClose,
@@ -21,6 +32,7 @@ export default function ItemViewModal({
   itemId: string;
   dict: Dictionary["warehouseItems"];
   attachmentsDict: Dictionary["attachments"];
+  requestsDict: Dictionary["warehouseRequests"];
   commonDict: Dictionary["common"];
   canManage: boolean;
   onClose: () => void;
@@ -124,19 +136,35 @@ export default function ItemViewModal({
                   <table>
                     <thead>
                       <tr>
+                        <th>{dict.cardRequestDate}</th>
                         <th>{dict.cardRequester}</th>
-                        <th>{dict.columnStatus}</th>
+                        <th>{dict.cardDepartment}</th>
                         <th>{dict.cardQuantityRequested}</th>
-                        <th>{dict.cardQuantityIssued}</th>
+                        <th>{dict.columnStatus}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {requests.map((line, i) => (
                         <tr key={`${line.requestId}-${i}`}>
+                          <td>{new Date(line.createdAt).toLocaleDateString()}</td>
                           <td>{line.requesterName ?? "—"}</td>
-                          <td>{line.status}</td>
-                          <td className="qty-num">{line.quantityRequested}</td>
-                          <td className="qty-num">{line.quantityIssued ?? "—"}</td>
+                          <td>{line.departmentName ?? "—"}</td>
+                          <td className="qty-num">
+                            {line.quantityRequested} {item.unit ?? ""}
+                          </td>
+                          <td>
+                            <span className={`chip ${REQUEST_STATUS_CLASS[line.status] ?? ""}`}>
+                              <span className="chip-dot" />
+                              {requestsDict[
+                                `status${line.status.charAt(0)}${line.status.slice(1).toLowerCase()}` as
+                                  | "statusPending"
+                                  | "statusApproved"
+                                  | "statusPostponed"
+                                  | "statusRejected"
+                                  | "statusClosed"
+                              ] ?? line.status}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -150,6 +178,7 @@ export default function ItemViewModal({
                   ownerId={item.id}
                   dict={attachmentsDict}
                   canManage={canManage}
+                  showUpload={false}
                 />
               </div>
             </>
