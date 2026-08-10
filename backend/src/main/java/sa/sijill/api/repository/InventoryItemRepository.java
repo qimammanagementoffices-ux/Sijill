@@ -35,4 +35,13 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
 
     @Query("select count(i) from InventoryItem i where i.domain = :domain and i.quantity <= i.minQuantity")
     long countLowStockByDomain(@Param("domain") Domain domain);
+
+    // One sequence per domain so warehouse and maintenance codes number
+    // independently -- the unique constraint is (domain, code), so WH-0001
+    // and MN-0001 coexist. See V63__code_sequences.sql.
+    @Query(value = "select nextval('warehouse_item_code_seq')", nativeQuery = true)
+    long nextWarehouseCodeSequence();
+
+    @Query(value = "select nextval('maintenance_item_code_seq')", nativeQuery = true)
+    long nextMaintenanceCodeSequence();
 }

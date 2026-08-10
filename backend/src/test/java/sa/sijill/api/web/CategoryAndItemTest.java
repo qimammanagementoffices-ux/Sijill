@@ -1,5 +1,6 @@
 package sa.sijill.api.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -58,7 +59,7 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
         String categoryId = createCategory(token);
 
         var request = new CreateInventoryItemRequest(
-                "PEN-001", "قلم", "Pen", java.util.UUID.fromString(categoryId), "box", null, null, 10, null);
+                "قلم", "Pen", java.util.UUID.fromString(categoryId), "box", null, null, 10, null);
 
         String body = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -72,10 +73,14 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
                 .getContentAsString();
 
         JsonNode created = objectMapper.readTree(body);
+        // The code is assigned by warehouse_item_code_seq, not by the caller,
+        // so assert the shape and that the same value comes back on read.
+        String generatedCode = created.get("code").asText();
+        assertThat(generatedCode).matches("WH-\\d{4,}");
         mockMvc.perform(get("/api/v1/warehouse/items/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("PEN-001"));
+                .andExpect(jsonPath("$.code").value(generatedCode));
     }
 
     @Test
@@ -97,7 +102,7 @@ class CategoryAndItemTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String viewerToken = objectMapper.readTree(loginBody).get("token").asText();
 
-        var request = new CreateInventoryItemRequest("X-1", "س", "X", null, null, null, null, 0, null);
+        var request = new CreateInventoryItemRequest("س", "X", null, null, null, null, 0, null);
         mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + viewerToken)
                         .contentType(MediaType.APPLICATION_JSON)

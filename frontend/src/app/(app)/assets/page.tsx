@@ -10,6 +10,7 @@ export default async function AssetsPage() {
       errorsDict={dict.errors}
       commonDict={dict.common}
       categoriesModalDict={dict.categoriesModal}
+      attachmentsDict={dict.attachments}
     />
   );
 }

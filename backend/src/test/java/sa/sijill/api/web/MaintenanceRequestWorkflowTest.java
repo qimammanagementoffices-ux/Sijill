@@ -54,8 +54,8 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
         return objectMapper.readTree(loginBody).get("token").asText();
     }
 
-    private String createPartWithStock(String adminToken, String code, int stock) throws Exception {
-        var createPart = new CreateInventoryItemRequest(code, "قطعة", "Part", null, "pcs", null, null, 0, null);
+    private String createPartWithStock(String adminToken, int stock) throws Exception {
+        var createPart = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, null);
         String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -76,7 +76,7 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
     void fullWorkflowSubmitApproveStartFinishWithPartsUsedDecrementsStock() throws Exception {
         String adminToken = createAdminAndGetToken("0599333333");
         String requesterToken = createEmployeeAndLogin(adminToken, "0599444444", Set.of("mt.request"));
-        String partId = createPartWithStock(adminToken, "MPART-WF-001", 10);
+        String partId = createPartWithStock(adminToken, 10);
 
         var submit = new SubmitMaintenanceRequestRequest(null, null, "Room 12", MaintenancePriority.HIGH, "AC not cooling");
         String submitBody = mockMvc.perform(post("/api/v1/maintenance/requests")

@@ -41,8 +41,8 @@ class InvoicePostingTest extends AbstractIntegrationTest {
         return objectMapper.readTree(body).get("token").asText();
     }
 
-    private String createItem(String token, String code) throws Exception {
-        var request = new CreateInventoryItemRequest(code, "صنف", "Item", null, "pcs", null, null, 5, null);
+    private String createItem(String token) throws Exception {
+        var request = new CreateInventoryItemRequest("صنف", "Item", null, "pcs", null, null, 5, null);
         String body = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,7 +56,7 @@ class InvoicePostingTest extends AbstractIntegrationTest {
     @Test
     void postingIncrementsQuantityAndUpdatesLastPrice() throws Exception {
         String token = createAdminAndGetToken("0594444444");
-        String itemId = createItem(token, "ITM-001");
+        String itemId = createItem(token);
 
         var invoiceRequest = new CreateInvoiceRequest(
                 "INV-1001",
@@ -87,7 +87,7 @@ class InvoicePostingTest extends AbstractIntegrationTest {
     @Test
     void duplicateInvoiceNumberIsRejected() throws Exception {
         String token = createAdminAndGetToken("0595555555");
-        String itemId = createItem(token, "ITM-002");
+        String itemId = createItem(token);
 
         var invoiceRequest = new CreateInvoiceRequest(
                 "INV-DUP",

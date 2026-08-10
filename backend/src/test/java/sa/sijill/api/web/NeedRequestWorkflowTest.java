@@ -54,8 +54,8 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         return objectMapper.readTree(loginBody).get("token").asText();
     }
 
-    private String createItemWithStock(String adminToken, String code, int stock) throws Exception {
-        var createItem = new CreateInventoryItemRequest(code, "صنف", "Item", null, "pcs", null, null, 0, null);
+    private String createItemWithStock(String adminToken, int stock) throws Exception {
+        var createItem = new CreateInventoryItemRequest("صنف", "Item", null, "pcs", null, null, 0, null);
         String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -77,7 +77,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     void submitApproveFinishWithPartialFulfillmentDecrementsStock() throws Exception {
         String adminToken = createAdminAndGetToken("0596111111");
         String requesterToken = createEmployeeAndLogin(adminToken, "0596222222", Set.of("wh.request"));
-        String itemId = createItemWithStock(adminToken, "PART-001", 10);
+        String itemId = createItemWithStock(adminToken, 10);
 
         var submit = new CreateNeedRequestRequest(
                 null, null, null, "need some", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
@@ -122,7 +122,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     void finishFromNonApprovedStatusIsRejected() throws Exception {
         String adminToken = createAdminAndGetToken("0596333333");
         String requesterToken = createEmployeeAndLogin(adminToken, "0596444444", Set.of("wh.request"));
-        String itemId = createItemWithStock(adminToken, "PART-002", 10);
+        String itemId = createItemWithStock(adminToken, 10);
 
         var submit = new CreateNeedRequestRequest(
                 null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 2)));
@@ -146,7 +146,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0596555555");
         String requesterAToken = createEmployeeAndLogin(adminToken, "0596666666", Set.of("wh.request"));
         String requesterBToken = createEmployeeAndLogin(adminToken, "0596777777", Set.of("wh.request"));
-        String itemId = createItemWithStock(adminToken, "PART-003", 10);
+        String itemId = createItemWithStock(adminToken, 10);
 
         var submit = new CreateNeedRequestRequest(
                 null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));

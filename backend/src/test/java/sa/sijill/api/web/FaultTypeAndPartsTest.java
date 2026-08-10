@@ -1,5 +1,6 @@
 package sa.sijill.api.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -62,19 +63,27 @@ class FaultTypeAndPartsTest extends AbstractIntegrationTest {
     void maintenancePartsAreDomainSeparatedFromWarehouseItems() throws Exception {
         String token = createAdminAndGetToken("0599222222");
 
-        var part = new CreateInventoryItemRequest("MPART-001", "قطعة", "Part", null, "pcs", null, null, 0, null);
-        mockMvc.perform(post("/api/v1/maintenance/parts")
+        var part = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, null);
+        String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(part)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        // Maintenance parts draw from their own sequence and prefix, so the
+        // code proves the domain as well as identifying the row.
+        String partCode = objectMapper.readTree(partBody).get("code").asText();
+        assertThat(partCode).matches("MN-\\d{4,}");
 
-        mockMvc.perform(get("/api/v1/maintenance/parts").param("q", "MPART-001")
+        mockMvc.perform(get("/api/v1/maintenance/parts").param("q", partCode)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
 
-        mockMvc.perform(get("/api/v1/warehouse/items").param("q", "MPART-001")
+        // Same code, warehouse domain — must not leak across.
+        mockMvc.perform(get("/api/v1/warehouse/items").param("q", partCode)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0));

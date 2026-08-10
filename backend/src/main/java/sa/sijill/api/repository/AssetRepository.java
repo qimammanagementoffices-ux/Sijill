@@ -38,4 +38,8 @@ public interface AssetRepository extends JpaRepository<Asset, UUID> {
             value = "select room_id as roomId, count(*) as count from asset where room_id is not null group by room_id",
             nativeQuery = true)
     java.util.List<RoomAssetCount> countAssetsByRoom();
+
+    // Server-owned asset numbers -- see V63__code_sequences.sql.
+    @Query(value = "select nextval('asset_number_seq')", nativeQuery = true)
+    long nextAssetNumberSequence();
 }

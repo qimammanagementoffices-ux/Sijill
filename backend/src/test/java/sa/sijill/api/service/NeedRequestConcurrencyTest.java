@@ -171,48 +171,59 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         assertThat(reloaded.getQuantity()).isZero();
     }
 
-    private boolean attemptCreateAsset(String assetNumber, Employee actor, CountDownLatch ready, CountDownLatch go)
+    private String attemptCreateAsset(Employee actor, CountDownLatch ready, CountDownLatch go)
             throws InterruptedException {
         ready.countDown();
         go.await();
         try {
             var created = assetService.create(
                     new CreateAssetRequest(
-                            assetNumber, "أصل", "Asset", null, null, null, AssetStatus.ACTIVE, null, null, null, null, null),
+                            "أصل", "Asset", null, null, null, AssetStatus.ACTIVE, null, null, null, null, null, null, null, null, null),
                     actor);
             createdAssetIds.add(created.getId());
-            return true;
+            return created.getAssetNumber();
         } catch (ApiException | DataIntegrityViolationException e) {
-            return false;
+            return null;
         }
     }
 
+    /**
+     * Asset numbers used to be client-supplied and guarded by an
+     * existsByAssetNumber check, so this test asserted that two racing
+     * creates left exactly one winner. Since V63 the number comes from
+     * asset_number_seq, so the race is gone entirely: both creates now
+     * succeed and must simply receive different numbers. A sequence hands
+     * out each value once even to concurrent callers, and unlike the old
+     * check-then-insert it does not roll back with the transaction.
+     */
     @Test
-    void concurrentCreateWithSameAssetNumberLetsOnlyOneSucceed() throws Exception {
+    void concurrentCreatesBothSucceedWithDistinctAssetNumbers() throws Exception {
         Employee actor = createEmployee("0597700002");
-        String assetNumber = "CONC-ASSET-" + UUID.randomUUID().toString().substring(0, 8);
 
         ExecutorService pool = Executors.newFixedThreadPool(2);
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch go = new CountDownLatch(1);
+        String numberA;
+        String numberB;
         try {
-            Callable<Boolean> taskA = () -> attemptCreateAsset(assetNumber, actor, ready, go);
-            Callable<Boolean> taskB = () -> attemptCreateAsset(assetNumber, actor, ready, go);
+            Callable<String> taskA = () -> attemptCreateAsset(actor, ready, go);
+            Callable<String> taskB = () -> attemptCreateAsset(actor, ready, go);
 
-            Future<Boolean> resultA = pool.submit(taskA);
-            Future<Boolean> resultB = pool.submit(taskB);
+            Future<String> resultA = pool.submit(taskA);
+            Future<String> resultB = pool.submit(taskB);
             ready.await(5, TimeUnit.SECONDS);
             go.countDown();
 
-            boolean succeededA = resultA.get(10, TimeUnit.SECONDS);
-            boolean succeededB = resultB.get(10, TimeUnit.SECONDS);
-
-            assertThat(succeededA ^ succeededB).as("exactly one create() call should succeed").isTrue();
+            numberA = resultA.get(10, TimeUnit.SECONDS);
+            numberB = resultB.get(10, TimeUnit.SECONDS);
         } finally {
             pool.shutdown();
         }
 
-        assertThat(assetRepository.findAll().stream().filter(a -> a.getAssetNumber().equals(assetNumber)).count())
-                .isEqualTo(1);
+        assertThat(numberA).as("both concurrent creates should succeed").isNotNull();
+        assertThat(numberB).as("both concurrent creates should succeed").isNotNull();
+        assertThat(numberA).as("the sequence must not hand out the same number twice").isNotEqualTo(numberB);
+        assertThat(numberA).startsWith("AST-");
+        assertThat(numberB).startsWith("AST-");
     }
 }

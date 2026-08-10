@@ -11,6 +11,8 @@ import SectionLoading from "@/components/SectionLoading";
 import NewAssetView from "@/components/NewAssetView";
 import Toast from "@/components/Toast";
 import CategoriesModal from "@/components/CategoriesModal";
+import AssetViewModal from "@/components/AssetViewModal";
+import AssetEditModal from "@/components/AssetEditModal";
 import type { AssetDetail, AssetListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -25,11 +27,13 @@ export default function AssetDirectory({
   errorsDict,
   commonDict,
   categoriesModalDict,
+  attachmentsDict,
 }: {
   dict: Dictionary["assets"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   categoriesModalDict: Dictionary["categoriesModal"];
+  attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -39,6 +43,8 @@ export default function AssetDirectory({
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [viewAssetId, setViewAssetId] = useState<string | null>(null);
+  const [editAssetId, setEditAssetId] = useState<string | null>(null);
 
   function load(pageNumber: number, query: string) {
     apiFetch<PagedResponse<AssetListItem>>(`/assets?q=${encodeURIComponent(query)}&page=${pageNumber}`)
@@ -167,7 +173,7 @@ export default function AssetDirectory({
               </thead>
               <tbody>
                 {page.content.map((asset) => (
-                  <tr key={asset.id} className="clickable" onClick={() => router.push(`/assets/${asset.id}`)}>
+                  <tr key={asset.id} className="clickable" onClick={() => setViewAssetId(asset.id)}>
                     <td>
                       {asset.thumbnailUrl ? (
                         <img
@@ -180,7 +186,9 @@ export default function AssetDirectory({
                       )}
                     </td>
                     <td className="mono">
-                      <Link href={`/assets/${asset.id}`}>{asset.assetNumber}</Link>
+                      <button type="button" className="link-btn" onClick={(e) => { e.stopPropagation(); setViewAssetId(asset.id); }}>
+                        {asset.assetNumber}
+                      </button>
                     </td>
                     <td>{asset.nameAr}</td>
                     <td>{asset.category ? asset.category.ar : ""}</td>
@@ -257,6 +265,43 @@ export default function AssetDirectory({
           errorsDict={errorsDict}
           onClose={() => setShowCategoriesModal(false)}
           onChanged={() => {}}
+        />
+      )}
+
+      {viewAssetId && (
+        <AssetViewModal
+          assetId={viewAssetId}
+          dict={dict}
+          commonDict={commonDict}
+          canManage={canManage}
+          onClose={() => setViewAssetId(null)}
+          onEdit={() => {
+            setEditAssetId(viewAssetId);
+            setViewAssetId(null);
+          }}
+          onChanged={() => load(page?.page ?? 0, q)}
+        />
+      )}
+
+      {editAssetId && (
+        <AssetEditModal
+          assetId={editAssetId}
+          dict={dict}
+          attachmentsDict={attachmentsDict}
+          commonDict={commonDict}
+          categoriesModalDict={categoriesModalDict}
+          errorsDict={errorsDict}
+          onClose={() => setEditAssetId(null)}
+          onSaved={() => {
+            setEditAssetId(null);
+            load(page?.page ?? 0, q);
+            setToast(commonDict.actionSuccess);
+          }}
+          onDeleted={() => {
+            setEditAssetId(null);
+            load(0, q);
+            setToast(commonDict.actionSuccess);
+          }}
         />
       )}
 

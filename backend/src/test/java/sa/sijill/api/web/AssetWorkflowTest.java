@@ -90,7 +90,6 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateAssetRequest(
-                                "AST-001",
                                 "جهاز عرض",
                                 "Projector",
                                 null,
@@ -101,7 +100,8 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                                 null,
                                 null,
                                 null,
-                                null))))
+                                null,
+                                null, null, null, null))))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -109,6 +109,9 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
         JsonNode asset = objectMapper.readTree(assetBody);
         String assetId = asset.get("id").asText();
         String publicToken = asset.get("publicToken").asText();
+        // Server-assigned from asset_number_seq (V63), so carry the value
+        // through rather than asserting a literal the caller no longer picks.
+        String assetNumber = asset.get("assetNumber").asText();
 
         var submit = new SubmitAssetRequestRequest(java.util.UUID.fromString(assetId), "need it for class");
         String submitBody = mockMvc.perform(post("/api/v1/asset-requests")
@@ -147,12 +150,12 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].assetNumber").value("AST-001"));
+                .andExpect(jsonPath("$[0].assetNumber").value(assetNumber));
 
         // Public QR view — allowlisted fields only, no cost/vendor/notes/custodian.
         mockMvc.perform(get("/api/v1/public/assets/" + publicToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.assetNumber").value("AST-001"))
+                .andExpect(jsonPath("$.assetNumber").value(assetNumber))
                 .andExpect(jsonPath("$.nameEn").value("Projector"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.vendor").doesNotExist())

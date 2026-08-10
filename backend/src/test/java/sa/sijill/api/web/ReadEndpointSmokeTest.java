@@ -133,7 +133,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String categoryId = objectMapper.readTree(categoryBody).get("id").asText();
 
         var item = new CreateInventoryItemRequest(
-                "SMOKE-001", "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5, null);
+                "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5, null);
         String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -142,6 +142,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getResponse()
                 .getContentAsString();
         String itemId = objectMapper.readTree(itemBody).get("id").asText();
+        String itemCode = objectMapper.readTree(itemBody).get("code").asText();
 
         mockMvc.perform(get("/api/v1/warehouse/items").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
@@ -160,7 +161,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/warehouse/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].lines[0].itemCode").value("SMOKE-001"));
+                .andExpect(jsonPath("$.content[0].lines[0].itemCode").value(itemCode));
 
         // Need request — department/category/line-item/action-actor associations.
         var request = new CreateNeedRequestRequest(
@@ -181,7 +182,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/warehouse/requests/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lines[0].itemCode").value("SMOKE-001"));
+                .andExpect(jsonPath("$.lines[0].itemCode").value(itemCode));
 
         // --- Maintenance domain (Phase 4) — same LAZY-association risk. ---
         String faultCategoryBody = mockMvc.perform(post("/api/v1/maintenance/categories")
@@ -204,7 +205,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String faultTypeId = objectMapper.readTree(faultTypeBody).get("id").asText();
 
-        var part = new CreateInventoryItemRequest("SMOKE-MPART-001", "قطعة", "Part", null, "pcs", null, null, 0, null);
+        var part = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, null);
         String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -213,6 +214,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getResponse()
                 .getContentAsString();
         String partId = objectMapper.readTree(partBody).get("id").asText();
+        String partCode = objectMapper.readTree(partBody).get("code").asText();
 
         mockMvc.perform(get("/api/v1/maintenance/parts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
@@ -230,7 +232,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/maintenance/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].lines[0].itemCode").value("SMOKE-MPART-001"));
+                .andExpect(jsonPath("$.content[0].lines[0].itemCode").value(partCode));
 
         var maintenanceRequest = new SubmitMaintenanceRequestRequest(
                 null, UUID.fromString(faultTypeId), "Room 1", MaintenancePriority.MEDIUM, "smoke test fault");
@@ -281,7 +283,6 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateAssetRequest(
-                                "SMOKE-AST-001",
                                 "جهاز عرض",
                                 "Projector",
                                 UUID.fromString(assetCategoryId),
@@ -292,13 +293,15 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                                 null,
                                 null,
                                 null,
-                                null))))
+                                null,
+                                null, null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
         JsonNode createdAsset = objectMapper.readTree(assetBody);
         String assetId = createdAsset.get("id").asText();
         String publicToken = createdAsset.get("publicToken").asText();
+        String assetNumber = createdAsset.get("assetNumber").asText();
 
         mockMvc.perform(get("/api/v1/assets").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
@@ -310,7 +313,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/public/assets/" + publicToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.assetNumber").value("SMOKE-AST-001"));
+                .andExpect(jsonPath("$.assetNumber").value(assetNumber));
 
         var submitAssetRequest = new SubmitAssetRequestRequest(UUID.fromString(assetId), "smoke test");
         String assetRequestBody = mockMvc.perform(post("/api/v1/asset-requests")
@@ -329,7 +332,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/asset-requests/" + createdAssetRequest.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.assetNumber").value("SMOKE-AST-001"));
+                .andExpect(jsonPath("$.assetNumber").value(assetNumber));
 
         mockMvc.perform(get("/api/v1/assets/" + assetId + "/transfers")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
