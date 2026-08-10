@@ -493,6 +493,15 @@ body.lang-en .section-title {
   border-color: rgba(27, 42, 74, 0.25);
   border-top-color: var(--ink);
 }
+/* Same problem anywhere the spinner sits on the page's own light surface
+   rather than inside a filled button -- white on cream is invisible. */
+.chip .spinner,
+.filebox .spinner {
+  width: 13px;
+  height: 13px;
+  border-color: rgba(27, 42, 74, 0.25);
+  border-top-color: var(--seal);
+}
 .spinner-lg {
   width: 32px;
   height: 32px;
