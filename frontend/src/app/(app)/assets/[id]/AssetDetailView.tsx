@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiFetchBlob, ApiError } from "@/lib/apiClient";
@@ -40,6 +41,7 @@ export default function AssetDetailView({
   categoriesModalDict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
 }) {
+  const entityLocale = useEntityLocale();
   const router = useRouter();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -207,7 +209,7 @@ export default function AssetDetailView({
                   <option value="">—</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nameAr}
+                      {entityName(c, entityLocale)}
                     </option>
                   ))}
                 </select>

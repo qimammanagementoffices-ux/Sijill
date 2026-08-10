@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import type { FaultTypeDto, MaintenanceRequestDetail, MaintenancePriority } from "@/lib/types";
@@ -24,6 +25,7 @@ export default function NewMaintenanceRequestView({
   formId?: string;
   onSubmittingChange?: (submitting: boolean) => void;
 }) {
+  const entityLocale = useEntityLocale();
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [faultTypeId, setFaultTypeId] = useState("");
   const [location, setLocation] = useState("");
@@ -85,7 +87,7 @@ export default function NewMaintenanceRequestView({
                 <option value="">—</option>
                 {faultTypes.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.nameAr}
+                    {entityName(f, entityLocale)}
                   </option>
                 ))}
               </select>

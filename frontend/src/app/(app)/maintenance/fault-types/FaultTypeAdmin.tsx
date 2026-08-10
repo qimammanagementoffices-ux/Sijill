@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
@@ -23,6 +24,7 @@ export default function FaultTypeAdmin({
   categoriesModalDict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
 }) {
+  const entityLocale = useEntityLocale();
   const router = useRouter();
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -198,7 +200,7 @@ export default function FaultTypeAdmin({
                           <option value="">—</option>
                           {categories.map((c) => (
                             <option key={c.id} value={c.id}>
-                              {c.nameAr}
+                              {entityName(c, entityLocale)}
                             </option>
                           ))}
                         </select>
@@ -251,7 +253,7 @@ export default function FaultTypeAdmin({
                     <option value="">—</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.nameAr}
+                        {entityName(c, entityLocale)}
                       </option>
                     ))}
                   </select>

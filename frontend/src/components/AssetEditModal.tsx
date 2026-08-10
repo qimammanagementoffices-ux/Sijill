@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import AttachmentUploader from "@/components/AttachmentUploader";
@@ -33,6 +34,7 @@ export default function AssetEditModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const entityLocale = useEntityLocale();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -149,7 +151,7 @@ export default function AssetEditModal({
                   <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                     <option value="">—</option>
                     {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nameAr}</option>
+                      <option key={c.id} value={c.id}>{entityName(c, entityLocale)}</option>
                     ))}
                   </select>
                 </div>

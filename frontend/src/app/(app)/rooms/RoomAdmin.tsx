@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
@@ -37,6 +38,7 @@ export default function RoomAdmin({
   categoriesModalDict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
 }) {
+  const entityLocale = useEntityLocale();
   const router = useRouter();
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   const [canManage, setCanManage] = useState(false);
@@ -292,7 +294,7 @@ export default function RoomAdmin({
                             <option value="">—</option>
                             {(departments ?? []).map((d) => (
                               <option key={d.id} value={d.id}>
-                                {d.nameAr}
+                                {entityName(d, entityLocale)}
                               </option>
                             ))}
                           </select>
@@ -394,7 +396,7 @@ export default function RoomAdmin({
                     <option value="">—</option>
                     {(departments ?? []).map((d) => (
                       <option key={d.id} value={d.id}>
-                        {d.nameAr}
+                        {entityName(d, entityLocale)}
                       </option>
                     ))}
                   </select>

@@ -1,5 +1,6 @@
 "use client";
 
+import EntityName from "@/components/EntityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import Toast from "@/components/Toast";
@@ -117,7 +118,7 @@ export default function CategoriesModal({
               {categories.map((c) => (
                 <span key={c.id} className="chip" style={{ gap: 8 }}>
                   {c.icon && <span>{c.icon}</span>}
-                  {c.nameAr}
+                  <EntityName entity={c} />
                   <button
                     type="button"
                     onClick={() => handleRemove(c)}

@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
@@ -37,6 +38,7 @@ export default function ItemForm({
   formId,
   onSubmittingChange,
 }: Props) {
+  const entityLocale = useEntityLocale();
   // No code field: the server assigns WH-/MN- codes from a sequence on
   // create, and they were already immutable on update.
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? "");
@@ -147,7 +149,7 @@ export default function ItemForm({
                 <option value="">—</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.nameAr}
+                    {entityName(c, entityLocale)}
                   </option>
                 ))}
               </select>

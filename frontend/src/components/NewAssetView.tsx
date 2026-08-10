@@ -1,5 +1,6 @@
 "use client";
 
+import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
@@ -25,6 +26,7 @@ export default function NewAssetView({
   formId?: string;
   onSubmittingChange?: (submitting: boolean) => void;
 }) {
+  const entityLocale = useEntityLocale();
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   // No assetNumber field: the server assigns AST-#### from a sequence.
@@ -105,7 +107,7 @@ export default function NewAssetView({
                 <option value="">—</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.nameAr}
+                    {entityName(c, entityLocale)}
                   </option>
                 ))}
               </select>
