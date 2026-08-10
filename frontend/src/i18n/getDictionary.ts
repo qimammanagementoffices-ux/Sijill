@@ -194,7 +194,11 @@ export type Dictionary = {
     dateAddedLabel: string;
     initialQuantityLabel: string;
     imagesLabel: string;
+    uploadImages: string;
+    noImagesChosen: string;
     pdfLabel: string;
+    uploadPdf: string;
+    noPdfChosen: string;
     minQuantityLabel: string;
     submitCreate: string;
     submitUpdate: string;

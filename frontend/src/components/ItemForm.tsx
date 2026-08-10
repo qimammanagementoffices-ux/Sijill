@@ -196,20 +196,68 @@ export default function ItemForm({
               <>
                 <div className="field span2">
                   <label>{dict.imagesLabel}</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => setImages(Array.from(e.target.files ?? []))}
-                  />
+                  <div className="filebox">
+                    <label className="upl">
+                      {dict.uploadImages}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        // Appends rather than replaces: picking a second
+                        // time is how you add another image, not how you
+                        // start over -- removal has its own button.
+                        onChange={(e) => {
+                          setImages((prev) => [...prev, ...Array.from(e.target.files ?? [])]);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {images.length === 0 && <span>{dict.noImagesChosen}</span>}
+                    {images.map((file, i) => (
+                      <span key={`${file.name}-${i}`} className="chip" style={{ gap: 8 }}>
+                        {file.name}
+                        <button
+                          type="button"
+                          aria-label="remove"
+                          onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                          style={{ border: "none", background: "none", cursor: "pointer", color: "var(--seal)", fontWeight: 700 }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div className="field span2">
                   <label>{dict.pdfLabel}</label>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
-                  />
+                  <div className="filebox">
+                    <label className="upl">
+                      {dict.uploadPdf}
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => {
+                          setPdf(e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {pdf ? (
+                      <span className="chip" style={{ gap: 8 }}>
+                        {pdf.name}
+                        <button
+                          type="button"
+                          aria-label="remove"
+                          onClick={() => setPdf(null)}
+                          style={{ border: "none", background: "none", cursor: "pointer", color: "var(--seal)", fontWeight: 700 }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ) : (
+                      <span>{dict.noPdfChosen}</span>
+                    )}
+                  </div>
                 </div>
               </>
             )}
