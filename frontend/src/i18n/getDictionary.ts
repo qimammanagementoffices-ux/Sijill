@@ -199,6 +199,7 @@ export type Dictionary = {
     weightPlaceholder: string;
     dateAddedLabel: string;
     initialQuantityLabel: string;
+    quantityManualHint: string;
     imagesLabel: string;
     uploadImages: string;
     noImagesChosen: string;

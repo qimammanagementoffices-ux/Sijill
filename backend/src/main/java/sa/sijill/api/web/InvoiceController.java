@@ -1,9 +1,11 @@
 package sa.sijill.api.web;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -27,8 +29,11 @@ public class InvoiceController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('wh.invoices')")
-    public PagedResponse<InvoiceDetail> list(@PageableDefault(size = 20, sort = "invoiceDate") Pageable pageable) {
-        Page<PurchaseInvoice> page = invoiceService.list(Domain.WAREHOUSE, pageable);
+    public PagedResponse<InvoiceDetail> list(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+            @PageableDefault(size = 20, sort = "invoiceDate") Pageable pageable) {
+        Page<PurchaseInvoice> page = invoiceService.list(Domain.WAREHOUSE, dateFrom, dateTo, pageable);
         return PagedResponse.from(page, InvoiceDetail::from);
     }
 

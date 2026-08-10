@@ -102,6 +102,11 @@ public class InventoryItemService {
         item.setCategory(resolveCategory(request.categoryId()));
         item.setUnit(request.unit());
         item.setWeight(request.weight());
+        // Null keeps the existing date: the field is optional on the wire, and
+        // clearing it would lose when the item entered the warehouse.
+        if (request.dateAdded() != null) {
+            item.setDateAdded(request.dateAdded());
+        }
         item.setMinQuantity(request.minQuantity());
 
         InventoryItem saved = inventoryItemRepository.save(item);

@@ -19,3 +19,9 @@ insert into translation (key, value_ar, value_en, value_hi) values
     ('common.currency', 'ر.س', 'SAR', 'SAR'),
     ('warehouseItems.cardTax', 'الضريبة', 'Tax', 'कर')
 on conflict (key) do nothing;
+
+-- Quantity is normally driven by invoices; the item edit dialog says so,
+-- since a manual correction there is an exception, not the usual path.
+insert into translation (key, value_ar, value_en, value_hi) values
+    ('warehouseItems.quantityManualHint', '(تُحدَّث عادة تلقائيًا من الفواتير — عدّلها هنا فقط لتصحيح يدوي)', '(normally updated automatically from invoices — edit here only for a manual correction)', '(आम तौर पर चालान से स्वतः अपडेट होती है — यहाँ केवल मैन्युअल सुधार के लिए बदलें)')
+on conflict (key) do nothing;

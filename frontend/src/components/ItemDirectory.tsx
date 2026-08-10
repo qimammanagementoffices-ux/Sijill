@@ -423,6 +423,7 @@ export default function ItemDirectory({
                   dict={dict}
                   errorsDict={errorsDict}
                   categoriesModalDict={categoriesModalDict}
+                  attachmentsDict={attachmentsDict}
                   mode="create"
                   categories={categories}
                   basePath={basePath}
@@ -467,7 +468,9 @@ export default function ItemDirectory({
         <div className="overlay" role="dialog" aria-modal="true">
           <div className="modal wide">
             <div className="modal-head">
-              <h3>{dict.cardEdit}</h3>
+              <h3>
+                {dict.cardEdit} ({editItem.code})
+              </h3>
               <button type="button" className="modal-close" onClick={() => setEditItem(null)} aria-label="close">
                 ×
               </button>
@@ -480,6 +483,7 @@ export default function ItemDirectory({
                   dict={dict}
                   errorsDict={errorsDict}
                   categoriesModalDict={categoriesModalDict}
+                  attachmentsDict={attachmentsDict}
                   mode="edit"
                   initial={editItem}
                   categories={categories}

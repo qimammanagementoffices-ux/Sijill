@@ -4,6 +4,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import sa.sijill.api.domain.Domain;
 import sa.sijill.api.domain.PurchaseInvoice;
 
@@ -12,4 +14,17 @@ public interface PurchaseInvoiceRepository extends JpaRepository<PurchaseInvoice
     boolean existsByDomainAndInvoiceNumber(Domain domain, String invoiceNumber);
 
     Page<PurchaseInvoice> findByDomain(Domain domain, Pageable pageable);
+
+    // Null bound = open-ended, so an unset filter behaves like findByDomain.
+    @Query("""
+            select i from PurchaseInvoice i
+            where i.domain = :domain
+              and (:dateFrom is null or i.invoiceDate >= :dateFrom)
+              and (:dateTo is null or i.invoiceDate <= :dateTo)
+            """)
+    Page<PurchaseInvoice> search(
+            @Param("domain") Domain domain,
+            @Param("dateFrom") java.time.LocalDate dateFrom,
+            @Param("dateTo") java.time.LocalDate dateTo,
+            Pageable pageable);
 }

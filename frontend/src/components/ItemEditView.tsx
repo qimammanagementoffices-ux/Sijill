@@ -79,6 +79,7 @@ export default function ItemEditView({
         dict={dict}
         errorsDict={errorsDict}
         categoriesModalDict={categoriesModalDict}
+        attachmentsDict={attachmentsDict}
         mode="edit"
         initial={item}
         categories={categories}

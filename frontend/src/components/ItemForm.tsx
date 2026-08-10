@@ -4,6 +4,7 @@ import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
+import AttachmentUploader from "@/components/AttachmentUploader";
 import type {
   CategoryDto,
   InventoryItemDetail,
@@ -14,6 +15,7 @@ type Props = {
   dict: Dictionary["warehouseItems"];
   errorsDict: Dictionary["errors"];
   categoriesModalDict: Dictionary["categoriesModal"];
+  attachmentsDict: Dictionary["attachments"];
   mode: "create" | "edit";
   initial?: InventoryItemDetail;
   categories: CategoryDto[];
@@ -30,6 +32,7 @@ export default function ItemForm({
   dict,
   errorsDict,
   categoriesModalDict,
+  attachmentsDict,
   mode,
   initial,
   categories,
@@ -50,8 +53,8 @@ export default function ItemForm({
   const [minQuantity, setMinQuantity] = useState(String(initial?.minQuantity ?? 0));
   // Create-only: stock moves through invoices and issues after this, and
   // the update endpoint takes neither field.
-  const [quantity, setQuantity] = useState("0");
-  const [dateAdded, setDateAdded] = useState(() => new Date().toISOString().slice(0, 10));
+  const [quantity, setQuantity] = useState(String(initial?.quantity ?? 0));
+  const [dateAdded, setDateAdded] = useState(initial?.dateAdded ?? new Date().toISOString().slice(0, 10));
   // Attachments need an owner id, which does not exist until the item is
   // created -- so they are held here and uploaded right after the POST.
   // In edit mode AttachmentUploader handles them directly (ItemEditView).
@@ -115,10 +118,18 @@ export default function ItemForm({
             categoryId: categoryId || null,
             unit: unit || null,
             weight: weight.trim() ? Number(weight) : null,
+            dateAdded,
             minQuantity: Number(minQuantity),
             version: initial.version,
           }),
         });
+        const delta = Number(quantity) - initial.quantity;
+        if (delta !== 0) {
+          await apiFetch(`${basePath}/${initial.id}/adjust-quantity`, {
+            method: "POST",
+            body: JSON.stringify({ delta, reason: dict.quantityManualHint }),
+          });
+        }
         onSubmitted(updated);
       }
     } catch (err) {
@@ -176,22 +187,34 @@ export default function ItemForm({
                 placeholder={dict.weightPlaceholder}
               />
             </div>
-            {mode === "create" && (
-              <div className="field">
-                <label>{dict.dateAddedLabel}</label>
-                <input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} required />
-              </div>
-            )}
-            {mode === "create" && (
-              <div className="field">
-                <label>{dict.initialQuantityLabel}</label>
-                <input type="number" min={0} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
-              </div>
-            )}
+            <div className="field">
+              <label>{dict.dateAddedLabel}</label>
+              <input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>
+                {mode === "create" ? dict.initialQuantityLabel : dict.columnQuantity}{" "}
+                {mode === "edit" && <span className="panel-note">{dict.quantityManualHint}</span>}
+              </label>
+              <input type="number" min={0} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+            </div>
             <div className="field">
               <label>{dict.minQuantityLabel}</label>
               <input type="number" min={0} value={minQuantity} onChange={(e) => setMinQuantity(e.target.value)} required />
             </div>
+            {/* Edit works against a saved item, so attachments go straight
+                through the uploader -- existing images and PDFs can be
+                viewed and removed, not just added. */}
+            {mode === "edit" && initial && (
+              <div className="field span2">
+                <AttachmentUploader
+                  ownerType="INVENTORY_ITEM"
+                  ownerId={initial.id}
+                  dict={attachmentsDict}
+                  canManage
+                />
+              </div>
+            )}
             {mode === "create" && (
               <>
                 <div className="field span2">
