@@ -613,6 +613,27 @@ table {
   border-collapse: collapse;
   font-size: 12.5px;
 }
+/* Sortable header: a real button for keyboard/screen-reader access, styled
+   to disappear into the <th> it sits in. */
+.th-sort {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.th-sort:hover {
+  color: var(--ink);
+}
+.th-sort-arrow {
+  font-size: 9px;
+  line-height: 1;
+  color: var(--seal);
+}
 thead th {
   text-align: inherit;
   font-size: 12px;

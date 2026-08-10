@@ -12,6 +12,8 @@ import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
+
+type Sort = { field: string; dir: "asc" | "desc" };
 import type { Dictionary } from "@/i18n/getDictionary";
 
 // Shared by /warehouse/items and /maintenance/parts — same reusable
@@ -46,11 +48,23 @@ export default function ItemDirectory({
   // Which page is being fetched -- drives the spinner on the page button
   // that was clicked, rather than one shared "loading" flag.
   const [loadingPage, setLoadingPage] = useState<number | null>(null);
+  // Sorting is entirely server-side: the endpoint already takes a Pageable,
+  // so ?sort=field,dir works without a backend change. Sorting the current
+  // page client-side would only order the 20 rows on screen.
+  const [sort, setSort] = useState<Sort>({ field: "nameAr", dir: "asc" });
 
-  function load(pageNumber: number, query: string, lowStock: boolean) {
+  function toggleSort(field: string) {
+    const next: Sort =
+      sort.field === field ? { field, dir: sort.dir === "asc" ? "desc" : "asc" } : { field, dir: "asc" };
+    setSort(next);
+    load(0, q, lowStockOnly, next);
+  }
+
+  function load(pageNumber: number, query: string, lowStock: boolean, sortBy: Sort = sort) {
     setLoadingPage(pageNumber);
     apiFetch<PagedResponse<InventoryItemListItem>>(
-      `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}`
+      `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}` +
+        `&sort=${sortBy.field},${sortBy.dir}`
     )
       .then(setPage)
       .catch((err) => {
@@ -176,14 +190,29 @@ export default function ItemDirectory({
             <table>
               <thead>
                 <tr>
-                  <th>{dict.columnCode}</th>
-                  <th>{dict.columnName}</th>
-                  <th>{dict.columnCategory}</th>
-                  <th>{dict.columnDateAdded}</th>
-                  <th>{dict.columnLastPurchase}</th>
-                  <th>{dict.columnQuantity}</th>
-                  <th>{dict.columnUnit}</th>
-                  <th>{dict.columnMinQuantity}</th>
+                  {(
+                    [
+                      ["code", dict.columnCode],
+                      ["nameAr", dict.columnName],
+                      ["category.nameAr", dict.columnCategory],
+                      ["dateAdded", dict.columnDateAdded],
+                      ["lastPurchasePrice", dict.columnLastPurchase],
+                      ["quantity", dict.columnQuantity],
+                      ["unit", dict.columnUnit],
+                      ["minQuantity", dict.columnMinQuantity],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <th key={field}>
+                      <button type="button" className="th-sort" onClick={() => toggleSort(field)}>
+                        {label}
+                        <span className="th-sort-arrow">
+                          {sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
+                  {/* Not sortable: lowStock is computed in Java (quantity vs
+                      minQuantity), not a column the database can order by. */}
                   <th>{dict.columnStatus}</th>
                 </tr>
               </thead>
