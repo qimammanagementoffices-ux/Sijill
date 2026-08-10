@@ -13,6 +13,7 @@ public record ItemPurchaseLineDto(
         String vendor,
         int quantity,
         BigDecimal unitPrice,
+        BigDecimal taxRate,
         BigDecimal lineTotal) {
 
     public static ItemPurchaseLineDto from(PurchaseInvoiceLine line) {
@@ -23,6 +24,7 @@ public record ItemPurchaseLineDto(
                 line.getInvoice().getVendor(),
                 line.getQuantity(),
                 line.getUnitPrice(),
+                line.getInvoice().getTaxRate(),
                 line.getLineTotal());
     }
 }

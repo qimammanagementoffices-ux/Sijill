@@ -100,23 +100,31 @@ export default function ItemViewModal({
                   <table>
                     <thead>
                       <tr>
+                        <th>{dict.cardRequestDate}</th>
                         <th>{dict.cardInvoiceNumber}</th>
-                        <th>{dict.columnDateAdded}</th>
-                        <th>{dict.cardVendor}</th>
                         <th>{dict.columnQuantity}</th>
                         <th>{dict.cardUnitPrice}</th>
+                        <th>{dict.cardTax}</th>
                         <th>{dict.cardLineTotal}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {purchases.map((line, i) => (
                         <tr key={`${line.invoiceId}-${i}`}>
+                          <td>{line.invoiceDate ?? "—"}</td>
                           <td className="mono">{line.invoiceNumber}</td>
-                          <td>{line.invoiceDate}</td>
-                          <td>{line.vendor ?? "—"}</td>
-                          <td className="qty-num">{line.quantity}</td>
-                          <td className="qty-num">{line.unitPrice ?? "—"}</td>
-                          <td className="qty-num">{line.lineTotal ?? "—"}</td>
+                          <td className="qty-num">
+                            {line.quantity} {item.unit ?? ""}
+                          </td>
+                          <td className="qty-num">
+                            {line.unitPrice ?? "—"} {commonDict.currency}
+                          </td>
+                          <td>
+                            <span className="chip">{line.taxRate != null ? `${line.taxRate}%` : "—"}</span>
+                          </td>
+                          <td className="qty-num">
+                            {line.lineTotal ?? "—"} {commonDict.currency}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

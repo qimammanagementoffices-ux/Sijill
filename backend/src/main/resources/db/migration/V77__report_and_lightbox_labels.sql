@@ -12,3 +12,10 @@ insert into translation (key, value_ar, value_en, value_hi) values
     ('warehouseItems.cardRequestDate', 'التاريخ', 'Date', 'तिथि'),
     ('warehouseItems.cardDepartment', 'القسم', 'Department', 'विभाग')
 on conflict (key) do nothing;
+
+-- Purchase-history columns match the legacy invoice table: quantity with
+-- unit, unit price and total in riyals, tax as a percentage chip.
+insert into translation (key, value_ar, value_en, value_hi) values
+    ('common.currency', 'ر.س', 'SAR', 'SAR'),
+    ('warehouseItems.cardTax', 'الضريبة', 'Tax', 'कर')
+on conflict (key) do nothing;

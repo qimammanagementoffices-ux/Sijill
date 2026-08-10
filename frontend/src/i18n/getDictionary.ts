@@ -13,6 +13,7 @@ export type Dictionary = {
     cancel: string;
     exportXlsx: string;
     exportPdf: string;
+    currency: string;
     print: string;
     generatedAt: string;
     actionSuccess: string;
@@ -214,6 +215,7 @@ export type Dictionary = {
     cardVendor: string;
     cardUnitPrice: string;
     cardLineTotal: string;
+    cardTax: string;
     cardRequester: string;
     cardRequestDate: string;
     cardDepartment: string;

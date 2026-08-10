@@ -103,6 +103,7 @@ export type ItemPurchaseLine = {
   vendor: string | null;
   quantity: number;
   unitPrice: number | null;
+  taxRate: number | null;
   lineTotal: number | null;
 };
 
