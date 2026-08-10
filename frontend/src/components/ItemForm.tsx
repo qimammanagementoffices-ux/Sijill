@@ -109,6 +109,7 @@ export default function ItemForm({
               setNameHi={setNameHi}
               dict={categoriesModalDict}
               errorsDict={errorsDict}
+              placeholder={dict.namePlaceholder}
             />
             <div className="field">
               <label>{dict.categoryLabel}</label>
@@ -116,14 +117,19 @@ export default function ItemForm({
                 <option value="">—</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.nameAr} / {c.nameEn}
+                    {c.nameAr}
                   </option>
                 ))}
               </select>
             </div>
             <div className="field">
               <label>{dict.unitLabel}</label>
-              <input type="text" value={unit} onChange={(e) => setUnit(e.target.value)} />
+              <input
+                type="text"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder={dict.unitPlaceholder}
+              />
             </div>
             <div className="field">
               <label>{dict.minQuantityLabel}</label>

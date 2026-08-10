@@ -20,6 +20,7 @@ export default function TrilingualNameFields({
   setNameHi,
   dict,
   errorsDict,
+  placeholder,
 }: {
   nameAr: string;
   setNameAr: (v: string) => void;
@@ -29,6 +30,10 @@ export default function TrilingualNameFields({
   setNameHi: (v: string) => void;
   dict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
+  // Example text for the Arabic field -- the one that is required and
+  // typed first. The other two are normally filled by auto-translate, so
+  // an example there would just be noise.
+  placeholder?: string;
 }) {
   const [lastEdited, setLastEdited] = useState<SourceLang | null>(null);
   const [translating, setTranslating] = useState(false);
@@ -66,6 +71,7 @@ export default function TrilingualNameFields({
             setNameAr(e.target.value);
             setLastEdited("ar");
           }}
+          placeholder={placeholder}
           dir="rtl"
           required
         />

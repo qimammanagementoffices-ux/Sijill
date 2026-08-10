@@ -184,8 +184,10 @@ export type Dictionary = {
     okBadge: string;
     codeLabel: string;
     nameLabel: string;
+    namePlaceholder: string;
     categoryLabel: string;
     unitLabel: string;
+    unitPlaceholder: string;
     minQuantityLabel: string;
     submitCreate: string;
     submitUpdate: string;

@@ -149,7 +149,7 @@ export default function AssetEditModal({
                   <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                     <option value="">—</option>
                     {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nameAr} / {c.nameEn}</option>
+                      <option key={c.id} value={c.id}>{c.nameAr}</option>
                     ))}
                   </select>
                 </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import Toast from "@/components/Toast";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type { CategoryDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -12,6 +13,7 @@ export default function CategoriesModal({
   description,
   dict,
   errorsDict,
+  commonDict,
   onClose,
   onChanged,
 }: {
@@ -20,6 +22,7 @@ export default function CategoriesModal({
   description: string;
   dict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
+  commonDict: Dictionary["common"];
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -29,10 +32,12 @@ export default function CategoriesModal({
   const [nameEn, setNameEn] = useState("");
   const [nameHi, setNameHi] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; error?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function load() {
-    apiFetch<CategoryDto[]>(basePath).then(setCategories);
+    return apiFetch<CategoryDto[]>(basePath).then(setCategories);
   }
 
   useEffect(() => {
@@ -65,12 +70,23 @@ export default function CategoriesModal({
   async function handleRemove(category: CategoryDto) {
     if (!window.confirm(dict.removeConfirm)) return;
     setError(null);
+    setRemovingId(category.id);
     try {
       await apiFetch(`${basePath}/${category.id}/deactivate`, { method: "POST" });
-      load();
+      // The chip list is what the user is looking at, so wait for the reload
+      // before clearing the spinner -- otherwise the row appears to linger.
+      await load();
       onChanged();
+      setToast({ message: commonDict.actionSuccess });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : errorsDict.generic);
+      // Also toasted, not just written to `error`: that message renders far
+      // down the modal, past the add-category form, so a failed remove read
+      // as "the button does nothing".
+      const message = err instanceof ApiError ? err.message : errorsDict.generic;
+      setError(message);
+      setToast({ message, error: true });
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -106,9 +122,16 @@ export default function CategoriesModal({
                     type="button"
                     onClick={() => handleRemove(c)}
                     aria-label="remove"
-                    style={{ border: "none", background: "none", cursor: "pointer", color: "var(--seal)", fontWeight: 700 }}
+                    disabled={removingId !== null}
+                    style={{
+                      border: "none",
+                      background: "none",
+                      cursor: removingId !== null ? "default" : "pointer",
+                      color: "var(--seal)",
+                      fontWeight: 700,
+                    }}
                   >
-                    ×
+                    {removingId === c.id ? <span className="spinner" /> : "×"}
                   </button>
                 </span>
               ))}
@@ -136,6 +159,7 @@ export default function CategoriesModal({
               setNameHi={setNameHi}
               dict={dict}
               errorsDict={errorsDict}
+              placeholder={dict.namePlaceholder}
             />
 
             {error && (
@@ -158,6 +182,7 @@ export default function CategoriesModal({
           </button>
         </div>
       </div>
+      {toast && <Toast message={toast.message} error={toast.error} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

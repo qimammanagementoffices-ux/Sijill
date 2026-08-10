@@ -207,7 +207,7 @@ export default function AssetDetailView({
                   <option value="">—</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nameAr} / {c.nameEn}
+                      {c.nameAr}
                     </option>
                   ))}
                 </select>

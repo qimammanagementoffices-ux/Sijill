@@ -85,7 +85,7 @@ export default function NewMaintenanceRequestView({
                 <option value="">—</option>
                 {faultTypes.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.nameAr} / {f.nameEn}
+                    {f.nameAr}
                   </option>
                 ))}
               </select>

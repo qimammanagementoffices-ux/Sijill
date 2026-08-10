@@ -270,6 +270,7 @@ export default function ItemDirectory({
           description={dict.categoriesDescription}
           dict={categoriesModalDict}
           errorsDict={errorsDict}
+          commonDict={commonDict}
           onClose={() => setShowCategoriesModal(false)}
           onChanged={() => apiFetch<CategoryDto[]>(categoriesPath).then(setCategories)}
         />

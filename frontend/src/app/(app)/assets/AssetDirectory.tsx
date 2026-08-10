@@ -263,6 +263,7 @@ export default function AssetDirectory({
           description={dict.categoriesDescription}
           dict={categoriesModalDict}
           errorsDict={errorsDict}
+          commonDict={commonDict}
           onClose={() => setShowCategoriesModal(false)}
           onChanged={() => {}}
         />

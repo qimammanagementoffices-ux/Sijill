@@ -292,7 +292,7 @@ export default function RoomAdmin({
                             <option value="">—</option>
                             {(departments ?? []).map((d) => (
                               <option key={d.id} value={d.id}>
-                                {d.nameAr} / {d.nameEn}
+                                {d.nameAr}
                               </option>
                             ))}
                           </select>
@@ -394,7 +394,7 @@ export default function RoomAdmin({
                     <option value="">—</option>
                     {(departments ?? []).map((d) => (
                       <option key={d.id} value={d.id}>
-                        {d.nameAr} / {d.nameEn}
+                        {d.nameAr}
                       </option>
                     ))}
                   </select>
