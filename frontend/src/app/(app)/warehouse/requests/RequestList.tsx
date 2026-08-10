@@ -167,6 +167,18 @@ export default function RequestList({
                   )}
                 </div>
 
+                {request.lines.length > 0 && (
+                  <div className="request-card-chips">
+                    {request.lines.map((line) => (
+                      <span key={line.id} className="chip">
+                        {line.itemNameAr} × {line.quantityRequested}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {request.notes && <p className="request-card-notes">{request.notes}</p>}
+
                 {request.suggestedStartDate && (
                   <p className="request-card-banner">
                     {dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b>

@@ -178,6 +178,8 @@ export type NeedRequestListItem = {
   department: LocalizedRef | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
+  notes: string | null;
+  lines: NeedRequestLineDto[];
 };
 
 export type NeedRequestDetail = {
