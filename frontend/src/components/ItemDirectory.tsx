@@ -10,6 +10,7 @@ import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
+import TableFooter from "@/components/TableFooter";
 import ItemViewModal from "@/components/ItemViewModal";
 import Lightbox from "@/components/Lightbox";
 import { IconSheet, IconFilePdf, IconTag } from "@/components/NavIcons";
@@ -71,6 +72,7 @@ export default function ItemDirectory({
   // looking for.
   const [sort, setSort] = useState<Sort>({ field: "dateAdded", dir: "desc" });
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [size, setSize] = useState(10);
 
   const filtersActive =
     filters.categoryId !== "" || filters.dateFrom !== "" || filters.dateTo !== "" || lowStockOnly || q !== "";
@@ -114,7 +116,8 @@ export default function ItemDirectory({
     query: string,
     lowStock: boolean,
     sortBy: Sort = sort,
-    filterBy: Filters = filters
+    filterBy: Filters = filters,
+    perPage: number = size
   ) {
     setLoadingPage(pageNumber);
     // Empty filter = omitted, not sent blank: the endpoint treats a missing
@@ -125,7 +128,7 @@ export default function ItemDirectory({
       (filterBy.dateTo ? `&dateTo=${filterBy.dateTo}` : "");
     apiFetch<PagedResponse<InventoryItemListItem>>(
       `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}` +
-        `&sort=${sortBy.field},${sortBy.dir}${extra}`
+        `&sort=${sortBy.field},${sortBy.dir}&size=${perPage}${extra}`
     )
       .then(setPage)
       .catch((err) => {
@@ -389,21 +392,18 @@ export default function ItemDirectory({
           </div>
         )}
 
-        {page.totalPages > 1 && (
-          <div className="panel-note no-print" style={{ display: "flex", gap: 6, paddingTop: 14 }}>
-            {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
-              <button
-                key={i}
-                type="button"
-                className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
-                onClick={() => load(i, q, lowStockOnly)}
-                disabled={i === page.page || loadingPage !== null}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
+        <TableFooter
+          page={page.page}
+          totalPages={page.totalPages}
+          size={size}
+          loadingPage={loadingPage}
+          rowsPerPageLabel={commonDict.rowsPerPage}
+          onPage={(i) => load(i, q, lowStockOnly)}
+          onSize={(next) => {
+            setSize(next);
+            load(0, q, lowStockOnly, sort, filters, next);
+          }}
+        />
       </div>
 
       {showAddModal && (
