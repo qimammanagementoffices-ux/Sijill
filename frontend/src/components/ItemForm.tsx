@@ -207,7 +207,11 @@ export default function ItemForm({
                         // time is how you add another image, not how you
                         // start over -- removal has its own button.
                         onChange={(e) => {
-                          setImages((prev) => [...prev, ...Array.from(e.target.files ?? [])]);
+                          // Read the FileList before clearing the input:
+                          // the updater below runs after this handler, by
+                          // which point e.target.files is empty.
+                          const picked = Array.from(e.target.files ?? []);
+                          setImages((prev) => [...prev, ...picked]);
                           e.target.value = "";
                         }}
                       />
@@ -237,7 +241,8 @@ export default function ItemForm({
                         type="file"
                         accept="application/pdf"
                         onChange={(e) => {
-                          setPdf(e.target.files?.[0] ?? null);
+                          const picked = e.target.files?.[0] ?? null;
+                          setPdf(picked);
                           e.target.value = "";
                         }}
                       />
