@@ -17,7 +17,28 @@ public record InventoryItemListItem(
         String unit,
         LocalDate dateAdded,
         BigDecimal lastPurchasePrice,
+        String imageUrl,
         boolean active) {
+
+    // imageUrl comes from the attachments table, so it is looked up in bulk
+    // by the caller (one query per page) rather than per row.
+    public static InventoryItemListItem from(InventoryItem item, String imageUrl) {
+        InventoryItemListItem base = from(item);
+        return new InventoryItemListItem(
+                base.id(),
+                base.code(),
+                base.nameAr(),
+                base.nameEn(),
+                base.category(),
+                base.quantity(),
+                base.minQuantity(),
+                base.lowStock(),
+                base.unit(),
+                base.dateAdded(),
+                base.lastPurchasePrice(),
+                imageUrl,
+                base.active());
+    }
 
     public static InventoryItemListItem from(InventoryItem item) {
         return new InventoryItemListItem(
@@ -35,6 +56,7 @@ public record InventoryItemListItem(
                 item.getUnit(),
                 item.getDateAdded(),
                 item.getLastPurchasePrice(),
+                null,
                 item.isActive());
     }
 }

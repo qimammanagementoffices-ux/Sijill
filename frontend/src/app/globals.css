@@ -901,6 +901,23 @@ img[data-viewable] {
 .filebox input[type="file"] {
   display: none;
 }
+/* Item-list thumbnail. Fixed box so rows keep an even height whatever the
+   image's aspect ratio, and an empty placeholder so a row without an image
+   does not collapse the column. */
+.row-thumb {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  display: block;
+  cursor: zoom-in;
+  background: #fff;
+}
+.row-thumb-empty {
+  border-style: dashed;
+  cursor: default;
+}
 .thumb-strip {
   display: flex;
   gap: 8px;

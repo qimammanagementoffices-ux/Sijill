@@ -11,6 +11,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
 import ItemViewModal from "@/components/ItemViewModal";
+import Lightbox from "@/components/Lightbox";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -52,6 +53,7 @@ export default function ItemDirectory({
   // that was clicked, rather than one shared "loading" flag.
   const [loadingPage, setLoadingPage] = useState<number | null>(null);
   const [viewItemId, setViewItemId] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
   // Sorting is entirely server-side: the endpoint already takes a Pageable,
   // so ?sort=field,dir works without a backend change. Sorting the current
   // page client-side would only order the 20 rows on screen.
@@ -196,6 +198,9 @@ export default function ItemDirectory({
             <table>
               <thead>
                 <tr>
+                  {/* Not sortable -- the image is an attachment, not a
+                      column on the item row. */}
+                  <th>{dict.columnImage}</th>
                   {(
                     [
                       ["code", dict.columnCode],
@@ -225,6 +230,24 @@ export default function ItemDirectory({
               <tbody>
                 {page.content.map((item) => (
                   <tr key={item.id} className="clickable" onClick={() => setViewItemId(item.id)}>
+                    <td>
+                      {item.imageUrl ? (
+                        // stopPropagation: the row itself opens the item
+                        // card, and a thumbnail click means "show me this
+                        // image", not "open the card behind it".
+                        <img
+                          src={item.imageUrl}
+                          alt=""
+                          className="row-thumb"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightbox({ url: item.imageUrl as string, filename: item.nameAr });
+                          }}
+                        />
+                      ) : (
+                        <span className="row-thumb row-thumb-empty" />
+                      )}
+                    </td>
                     <td className="mono">
                       <Link href={`${basePath}/${item.id}`}>{item.code}</Link>
                     </td>
@@ -333,6 +356,10 @@ export default function ItemDirectory({
           onClose={() => setViewItemId(null)}
           onEdit={() => router.push(`${basePath}/${viewItemId}`)}
         />
+      )}
+
+      {lightbox && (
+        <Lightbox url={lightbox.url} filename={lightbox.filename} onClose={() => setLightbox(null)} />
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

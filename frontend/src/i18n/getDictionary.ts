@@ -174,6 +174,7 @@ export type Dictionary = {
     lowStockOnly: string;
     addNew: string;
     noResults: string;
+    columnImage: string;
     columnCode: string;
     columnName: string;
     columnCategory: string;

@@ -92,6 +92,7 @@ export type InventoryItemListItem = {
   unit: string | null;
   dateAdded: string | null;
   lastPurchasePrice: number | null;
+  imageUrl: string | null;
   active: boolean;
 };
 
