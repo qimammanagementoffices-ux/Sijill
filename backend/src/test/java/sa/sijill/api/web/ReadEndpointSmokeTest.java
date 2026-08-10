@@ -198,7 +198,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpsertFaultTypeRequest(
-                                "عطل كهربائي", "Electrical fault", UUID.fromString(faultCategoryId), null))))
+                                "عطل كهربائي", "Electrical fault", UUID.fromString(faultCategoryId), null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -258,7 +258,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", "Main", "1", null, null, null))))
+                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", "Main", "1", null, null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -288,6 +288,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                                 UUID.fromString(roomId),
                                 null,
                                 AssetStatus.ACTIVE,
+                                null,
                                 null,
                                 null,
                                 null,

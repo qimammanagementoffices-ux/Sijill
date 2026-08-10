@@ -49,7 +49,7 @@ class FaultTypeAndPartsTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String categoryId = objectMapper.readTree(categoryBody).get("id").asText();
 
-        var faultType = new UpsertFaultTypeRequest("عطل كهربائي", "Electrical fault", java.util.UUID.fromString(categoryId), null);
+        var faultType = new UpsertFaultTypeRequest("عطل كهربائي", "Electrical fault", java.util.UUID.fromString(categoryId), null, null);
         mockMvc.perform(post("/api/v1/maintenance/fault-types")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -16,4 +16,5 @@ public record CreateAssetRequest(
         LocalDate acquisitionDate,
         BigDecimal acquisitionCost,
         String vendor,
-        String notes) {}
+        String notes,
+        String nameUr) {}

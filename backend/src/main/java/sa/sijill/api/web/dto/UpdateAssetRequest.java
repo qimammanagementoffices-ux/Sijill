@@ -17,4 +17,5 @@ public record UpdateAssetRequest(
         BigDecimal acquisitionCost,
         String vendor,
         String notes,
-        int version) {}
+        int version,
+        String nameUr) {}

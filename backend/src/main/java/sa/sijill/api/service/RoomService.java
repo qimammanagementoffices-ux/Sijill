@@ -52,6 +52,7 @@ public class RoomService {
         room.setRoomNumber(request.roomNumber());
         room.setNameAr(request.nameAr());
         room.setNameEn(request.nameEn());
+        room.setNameUr(request.nameUr());
         room.setBuilding(request.building());
         room.setFloor(request.floor());
         room.setDepartment(resolveDepartment(request.departmentId()));
@@ -69,6 +70,7 @@ public class RoomService {
         room.setRoomNumber(request.roomNumber());
         room.setNameAr(request.nameAr());
         room.setNameEn(request.nameEn());
+        room.setNameUr(request.nameUr());
         room.setBuilding(request.building());
         room.setFloor(request.floor());
         room.setDepartment(resolveDepartment(request.departmentId()));

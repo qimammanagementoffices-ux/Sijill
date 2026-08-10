@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
+import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type {
   AssetDetail,
   AssetStatusValue,
@@ -29,11 +30,15 @@ export default function AssetDetailView({
   dict,
   attachmentsDict,
   commonDict,
+  categoriesModalDict,
+  errorsDict,
 }: {
   id: string;
   dict: Dictionary["assets"];
   attachmentsDict: Dictionary["attachments"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
+  errorsDict: Dictionary["errors"];
 }) {
   const router = useRouter();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
@@ -46,6 +51,7 @@ export default function AssetDetailView({
 
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
+  const [nameUr, setNameUr] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [status, setStatus] = useState<AssetStatusValue>("ACTIVE");
   const [acquisitionDate, setAcquisitionDate] = useState("");
@@ -64,6 +70,7 @@ export default function AssetDetailView({
         setAsset(a);
         setNameAr(a.nameAr);
         setNameEn(a.nameEn);
+        setNameUr(a.nameUr ?? "");
         setCategoryId(a.category?.id ?? "");
         setStatus(a.status);
         setAcquisitionDate(a.acquisitionDate ?? "");
@@ -104,6 +111,7 @@ export default function AssetDetailView({
         body: JSON.stringify({
           nameAr,
           nameEn,
+          nameUr: nameUr || null,
           categoryId: categoryId || null,
           status,
           acquisitionDate: acquisitionDate || null,
@@ -183,14 +191,16 @@ export default function AssetDetailView({
         <div className="panel">
           <div className="panel-body">
             <div className="form-grid">
-              <div className="field">
-                <label>{dict.nameArLabel}</label>
-                <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} required disabled={!canManage} dir="rtl" />
-              </div>
-              <div className="field">
-                <label>{dict.nameEnLabel}</label>
-                <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} required disabled={!canManage} />
-              </div>
+              <TrilingualNameFields
+                nameAr={nameAr}
+                setNameAr={setNameAr}
+                nameEn={nameEn}
+                setNameEn={setNameEn}
+                nameUr={nameUr}
+                setNameUr={setNameUr}
+                dict={categoriesModalDict}
+                errorsDict={errorsDict}
+              />
               <div className="field">
                 <label>{dict.categoryLabel}</label>
                 <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={!canManage}>

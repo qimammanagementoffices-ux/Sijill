@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type { AssetDetail, AssetStatusValue, CategoryDto, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
@@ -9,12 +10,14 @@ import SectionLoading from "@/components/SectionLoading";
 export default function NewAssetView({
   dict,
   errorsDict,
+  categoriesModalDict,
   onSubmitted,
   formId,
   onSubmittingChange,
 }: {
   dict: Dictionary["assets"];
   errorsDict: Dictionary["errors"];
+  categoriesModalDict: Dictionary["categoriesModal"];
   onSubmitted: (asset: AssetDetail) => void;
   // When set, the submit button renders externally (via
   // <button form={formId}>) instead of inline -- used inside a modal,
@@ -27,6 +30,7 @@ export default function NewAssetView({
   const [assetNumber, setAssetNumber] = useState("");
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
+  const [nameUr, setNameUr] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [status, setStatus] = useState<AssetStatusValue>("ACTIVE");
@@ -61,6 +65,7 @@ export default function NewAssetView({
           assetNumber,
           nameAr,
           nameEn,
+          nameUr: nameUr || null,
           categoryId: categoryId || null,
           roomId: roomId || null,
           custodianId: null,
@@ -89,14 +94,16 @@ export default function NewAssetView({
               <label>{dict.assetNumberLabel}</label>
               <input type="text" value={assetNumber} onChange={(e) => setAssetNumber(e.target.value)} required />
             </div>
-            <div className="field">
-              <label>{dict.nameArLabel}</label>
-              <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} required dir="rtl" />
-            </div>
-            <div className="field">
-              <label>{dict.nameEnLabel}</label>
-              <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} required />
-            </div>
+            <TrilingualNameFields
+              nameAr={nameAr}
+              setNameAr={setNameAr}
+              nameEn={nameEn}
+              setNameEn={setNameEn}
+              nameUr={nameUr}
+              setNameUr={setNameUr}
+              dict={categoriesModalDict}
+              errorsDict={errorsDict}
+            />
             <div className="field">
               <label>{dict.categoryLabel}</label>
               <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>

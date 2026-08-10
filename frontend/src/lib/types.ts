@@ -176,6 +176,7 @@ export type FaultTypeDto = {
   id: string;
   nameAr: string;
   nameEn: string;
+  nameUr: string | null;
   suggestedCategory: LocalizedRef | null;
   version: number;
 };
@@ -237,6 +238,7 @@ export type RoomDto = {
   roomNumber: string;
   nameAr: string;
   nameEn: string;
+  nameUr: string | null;
   building: string | null;
   floor: string | null;
   departmentId: string | null;
@@ -267,6 +269,7 @@ export type AssetDetail = {
   assetNumber: string;
   nameAr: string;
   nameEn: string;
+  nameUr: string | null;
   category: LocalizedRef | null;
   room: LocalizedRef | null;
   custodianId: string | null;

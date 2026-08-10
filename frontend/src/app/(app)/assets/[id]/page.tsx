@@ -10,6 +10,8 @@ export default async function AssetDetailPage({ params }: { params: { id: string
       dict={dict.assets}
       attachmentsDict={dict.attachments}
       commonDict={dict.common}
+      categoriesModalDict={dict.categoriesModal}
+      errorsDict={dict.errors}
     />
   );
 }

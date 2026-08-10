@@ -64,8 +64,8 @@ class PublicAssetTest extends AbstractIntegrationTest {
                 LocalDate.now(),
                 new BigDecimal("999.99"), // acquisitionCost — must not leak
                 "Some Vendor", // vendor — must not leak
-                "Sensitive internal notes" // notes — must not leak
-                );
+                "Sensitive internal notes", // notes — must not leak
+                null);
         String createBody = mockMvc.perform(post("/api/v1/assets")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)

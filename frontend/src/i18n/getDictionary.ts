@@ -245,6 +245,7 @@ export type Dictionary = {
     addNew: string;
     nameArLabel: string;
     nameEnLabel: string;
+    nameUrLabel: string;
     suggestedCategoryLabel: string;
     save: string;
   };
@@ -382,6 +383,7 @@ export type Dictionary = {
     roomNumberLabel: string;
     nameArLabel: string;
     nameEnLabel: string;
+    nameUrLabel: string;
     buildingLabel: string;
     floorLabel: string;
     departmentLabel: string;
@@ -402,6 +404,7 @@ export type Dictionary = {
     assetNumberLabel: string;
     nameArLabel: string;
     nameEnLabel: string;
+    nameUrLabel: string;
     categoryLabel: string;
     roomLabel: string;
     custodianLabel: string;

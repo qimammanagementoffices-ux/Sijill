@@ -73,6 +73,7 @@ public class AssetService {
         asset.setAssetNumber(request.assetNumber());
         asset.setNameAr(request.nameAr());
         asset.setNameEn(request.nameEn());
+        asset.setNameUr(request.nameUr());
         asset.setCategory(resolveCategory(request.categoryId()));
         asset.setRoom(resolveRoom(request.roomId()));
         asset.setCustodian(resolveEmployee(request.custodianId()));
@@ -99,6 +100,7 @@ public class AssetService {
 
         asset.setNameAr(request.nameAr());
         asset.setNameEn(request.nameEn());
+        asset.setNameUr(request.nameUr());
         asset.setCategory(resolveCategory(request.categoryId()));
         asset.setStatus(request.status() != null ? request.status() : asset.getStatus());
         asset.setAcquisitionDate(request.acquisitionDate());

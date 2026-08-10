@@ -8,21 +8,27 @@ import type { CategoryDto, FaultTypeDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
+import TrilingualNameFields from "@/components/TrilingualNameFields";
 
-type Edited = { nameAr: string; nameEn: string; suggestedCategoryId: string };
+type Edited = { nameAr: string; nameEn: string; nameUr: string; suggestedCategoryId: string };
 
 export default function FaultTypeAdmin({
   dict,
   commonDict,
+  categoriesModalDict,
+  errorsDict,
 }: {
   dict: Dictionary["faultTypes"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
+  errorsDict: Dictionary["errors"];
 }) {
   const router = useRouter();
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
+  const [newNameUr, setNewNameUr] = useState("");
   const [newCategoryId, setNewCategoryId] = useState("");
   const [editing, setEditing] = useState<Record<string, Edited>>({});
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +67,14 @@ export default function FaultTypeAdmin({
         body: JSON.stringify({
           nameAr: newNameAr,
           nameEn: newNameEn,
+          nameUr: newNameUr || null,
           suggestedCategoryId: newCategoryId || null,
           version: null,
         }),
       });
       setNewNameAr("");
       setNewNameEn("");
+      setNewNameUr("");
       setNewCategoryId("");
       setShowAddModal(false);
       load();
@@ -88,6 +96,7 @@ export default function FaultTypeAdmin({
         body: JSON.stringify({
           nameAr: edited.nameAr,
           nameEn: edited.nameEn,
+          nameUr: edited.nameUr || null,
           suggestedCategoryId: edited.suggestedCategoryId || null,
           version: faultType.version,
         }),
@@ -128,6 +137,7 @@ export default function FaultTypeAdmin({
               <thead>
                 <tr>
                   <th>{dict.nameArLabel}</th>
+                  <th>{dict.nameUrLabel}</th>
                   <th>{dict.nameEnLabel}</th>
                   <th>{dict.suggestedCategoryLabel}</th>
                   <th></th>
@@ -138,6 +148,7 @@ export default function FaultTypeAdmin({
                   const edited = editing[faultType.id] ?? {
                     nameAr: faultType.nameAr,
                     nameEn: faultType.nameEn,
+                    nameUr: faultType.nameUr ?? "",
                     suggestedCategoryId: faultType.suggestedCategory?.id ?? "",
                   };
                   return (
@@ -150,6 +161,18 @@ export default function FaultTypeAdmin({
                             setEditing({ ...editing, [faultType.id]: { ...edited, nameAr: e.target.value } })
                           }
                           style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                          dir="rtl"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={edited.nameUr}
+                          onChange={(e) =>
+                            setEditing({ ...editing, [faultType.id]: { ...edited, nameUr: e.target.value } })
+                          }
+                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                          dir="rtl"
                         />
                       </td>
                       <td>
@@ -212,14 +235,16 @@ export default function FaultTypeAdmin({
             </div>
             <div className="modal-body">
               <form id="fault-type-add-form" onSubmit={handleCreate} className="form-grid">
-                <div className="field">
-                  <label>{dict.nameArLabel}</label>
-                  <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
-                </div>
-                <div className="field">
-                  <label>{dict.nameEnLabel}</label>
-                  <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
-                </div>
+                <TrilingualNameFields
+                  nameAr={newNameAr}
+                  setNameAr={setNewNameAr}
+                  nameEn={newNameEn}
+                  setNameEn={setNewNameEn}
+                  nameUr={newNameUr}
+                  setNameUr={setNewNameUr}
+                  dict={categoriesModalDict}
+                  errorsDict={errorsDict}
+                />
                 <div className="field span2">
                   <label>{dict.suggestedCategoryLabel}</label>
                   <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)}>

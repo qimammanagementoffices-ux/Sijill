@@ -217,6 +217,7 @@ export default function AssetDirectory({
               <NewAssetView
                 dict={dict}
                 errorsDict={errorsDict}
+                categoriesModalDict={categoriesModalDict}
                 onSubmitted={handleAdded}
                 formId="asset-add-form"
                 onSubmittingChange={setAddSubmitting}

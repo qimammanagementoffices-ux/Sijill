@@ -1167,7 +1167,7 @@ body.lang-en .modal-head h3 {
 .modal-close {
   position: absolute;
   top: -16px;
-  inset-inline-start: -16px;
+  inset-inline-end: -16px;
   border: 1px solid var(--line);
   background: var(--paper);
   width: 34px;

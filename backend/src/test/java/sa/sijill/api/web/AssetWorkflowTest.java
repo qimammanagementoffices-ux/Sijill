@@ -80,7 +80,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertRoomRequest("101", "قاعة 101", "Room 101", "Main", "1", null, null, null))))
+                                new UpsertRoomRequest("101", "قاعة 101", "Room 101", "Main", "1", null, null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -97,6 +97,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                                 java.util.UUID.fromString(roomId),
                                 null,
                                 AssetStatus.ACTIVE,
+                                null,
                                 null,
                                 null,
                                 null,

@@ -29,6 +29,9 @@ public class Asset {
     @Column(name = "name_en", nullable = false)
     private String nameEn;
 
+    @Column(name = "name_ur")
+    private String nameUr;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private Category category;

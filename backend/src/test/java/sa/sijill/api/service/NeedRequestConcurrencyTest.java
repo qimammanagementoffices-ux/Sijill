@@ -178,7 +178,7 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         try {
             var created = assetService.create(
                     new CreateAssetRequest(
-                            assetNumber, "أصل", "Asset", null, null, null, AssetStatus.ACTIVE, null, null, null, null),
+                            assetNumber, "أصل", "Asset", null, null, null, AssetStatus.ACTIVE, null, null, null, null, null),
                     actor);
             createdAssetIds.add(created.getId());
             return true;

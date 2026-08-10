@@ -9,6 +9,7 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
+import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -16,6 +17,7 @@ type Edited = {
   roomNumber: string;
   nameAr: string;
   nameEn: string;
+  nameUr: string;
   building: string;
   floor: string;
   departmentId: string;
@@ -26,10 +28,14 @@ export default function RoomAdmin({
   dict,
   attachmentsDict,
   commonDict,
+  categoriesModalDict,
+  errorsDict,
 }: {
   dict: Dictionary["rooms"];
   attachmentsDict: Dictionary["attachments"];
   commonDict: Dictionary["common"];
+  categoriesModalDict: Dictionary["categoriesModal"];
+  errorsDict: Dictionary["errors"];
 }) {
   const router = useRouter();
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
@@ -38,6 +44,7 @@ export default function RoomAdmin({
   const [newRoomNumber, setNewRoomNumber] = useState("");
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
+  const [newNameUr, setNewNameUr] = useState("");
   const [newBuilding, setNewBuilding] = useState("");
   const [newFloor, setNewFloor] = useState("");
   const [newDepartmentId, setNewDepartmentId] = useState("");
@@ -90,6 +97,7 @@ export default function RoomAdmin({
           roomNumber: newRoomNumber,
           nameAr: newNameAr,
           nameEn: newNameEn,
+          nameUr: newNameUr || null,
           building: newBuilding || null,
           floor: newFloor || null,
           departmentId: newDepartmentId || null,
@@ -100,6 +108,7 @@ export default function RoomAdmin({
       setNewRoomNumber("");
       setNewNameAr("");
       setNewNameEn("");
+      setNewNameUr("");
       setNewBuilding("");
       setNewFloor("");
       setNewDepartmentId("");
@@ -125,6 +134,7 @@ export default function RoomAdmin({
           roomNumber: edited.roomNumber,
           nameAr: edited.nameAr,
           nameEn: edited.nameEn,
+          nameUr: edited.nameUr || null,
           building: edited.building || null,
           floor: edited.floor || null,
           departmentId: edited.departmentId || null,
@@ -199,6 +209,7 @@ export default function RoomAdmin({
                 <tr>
                   <th>{dict.roomNumberLabel}</th>
                   <th>{dict.nameArLabel}</th>
+                  <th>{dict.nameUrLabel}</th>
                   <th>{dict.nameEnLabel}</th>
                   <th>{dict.buildingLabel}</th>
                   <th>{dict.floorLabel}</th>
@@ -214,6 +225,7 @@ export default function RoomAdmin({
                     roomNumber: room.roomNumber,
                     nameAr: room.nameAr,
                     nameEn: room.nameEn,
+                    nameUr: room.nameUr ?? "",
                     building: room.building ?? "",
                     floor: room.floor ?? "",
                     departmentId: room.departmentId ?? "",
@@ -236,6 +248,16 @@ export default function RoomAdmin({
                             value={edited.nameAr}
                             onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameAr: e.target.value } })}
                             style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                            dir="rtl"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={edited.nameUr}
+                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameUr: e.target.value } })}
+                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                            dir="rtl"
                           />
                         </td>
                         <td>
@@ -306,7 +328,7 @@ export default function RoomAdmin({
                       </tr>
                       {photosOpenFor === room.id && (
                         <tr>
-                          <td colSpan={9} style={{ background: "var(--paper-dim)" }}>
+                          <td colSpan={10} style={{ background: "var(--paper-dim)" }}>
                             <AttachmentUploader
                               ownerType="ROOM"
                               ownerId={room.id}
@@ -348,14 +370,16 @@ export default function RoomAdmin({
                   <label>{dict.roomNumberLabel}</label>
                   <input type="text" value={newRoomNumber} onChange={(e) => setNewRoomNumber(e.target.value)} required />
                 </div>
-                <div className="field">
-                  <label>{dict.nameArLabel}</label>
-                  <input type="text" value={newNameAr} onChange={(e) => setNewNameAr(e.target.value)} required />
-                </div>
-                <div className="field">
-                  <label>{dict.nameEnLabel}</label>
-                  <input type="text" value={newNameEn} onChange={(e) => setNewNameEn(e.target.value)} required />
-                </div>
+                <TrilingualNameFields
+                  nameAr={newNameAr}
+                  setNameAr={setNewNameAr}
+                  nameEn={newNameEn}
+                  setNameEn={setNewNameEn}
+                  nameUr={newNameUr}
+                  setNameUr={setNewNameUr}
+                  dict={categoriesModalDict}
+                  errorsDict={errorsDict}
+                />
                 <div className="field">
                   <label>{dict.buildingLabel}</label>
                   <input type="text" value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} />
