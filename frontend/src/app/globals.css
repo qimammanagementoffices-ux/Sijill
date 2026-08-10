@@ -825,6 +825,16 @@ img[data-viewable] {
   outline: none;
   width: 100%;
 }
+/* Chrome only reveals the number stepper on hover/focus; these are quantity
+   fields people click into deliberately, so keep the arrows visible. */
+.field input[type="number"]::-webkit-inner-spin-button,
+.field input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 22px;
+}
+.field input[type="number"] {
+  -moz-appearance: number-input;
+}
 .field input:focus,
 .field select:focus,
 .field textarea:focus {

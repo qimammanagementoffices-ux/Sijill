@@ -14,4 +14,7 @@ public record CreateInventoryItemRequest(
         BigDecimal weight,
         LocalDate dateAdded,
         int minQuantity,
+        // Opening stock. Only settable at creation -- afterwards quantity
+        // moves through invoices and issues, never a direct edit.
+        int quantity,
         String nameHi) {}

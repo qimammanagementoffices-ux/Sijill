@@ -188,6 +188,13 @@ export type Dictionary = {
     categoryLabel: string;
     unitLabel: string;
     unitPlaceholder: string;
+    weightLabel: string;
+    weightOptional: string;
+    weightPlaceholder: string;
+    dateAddedLabel: string;
+    initialQuantityLabel: string;
+    imagesLabel: string;
+    pdfLabel: string;
     minQuantityLabel: string;
     submitCreate: string;
     submitUpdate: string;

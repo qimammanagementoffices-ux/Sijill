@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { apiFetch, ApiError } from "@/lib/apiClient";
+import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 import type {
   CategoryDto,
@@ -44,7 +44,17 @@ export default function ItemForm({
   const [nameHi, setNameHi] = useState(initial?.nameHi ?? "");
   const [categoryId, setCategoryId] = useState(initial?.category?.id ?? "");
   const [unit, setUnit] = useState(initial?.unit ?? "");
+  const [weight, setWeight] = useState(initial?.weight != null ? String(initial.weight) : "");
   const [minQuantity, setMinQuantity] = useState(String(initial?.minQuantity ?? 0));
+  // Create-only: stock moves through invoices and issues after this, and
+  // the update endpoint takes neither field.
+  const [quantity, setQuantity] = useState("0");
+  const [dateAdded, setDateAdded] = useState(() => new Date().toISOString().slice(0, 10));
+  // Attachments need an owner id, which does not exist until the item is
+  // created -- so they are held here and uploaded right after the POST.
+  // In edit mode AttachmentUploader handles them directly (ItemEditView).
+  const [images, setImages] = useState<File[]>([]);
+  const [pdf, setPdf] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,6 +62,24 @@ export default function ItemForm({
     onSubmittingChange?.(submitting);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitting]);
+
+  // The item itself is already saved by the time this runs, so an upload
+  // failure must not read as "creating the item failed" -- it is reported
+  // and the caller still gets the created item.
+  async function uploadAttachments(itemId: string) {
+    const files = [...images, ...(pdf ? [pdf] : [])];
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("ownerType", "INVENTORY_ITEM");
+      formData.append("ownerId", itemId);
+      formData.append("file", file);
+      try {
+        await apiUpload(`/attachments?ownerType=INVENTORY_ITEM&ownerId=${itemId}`, formData);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : errorsDict.generic);
+      }
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -67,11 +95,13 @@ export default function ItemForm({
             nameHi: nameHi || null,
             categoryId: categoryId || null,
             unit: unit || null,
-            weight: null,
-            dateAdded: null,
+            weight: weight.trim() ? Number(weight) : null,
+            dateAdded,
             minQuantity: Number(minQuantity),
+            quantity: Number(quantity),
           }),
         });
+        await uploadAttachments(created.id);
         onSubmitted(created);
       } else if (initial) {
         const updated = await apiFetch<InventoryItemDetail>(`${basePath}/${initial.id}`, {
@@ -82,7 +112,7 @@ export default function ItemForm({
             nameHi: nameHi || null,
             categoryId: categoryId || null,
             unit: unit || null,
-            weight: initial.weight,
+            weight: weight.trim() ? Number(weight) : null,
             minQuantity: Number(minQuantity),
             version: initial.version,
           }),
@@ -132,9 +162,55 @@ export default function ItemForm({
               />
             </div>
             <div className="field">
+              <label>
+                {dict.weightLabel} <span className="panel-note">{dict.weightOptional}</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder={dict.weightPlaceholder}
+              />
+            </div>
+            {mode === "create" && (
+              <div className="field">
+                <label>{dict.dateAddedLabel}</label>
+                <input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} required />
+              </div>
+            )}
+            {mode === "create" && (
+              <div className="field">
+                <label>{dict.initialQuantityLabel}</label>
+                <input type="number" min={0} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+              </div>
+            )}
+            <div className="field">
               <label>{dict.minQuantityLabel}</label>
               <input type="number" min={0} value={minQuantity} onChange={(e) => setMinQuantity(e.target.value)} required />
             </div>
+            {mode === "create" && (
+              <>
+                <div className="field span2">
+                  <label>{dict.imagesLabel}</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setImages(Array.from(e.target.files ?? []))}
+                  />
+                </div>
+                <div className="field span2">
+                  <label>{dict.pdfLabel}</label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

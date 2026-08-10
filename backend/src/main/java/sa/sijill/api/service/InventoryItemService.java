@@ -64,7 +64,7 @@ public class InventoryItemService {
         item.setWeight(request.weight());
         item.setDateAdded(request.dateAdded() != null ? request.dateAdded() : java.time.LocalDate.now());
         item.setMinQuantity(request.minQuantity());
-        item.setQuantity(0);
+        item.setQuantity(Math.max(request.quantity(), 0));
         item.setActive(true);
 
         InventoryItem saved = inventoryItemRepository.save(item);
