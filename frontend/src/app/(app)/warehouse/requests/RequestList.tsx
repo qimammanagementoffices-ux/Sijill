@@ -187,9 +187,11 @@ export default function RequestList({
             <div className="modal-body">
               <NewRequestView
                 dict={dict}
+                commonDict={commonDict}
                 errorsDict={errorsDict}
                 onSubmitted={handleAdded}
                 onSubmittingChange={setAddSubmitting}
+                onCancel={() => setShowAddModal(false)}
               />
             </div>
           </div>

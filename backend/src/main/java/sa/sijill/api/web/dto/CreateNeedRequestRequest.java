@@ -4,4 +4,4 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateNeedRequestRequest(
-        UUID departmentId, UUID categoryId, String notes, List<NeedRequestLineRequest> lines) {}
+        UUID departmentId, UUID categoryId, UUID roomId, String notes, List<NeedRequestLineRequest> lines) {}

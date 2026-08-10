@@ -35,6 +35,12 @@ public class NeedRequest {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    // Optional: which room the items are needed in. EAGER for the same
+    // reason as the three above.
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "room_id")
+    private Room room;
+
     @Column(name = "notes")
     private String notes;
 

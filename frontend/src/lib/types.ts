@@ -162,6 +162,7 @@ export type NeedRequestDetail = {
   requesterName: string;
   department: LocalizedRef | null;
   category: LocalizedRef | null;
+  room: LocalizedRef | null;
   notes: string | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
@@ -280,6 +281,10 @@ export type AssetDetail = {
   acquisitionCost: number | null;
   vendor: string | null;
   notes: string | null;
+  depreciationRate: number | null;
+  accumulatedDepreciation: number | null;
+  periodEndBalance: number | null;
+  periodEndDate: string | null;
   publicToken: string;
   version: number;
 };
@@ -308,7 +313,14 @@ export type AssetRequestListItem = {
 
 // --- Media / branding (Phase 6a) ---
 
-export type AttachmentOwnerType = "INVENTORY_ITEM" | "ROOM" | "ASSET" | "BRANDING" | "MAINTENANCE" | "EMPLOYEE";
+export type AttachmentOwnerType =
+  | "INVENTORY_ITEM"
+  | "ROOM"
+  | "ASSET"
+  | "BRANDING"
+  | "MAINTENANCE"
+  | "EMPLOYEE"
+  | "NEED_REQUEST";
 
 export type AttachmentDto = {
   id: string;

@@ -113,7 +113,7 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
 
     private NeedRequest submitAndApprove(UUID itemId, Employee actor) {
         NeedRequest request = needRequestService.submit(
-                new CreateNeedRequestRequest(null, null, "concurrency test", List.of(new NeedRequestLineRequest(itemId, 1))),
+                new CreateNeedRequestRequest(null, null, null, "concurrency test", List.of(new NeedRequestLineRequest(itemId, 1))),
                 actor);
         createdNeedRequestIds.add(request.getId());
         return needRequestService.approve(request.getId(), actor);

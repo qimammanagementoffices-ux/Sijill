@@ -1,13 +1,11 @@
-insert into translation_value (language_id, key, value)
-select l.id, k.key, k.val
-from language l
-cross join (values
-    ('assets.nameUrLabel',      'الاسم (أردو)',    'ar'),
-    ('assets.nameUrLabel',      'Name (Urdu)',     'en'),
-    ('rooms.nameUrLabel',       'الاسم (أردو)',    'ar'),
-    ('rooms.nameUrLabel',       'Name (Urdu)',     'en'),
-    ('faultTypes.nameUrLabel',  'الاسم (أردو)',    'ar'),
-    ('faultTypes.nameUrLabel',  'Name (Urdu)',     'en')
-) as k(key, val, lang)
-where l.code = k.lang
-on conflict do nothing;
+-- Built-in locales live in translation (V4) as value_ar/value_en/value_hi.
+-- This file previously inserted into translation_value, selecting l.id from
+-- language: no migration creates that table, and language's PK is code with
+-- no id column, so Flyway aborted here and every context-loading test died
+-- with it. value_hi stays null (as it was before) -- TranslationService
+-- returns null for an untranslated locale and the dictionary tolerates it.
+insert into translation (key, value_ar, value_en) values
+    ('assets.nameUrLabel',      'الاسم (أردو)',    'Name (Urdu)'),
+    ('rooms.nameUrLabel',       'الاسم (أردو)',    'Name (Urdu)'),
+    ('faultTypes.nameUrLabel',  'الاسم (أردو)',    'Name (Urdu)')
+on conflict (key) do nothing;

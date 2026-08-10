@@ -631,6 +631,19 @@ tbody tr.clickable {
 tbody tr.clickable:hover {
   background: var(--paper-dim);
 }
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn:hover {
+  color: var(--seal);
+}
 
 .chip {
   display: inline-flex;
@@ -754,6 +767,21 @@ img[data-viewable] {
   flex: none;
 }
 
+.info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  font-size: 13.5px;
+  margin: 0;
+}
+.info-grid dt {
+  font-weight: 600;
+  color: var(--slate);
+  white-space: nowrap;
+}
+.info-grid dd {
+  margin: 0;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1915,3 +1943,58 @@ body.lang-en .modal-head h3 {
 }
 .category-radio-icon { font-size: 20px; order: 0; }
 .category-radio-name { order: 0; flex: 1; }
+
+/* ── Wizard read-only pair (department / requester) ────── */
+/* Both values come from the signed-in employee and are never editable, so
+   they read as labelled facts on the app's own parchment tone rather than
+   as greyed-out inputs. */
+.readonly-pair {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.readonly-box {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--paper-dim);
+  border-radius: 14px;
+  padding: 13px 18px;
+}
+.readonly-box-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.readonly-box-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ── Wizard step actions ───────────────────────────────── */
+/* Back/cancel sits at the start of the row, the forward action at the end;
+   space-between resolves correctly under both dir=rtl and dir=ltr. */
+.wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 24px;
+}
+.wizard-actions:only-child,
+.wizard-actions > :only-child {
+  margin-inline-start: auto;
+}
+
+@media (max-width: 640px) {
+  .readonly-pair { flex-direction: column; gap: 10px; }
+  /* Two cards per row on phones -- flex-basis alone lets a fourth card
+     stretch full-width on its own line. */
+  .category-radio-card { flex: 1 1 calc(50% - 6px); min-width: 0; }
+  .wizard-step { min-width: 0; }
+  .wizard-step-label { font-size: 11px; white-space: normal; }
+  .wizard-step-line { width: 20px; }
+}
