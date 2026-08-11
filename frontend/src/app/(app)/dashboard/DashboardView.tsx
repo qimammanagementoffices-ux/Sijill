@@ -40,19 +40,16 @@ export default function DashboardView({
 
   useEffect(() => {
     apiFetch<EmployeeSummary>("/auth/me")
-      .then(setEmployee)
-      .catch(() => {});
-    apiFetch<DashboardStats>("/dashboard/stats")
-      .then(setStats)
+      .then((me) => {
+        setEmployee(me);
+        if (me.permissions.includes("emp.manage")) {
+          return apiFetch<DashboardStats>("/dashboard/stats").then(setStats);
+        }
+      })
       .catch(() => {});
   }, []);
 
-  const canViewWarehouse =
-    !!employee && (employee.permissions.includes("wh.view") || employee.permissions.includes("wh.request"));
-  const canViewMaintenance =
-    !!employee && (employee.permissions.includes("mt.view") || employee.permissions.includes("mt.request"));
-  const canViewAssets =
-    !!employee && (employee.permissions.includes("as.view") || employee.permissions.includes("as.request"));
+  const isAdmin = employee?.permissions.includes("emp.manage") ?? false;
 
   return (
     <>
@@ -62,7 +59,7 @@ export default function DashboardView({
         {employee ? `, ${employee.name}` : ""}
       </h1>
 
-      {stats && canViewWarehouse && (
+      {stats && isAdmin && (
         <div style={{ marginTop: 20 }}>
           <h2 className="disp" style={{ fontSize: 18, marginBottom: 4 }}>
             {statsDict.warehouseTitle}
@@ -89,7 +86,7 @@ export default function DashboardView({
         </div>
       )}
 
-      {stats && canViewMaintenance && (
+      {stats && isAdmin && (
         <div style={{ marginTop: 8 }}>
           <h2 className="disp" style={{ fontSize: 18, marginBottom: 4 }}>
             {statsDict.maintenanceTitle}
@@ -116,7 +113,7 @@ export default function DashboardView({
         </div>
       )}
 
-      {stats && canViewAssets && (
+      {stats && isAdmin && (
         <div style={{ marginTop: 8 }}>
           <h2 className="disp" style={{ fontSize: 18, marginBottom: 4 }}>
             {statsDict.assetsTitle}

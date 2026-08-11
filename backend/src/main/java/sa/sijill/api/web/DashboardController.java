@@ -1,5 +1,6 @@
 package sa.sijill.api.web;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,9 +17,8 @@ import sa.sijill.api.repository.NeedRequestRepository;
 import sa.sijill.api.repository.RoomRepository;
 import sa.sijill.api.web.dto.DashboardStatsDto;
 
-// Any authenticated employee can read these -- they're aggregate counts, not
-// records, and the frontend only renders the module blocks the viewer
-// already has nav access to (same gating as the sidebar).
+// Dashboard aggregates are reserved for administrators. emp.manage is the
+// existing authority used for permission administration throughout the app.
 @RestController
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
@@ -46,6 +46,7 @@ public class DashboardController {
     }
 
     @GetMapping("/stats")
+    @PreAuthorize("hasAuthority('emp.manage')")
     public DashboardStatsDto stats() {
         var warehouse = new DashboardStatsDto.Warehouse(
                 inventoryItemRepository.countByDomain(Domain.WAREHOUSE),
