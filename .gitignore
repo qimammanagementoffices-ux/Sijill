@@ -11,6 +11,7 @@ backend/out/
 
 # Frontend
 frontend/node_modules/
+scripts/storage-migration/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.turbo/
