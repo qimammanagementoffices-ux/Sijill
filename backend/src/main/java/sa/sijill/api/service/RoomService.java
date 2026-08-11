@@ -19,7 +19,8 @@ import sa.sijill.api.repository.RoomRepository;
 import sa.sijill.api.web.dto.RoomDto;
 import sa.sijill.api.web.dto.UpsertRoomRequest;
 
-// No delete — same reference-data caution as StructureService/CategoryService.
+// Rooms are soft-deleted because assets and historical requests may still
+// reference them. The legacy UI calls this "delete", but data is retained.
 @Service
 public class RoomService {
 
@@ -40,7 +41,7 @@ public class RoomService {
     }
 
     public List<Room> list() {
-        return roomRepository.findAll();
+        return roomRepository.findByActiveTrueOrderByRoomNumberAsc();
     }
 
     public Page<Room> search(String q, UUID departmentId, Pageable pageable) {

@@ -1,6 +1,7 @@
 package sa.sijill.api.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -278,12 +279,14 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/rooms").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/rooms")
+        String secondRoomBody = mockMvc.perform(post("/api/v1/rooms")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new UpsertRoomRequest("SMOKE-202", "قاعة ثانية", "Second Room", "Annex", "2", null, null, null, null))))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String secondRoomId = objectMapper.readTree(secondRoomBody).get("id").asText();
 
         mockMvc.perform(get("/api/v1/rooms/search")
                         .param("q", "SMOKE")
@@ -292,6 +295,16 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.content[0].roomNumber").value("SMOKE-202"));
+
+        mockMvc.perform(delete("/api/v1/rooms/" + secondRoomId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/rooms/search")
+                        .param("q", "SMOKE")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
 
         String assetCategoryBody = mockMvc.perform(post("/api/v1/assets/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)

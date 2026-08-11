@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Room;
@@ -70,5 +71,12 @@ public class RoomController {
     public RoomDto update(@PathVariable UUID id, @RequestBody UpsertRoomRequest request) {
         Room room = roomService.update(id, request);
         return RoomDto.from(room, assetRepository.countByRoom_Id(room.getId()));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('as.manage')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        roomService.deactivate(id);
+        return ResponseEntity.noContent().build();
     }
 }

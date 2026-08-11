@@ -1,11 +1,10 @@
 "use client";
 
 import { entityName, useEntityLocale } from "@/i18n/entityName";
-import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
-import AttachmentUploader from "@/components/AttachmentUploader";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import PrintReportHeader from "@/components/PrintReportHeader";
@@ -13,6 +12,7 @@ import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 import TableFooter from "@/components/TableFooter";
+import { IconFilePdf, IconSheet, IconTrash } from "@/components/NavIcons";
 import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -54,7 +54,6 @@ export default function RoomAdmin({
   const [printRows, setPrintRows] = useState<RoomDto[] | null>(null);
   const requestSequence = useRef(0);
   const [canManage, setCanManage] = useState(false);
-  const [photosOpenFor, setPhotosOpenFor] = useState<string | null>(null);
   const [newRoomNumber, setNewRoomNumber] = useState("");
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
@@ -63,7 +62,10 @@ export default function RoomAdmin({
   const [newFloor, setNewFloor] = useState("");
   const [newDepartmentId, setNewDepartmentId] = useState("");
   const [newCustodianId, setNewCustodianId] = useState("");
-  const [editing, setEditing] = useState<Record<string, Edited>>({});
+  const [editingRoom, setEditingRoom] = useState<RoomDto | null>(null);
+  const [editDraft, setEditDraft] = useState<Edited | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -190,29 +192,66 @@ export default function RoomAdmin({
     }
   }
 
-  async function handleUpdate(room: RoomDto) {
-    const edited = editing[room.id];
-    if (!edited) return;
+  function openEditModal(room: RoomDto) {
+    setEditingRoom(room);
+    setEditDraft({
+      roomNumber: room.roomNumber,
+      nameAr: room.nameAr,
+      nameEn: room.nameEn,
+      nameHi: room.nameHi ?? "",
+      building: room.building ?? "",
+      floor: room.floor ?? "",
+      departmentId: room.departmentId ?? "",
+      custodianId: room.custodianId ?? "",
+    });
     setError(null);
+  }
+
+  async function handleUpdate(e: FormEvent) {
+    e.preventDefault();
+    if (!editingRoom || !editDraft) return;
+    setError(null);
+    setEditSubmitting(true);
     try {
-      await apiFetch(`/rooms/${room.id}`, {
+      await apiFetch(`/rooms/${editingRoom.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          roomNumber: edited.roomNumber,
-          nameAr: edited.nameAr,
-          nameEn: edited.nameEn,
-          nameHi: edited.nameHi || null,
-          building: edited.building || null,
-          floor: edited.floor || null,
-          departmentId: edited.departmentId || null,
-          custodianId: edited.custodianId || null,
-          version: room.version,
+          roomNumber: editDraft.roomNumber,
+          nameAr: editDraft.nameAr,
+          nameEn: editDraft.nameEn,
+          nameHi: editDraft.nameHi || null,
+          building: editDraft.building || null,
+          floor: editDraft.floor || null,
+          departmentId: editDraft.departmentId || null,
+          custodianId: editDraft.custodianId || null,
+          version: editingRoom.version,
         }),
       });
+      setEditingRoom(null);
+      setEditDraft(null);
       load(page?.page ?? 0);
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!editingRoom || !window.confirm(dict.deleteConfirm)) return;
+    setError(null);
+    setDeleteSubmitting(true);
+    try {
+      await apiFetch(`/rooms/${editingRoom.id}`, { method: "DELETE" });
+      setEditingRoom(null);
+      setEditDraft(null);
+      load(0);
+      setToast(commonDict.actionSuccess);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setDeleteSubmitting(false);
     }
   }
 
@@ -295,14 +334,14 @@ export default function RoomAdmin({
           </form>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
+              <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}
             </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
-              {commonDict.print}
+              <IconFilePdf className="ic-sm" />
+              {commonDict.exportPdf}
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>
-              {dict.addNew}
-            </button>
+            {canManage && <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>{dict.addNew}</button>}
           </div>
         </div>
 
@@ -336,132 +375,22 @@ export default function RoomAdmin({
                     </th>
                   ))}
                   <th>{dict.assetCountLabel}</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rooms.map((room) => {
-                  const edited = editing[room.id] ?? {
-                    roomNumber: room.roomNumber,
-                    nameAr: room.nameAr,
-                    nameEn: room.nameEn,
-                    nameHi: room.nameHi ?? "",
-                    building: room.building ?? "",
-                    floor: room.floor ?? "",
-                    departmentId: room.departmentId ?? "",
-                    custodianId: room.custodianId ?? "",
-                  };
-                  return (
-                    <Fragment key={room.id}>
-                      <tr>
-                        <td>
-                          <input
-                            type="text"
-                            value={edited.roomNumber}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, roomNumber: e.target.value } })}
-                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 90 }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={edited.nameAr}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameAr: e.target.value } })}
-                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                            dir="rtl"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={edited.nameHi}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameHi: e.target.value } })}
-                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                            dir="rtl"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={edited.nameEn}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, nameEn: e.target.value } })}
-                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={edited.building}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, building: e.target.value } })}
-                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 90 }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={edited.floor}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, floor: e.target.value } })}
-                            style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 70 }}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            value={edited.departmentId}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, departmentId: e.target.value } })}
-                          >
-                            <option value="">—</option>
-                            {(departments ?? []).map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {entityName(d, entityLocale)}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <select
-                            value={edited.custodianId}
-                            onChange={(e) => setEditing({ ...editing, [room.id]: { ...edited, custodianId: e.target.value } })}
-                          >
-                            <option value="">—</option>
-                            {(employees ?? []).map((emp) => (
-                              <option key={emp.id} value={emp.id}>
-                                {emp.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <span className="count-badge">{room.assetCount}</span>
-                        </td>
-                        <td style={{ display: "flex", gap: 6 }}>
-                          <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(room)}>
-                            {dict.save}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setPhotosOpenFor(photosOpenFor === room.id ? null : room.id)}
-                          >
-                            {attachmentsDict.title}
-                          </button>
-                        </td>
-                      </tr>
-                      {photosOpenFor === room.id && (
-                        <tr>
-                          <td colSpan={10} style={{ background: "var(--paper-dim)" }}>
-                            <AttachmentUploader
-                              ownerType="ROOM"
-                              ownerId={room.id}
-                              dict={attachmentsDict}
-                              canManage={canManage}
-                              onAction={() => setToast(commonDict.actionSuccess)}
-                            />
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
+                {rooms.map((room) => (
+                  <tr key={room.id} className={canManage ? "clickable" : undefined} onClick={() => { if (canManage) openEditModal(room); }}>
+                    <td className="mono">{room.roomNumber}</td>
+                    <td>{room.nameAr}</td>
+                    <td>{room.nameHi || "—"}</td>
+                    <td dir="ltr">{room.nameEn}</td>
+                    <td>{room.building || "—"}</td>
+                    <td>{room.floor || "—"}</td>
+                    <td>{entityLocale === "en" ? room.departmentNameEn : room.departmentNameAr || "—"}</td>
+                    <td>{room.custodianName || "—"}</td>
+                    <td><span className="count-badge">{room.assetCount}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -553,6 +482,58 @@ export default function RoomAdmin({
                 {addSubmitting && <span className="spinner" />}
                 {dict.addNew}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingRoom && editDraft && (
+        <div className="overlay no-print" role="dialog" aria-modal="true">
+          <div className="modal wide room-edit-modal">
+            <div className="modal-head">
+              <h3>{dict.editTitle}</h3>
+              <button type="button" className="modal-close" onClick={() => { setEditingRoom(null); setEditDraft(null); }} aria-label="close" disabled={editSubmitting || deleteSubmitting}>×</button>
+            </div>
+            <div className="modal-body">
+              <form id="room-edit-form" onSubmit={handleUpdate} className="form-grid">
+                <div className="field">
+                  <label>{dict.roomNumberLabel}</label>
+                  <input type="text" value={editDraft.roomNumber} onChange={(e) => setEditDraft({ ...editDraft, roomNumber: e.target.value })} required />
+                </div>
+                <div className="field">
+                  <label>{dict.custodianLabel}</label>
+                  <select value={editDraft.custodianId} onChange={(e) => setEditDraft({ ...editDraft, custodianId: e.target.value })}>
+                    <option value="">—</option>
+                    {(employees ?? []).map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{dict.departmentLabel}</label>
+                  <select value={editDraft.departmentId} onChange={(e) => setEditDraft({ ...editDraft, departmentId: e.target.value })}>
+                    <option value="">—</option>
+                    {(departments ?? []).map((department) => <option key={department.id} value={department.id}>{entityName(department, entityLocale)}</option>)}
+                  </select>
+                </div>
+                <div aria-hidden="true" />
+                <div className="field span2">
+                  <label>{dict.nameArLabel}</label>
+                  <input type="text" value={editDraft.nameAr} onChange={(e) => setEditDraft({ ...editDraft, nameAr: e.target.value })} dir="rtl" required />
+                </div>
+                <div className="field">
+                  <label>{dict.nameEnLabel}</label>
+                  <input type="text" value={editDraft.nameEn} onChange={(e) => setEditDraft({ ...editDraft, nameEn: e.target.value })} dir="ltr" required />
+                </div>
+                <div className="field">
+                  <label>{dict.nameHiLabel}</label>
+                  <input type="text" value={editDraft.nameHi} onChange={(e) => setEditDraft({ ...editDraft, nameHi: e.target.value })} dir="ltr" />
+                </div>
+              </form>
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn room-delete-btn btn-sm" onClick={() => void handleDelete()} disabled={editSubmitting || deleteSubmitting}>{deleteSubmitting && <span className="spinner" />}<IconTrash className="ic-sm" />{dict.delete}</button>
+              <span className="room-edit-footer-spacer" />
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => { setEditingRoom(null); setEditDraft(null); }} disabled={editSubmitting || deleteSubmitting}>{commonDict.cancel}</button>
+              <button type="submit" form="room-edit-form" className="btn room-save-btn btn-sm" disabled={editSubmitting || deleteSubmitting}>{editSubmitting && <span className="spinner" />}{dict.saveChanges}{!editSubmitting && <span aria-hidden="true">✓</span>}</button>
             </div>
           </div>
         </div>

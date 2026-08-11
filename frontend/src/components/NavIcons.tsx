@@ -121,6 +121,17 @@ export function IconPrinter({ className }: IconProps) {
   );
 }
 
+export function IconTrash({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="m7 7 1 14h8l1-14" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
 export function IconTag({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
