@@ -15,10 +15,16 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
             select r from NeedRequest r
             where (:status is null or r.status = :status)
               and (:requesterId is null or r.requester.id = :requesterId)
+              and (:q is null or :q = ''
+                or lower(r.requester.name) like lower(concat('%', :q, '%'))
+                or lower(coalesce(r.notes, '')) like lower(concat('%', :q, '%')))
             order by r.createdAt desc
             """)
     Page<NeedRequest> search(
-            @Param("status") NeedRequestStatus status, @Param("requesterId") UUID requesterId, Pageable pageable);
+            @Param("status") NeedRequestStatus status,
+            @Param("requesterId") UUID requesterId,
+            @Param("q") String q,
+            Pageable pageable);
 
     long countByStatus(NeedRequestStatus status);
 }

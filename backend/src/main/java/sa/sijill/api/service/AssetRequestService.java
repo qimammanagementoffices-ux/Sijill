@@ -43,8 +43,8 @@ public class AssetRequestService {
         this.auditService = auditService;
     }
 
-    public Page<AssetRequest> search(AssetRequestStatus status, UUID restrictToRequesterId, Pageable pageable) {
-        return assetRequestRepository.search(status, restrictToRequesterId, pageable);
+    public Page<AssetRequest> search(AssetRequestStatus status, UUID restrictToRequesterId, String q, Pageable pageable) {
+        return assetRequestRepository.search(status, restrictToRequesterId, q, pageable);
     }
 
     public AssetRequest get(UUID id) {

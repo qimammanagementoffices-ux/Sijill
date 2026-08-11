@@ -279,6 +279,10 @@ export type Dictionary = {
   warehouseRequests: {
     title: string;
     addNew: string;
+    searchPlaceholder: string;
+    pendingTab: string;
+    allTab: string;
+    mineTab: string;
     noResults: string;
     columnRequester: string;
     columnDepartment: string;
@@ -540,6 +544,13 @@ export type Dictionary = {
   assetRequests: {
     title: string;
     addNew: string;
+    searchPlaceholder: string;
+    pendingTab: string;
+    allTab: string;
+    mineTab: string;
+    cardTitle: string;
+    cardOpen: string;
+    activityTitle: string;
     noResults: string;
     columnRequester: string;
     columnAsset: string;

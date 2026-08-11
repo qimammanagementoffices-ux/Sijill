@@ -335,12 +335,15 @@ export type AssetRequestActionDto = { actorName: string; action: string; reason:
 
 export type AssetRequestListItem = {
   id: string;
+  requesterId: string;
   requesterName: string;
   assetNumber: string;
   assetNameAr: string;
   assetNameEn: string;
+  reason: string | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
+  actions: AssetRequestActionDto[];
 };
 
 // --- Media / branding (Phase 6a) ---

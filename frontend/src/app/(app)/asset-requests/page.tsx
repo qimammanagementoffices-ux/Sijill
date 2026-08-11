@@ -4,5 +4,5 @@ import AssetRequestList from "./AssetRequestList";
 
 export default async function AssetRequestsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <AssetRequestList dict={dict.assetRequests} errorsDict={dict.errors} commonDict={dict.common} />;
+  return <AssetRequestList dict={dict.assetRequests} errorsDict={dict.errors} commonDict={dict.common} attachmentsDict={dict.attachments} />;
 }

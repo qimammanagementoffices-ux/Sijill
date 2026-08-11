@@ -913,6 +913,23 @@ img[data-viewable] {
   flex-direction: column;
   gap: 12px;
 }
+.request-toolbar,
+.request-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.request-toolbar {
+  flex: 1;
+  justify-content: space-between;
+}
+.request-toolbar .filter-row input {
+  min-width: 230px;
+  border: 1.5px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 12px;
+}
 .request-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);

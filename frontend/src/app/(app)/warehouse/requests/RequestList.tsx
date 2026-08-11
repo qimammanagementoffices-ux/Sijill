@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
@@ -15,7 +15,6 @@ import Toast from "@/components/Toast";
 import type { NeedRequestDetail, NeedRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-const STATUSES = ["PENDING", "APPROVED", "POSTPONED", "REJECTED", "CLOSED"] as const;
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
   APPROVED: "s-approved",
@@ -36,7 +35,10 @@ export default function RequestList({
   attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("PENDING");
+  const [mine, setMine] = useState(false);
+  const [q, setQ] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [page, setPage] = useState<PagedResponse<NeedRequestListItem> | null>(null);
   const [filtering, setFiltering] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -47,10 +49,13 @@ export default function RequestList({
   const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
   const [reason, setReason] = useState("");
 
-  function load(statusFilter: string) {
-    const query = statusFilter ? `?status=${statusFilter}` : "";
+  function load(statusFilter = status, query = appliedQuery, mineOnly = mine) {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (query) params.set("q", query);
+    if (mineOnly) params.set("mine", "true");
     setFiltering(true);
-    apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests${query}`)
+    apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests?${params.toString()}`)
       .then(setPage)
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -65,7 +70,7 @@ export default function RequestList({
       router.replace("/login");
       return;
     }
-    load("");
+    load("PENDING", "", false);
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setPermissions(me.permissions))
       .catch(() => {});
@@ -92,6 +97,18 @@ export default function RequestList({
     }[action] ?? action;
   }
 
+  function selectView(nextStatus: string, mineOnly: boolean) {
+    setStatus(nextStatus);
+    setMine(mineOnly);
+    load(nextStatus, appliedQuery, mineOnly);
+  }
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    setAppliedQuery(q);
+    load(status, q, mine);
+  }
+
   async function act(id: string, action: "approve" | "reject" | "postpone", actionReason?: string) {
     const key = `${id}:${action}`;
     setBusyAction(key);
@@ -102,7 +119,7 @@ export default function RequestList({
       });
       setPendingAction(null);
       setReason("");
-      load(status);
+      load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
       setToast(error instanceof ApiError ? error.message : errorsDict.generic);
@@ -112,8 +129,11 @@ export default function RequestList({
   }
 
   async function handleExport() {
-    const query = status ? `?status=${status}&size=10000` : "?size=10000";
-    const all = await apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests${query}`);
+    const params = new URLSearchParams({ size: "10000" });
+    if (status) params.set("status", status);
+    if (appliedQuery) params.set("q", appliedQuery);
+    if (mine) params.set("mine", "true");
+    const all = await apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests?${params.toString()}`);
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -129,7 +149,7 @@ export default function RequestList({
 
   function handleAdded(request: NeedRequestDetail) {
     setShowAddModal(false);
-    load(status);
+    load();
     setToast(commonDict.actionSuccess);
     void request;
   }
@@ -148,21 +168,15 @@ export default function RequestList({
 
       <div className="panel">
         <div className="panel-head no-print">
-          <div className="filter-row">
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                load(e.target.value);
-              }}
-            >
-              <option value="">{dict.statusFilterAll}</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
-            </select>
+          <div className="request-toolbar">
+            <div className="request-tabs">
+              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{dict.pendingTab}</button>
+              <button type="button" className={`btn btn-sm ${status === "" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
+            </div>
+            <form className="filter-row" onSubmit={handleSearch}>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.searchPlaceholder} />
+            </form>
             {filtering && <span className="spinner" />}
           </div>
           <div style={{ display: "flex", gap: 8 }}>

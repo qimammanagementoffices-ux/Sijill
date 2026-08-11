@@ -175,7 +175,10 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getContentAsString();
         JsonNode created = objectMapper.readTree(requestBody);
 
-        mockMvc.perform(get("/api/v1/warehouse/requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/v1/warehouse/requests")
+                        .param("q", "smoke test")
+                        .param("mine", "true")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].requesterName").exists());
 
@@ -351,9 +354,14 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getContentAsString();
         JsonNode createdAssetRequest = objectMapper.readTree(assetRequestBody);
 
-        mockMvc.perform(get("/api/v1/asset-requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/v1/asset-requests")
+                        .param("q", assetNumber)
+                        .param("mine", "true")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].requesterName").exists());
+                .andExpect(jsonPath("$.content[0].requesterName").exists())
+                .andExpect(jsonPath("$.content[0].reason").value("smoke test"))
+                .andExpect(jsonPath("$.content[0].actions[0].action").value("SUBMIT"));
 
         mockMvc.perform(get("/api/v1/asset-requests/" + createdAssetRequest.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))

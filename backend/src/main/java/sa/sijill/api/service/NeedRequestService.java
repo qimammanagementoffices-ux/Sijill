@@ -53,8 +53,8 @@ public class NeedRequestService {
         this.auditService = auditService;
     }
 
-    public Page<NeedRequest> search(NeedRequestStatus status, UUID restrictToRequesterId, Pageable pageable) {
-        return needRequestRepository.search(status, restrictToRequesterId, pageable);
+    public Page<NeedRequest> search(NeedRequestStatus status, UUID restrictToRequesterId, String q, Pageable pageable) {
+        return needRequestRepository.search(status, restrictToRequesterId, q, pageable);
     }
 
     public NeedRequest get(UUID id) {

@@ -29,10 +29,12 @@ public class AssetRequestController {
     @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
     public PagedResponse<AssetRequestListItem> search(
             @RequestParam(required = false) AssetRequestStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean mine,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
-        UUID restrictToRequesterId = hasPermission(actor, "as.view") ? null : actor.getId();
-        Page<AssetRequest> page = assetRequestService.search(status, restrictToRequesterId, pageable);
+        UUID restrictToRequesterId = mine || !hasPermission(actor, "as.view") ? actor.getId() : null;
+        Page<AssetRequest> page = assetRequestService.search(status, restrictToRequesterId, q, pageable);
         return PagedResponse.from(page, AssetRequestListItem::from);
     }
 

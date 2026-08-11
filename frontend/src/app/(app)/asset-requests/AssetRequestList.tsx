@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
@@ -9,11 +9,12 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
+import RequestActionDialog from "@/components/RequestActionDialog";
+import RequestCardActivity from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import type { AssetRequestDetail, AssetRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-const STATUSES = ["PENDING", "APPROVED", "POSTPONED", "REJECTED", "CLOSED"] as const;
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
   APPROVED: "s-approved",
@@ -26,23 +27,38 @@ export default function AssetRequestList({
   dict,
   errorsDict,
   commonDict,
+  attachmentsDict,
 }: {
   dict: Dictionary["assetRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
+  attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
-  const [status, setStatus] = useState("");
+  const [view, setView] = useState<"pending" | "all" | "mine">("pending");
+  const [q, setQ] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [page, setPage] = useState<PagedResponse<AssetRequestListItem> | null>(null);
   const [filtering, setFiltering] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [reason, setReason] = useState("");
 
-  function load(statusFilter: string) {
-    const query = statusFilter ? `?status=${statusFilter}` : "";
+  function queryFor(nextView: "pending" | "all" | "mine", query: string) {
+    const params = new URLSearchParams();
+    if (nextView === "pending") params.set("status", "PENDING");
+    if (nextView === "mine") params.set("mine", "true");
+    if (query) params.set("q", query);
+    return `?${params.toString()}`;
+  }
+
+  function load(nextView = view, query = appliedQuery) {
     setFiltering(true);
-    apiFetch<PagedResponse<AssetRequestListItem>>(`/asset-requests${query}`)
+    apiFetch<PagedResponse<AssetRequestListItem>>(`/asset-requests${queryFor(nextView, query)}`)
       .then(setPage)
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -57,7 +73,8 @@ export default function AssetRequestList({
       router.replace("/login");
       return;
     }
-    load("");
+    load("pending", "");
+    apiFetch<{ permissions: string[] }>("/auth/me").then((me) => setPermissions(me.permissions)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -71,9 +88,41 @@ export default function AssetRequestList({
     }[s];
   }
 
+  function actionLabel(action: string) {
+    return { SUBMIT: dict.submit, APPROVE: dict.approve, REJECT: dict.reject, POSTPONE: dict.postpone, FINISH: dict.finish }[action] ?? action;
+  }
+
+  function selectView(nextView: "pending" | "all" | "mine") {
+    setView(nextView);
+    load(nextView);
+  }
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    setAppliedQuery(q);
+    load(view, q);
+  }
+
+  async function act(id: string, action: "approve" | "reject" | "postpone", actionReason?: string) {
+    setBusyAction(`${id}:${action}`);
+    try {
+      await apiFetch(`/asset-requests/${id}/${action}`, {
+        method: "POST",
+        body: action === "approve" ? undefined : JSON.stringify({ reason: actionReason || null }),
+      });
+      setPendingAction(null);
+      setReason("");
+      load();
+      setToast(commonDict.actionSuccess);
+    } catch (error) {
+      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function handleExport() {
-    const query = status ? `?status=${status}&size=10000` : "?size=10000";
-    const all = await apiFetch<PagedResponse<AssetRequestListItem>>(`/asset-requests${query}`);
+    const all = await apiFetch<PagedResponse<AssetRequestListItem>>(`/asset-requests${queryFor(view, appliedQuery)}&size=10000`);
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -89,7 +138,7 @@ export default function AssetRequestList({
 
   function handleAdded(request: AssetRequestDetail) {
     setShowAddModal(false);
-    load(status);
+    load();
     setToast(commonDict.actionSuccess);
     void request;
   }
@@ -108,21 +157,15 @@ export default function AssetRequestList({
 
       <div className="panel">
         <div className="panel-head no-print">
-          <div className="filter-row">
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                load(e.target.value);
-              }}
-            >
-              <option value="">{dict.statusFilterAll}</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
-            </select>
+          <div className="request-toolbar">
+            <div className="request-tabs">
+              <button type="button" className={`btn btn-sm ${view === "pending" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("pending")}>{dict.pendingTab}</button>
+              <button type="button" className={`btn btn-sm ${view === "all" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("all")}>{dict.allTab}</button>
+              <button type="button" className={`btn btn-sm ${view === "mine" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("mine")}>{dict.mineTab}</button>
+            </div>
+            <form className="filter-row" onSubmit={handleSearch}>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.searchPlaceholder} />
+            </form>
             {filtering && <span className="spinner" />}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -143,36 +186,25 @@ export default function AssetRequestList({
             <b>{dict.noResults}</b>
           </div>
         ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>{dict.columnRequester}</th>
-                  <th>{dict.columnAsset}</th>
-                  <th>{dict.columnStatus}</th>
-                  <th>{dict.columnSuggestedStart}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {page.content.map((request) => (
-                  <tr key={request.id} className="clickable" onClick={() => router.push(`/asset-requests/${request.id}`)}>
-                    <td>
-                      <Link href={`/asset-requests/${request.id}`}>{request.requesterName}</Link>
-                    </td>
-                    <td>
-                      {request.assetNumber} — {request.assetNameAr}
-                    </td>
-                    <td>
-                      <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
-                        <span className="dot" />
-                        {statusLabel(request.status)}
-                      </span>
-                    </td>
-                    <td className="mono">{request.suggestedStartDate}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="request-cards">
+            {page.content.map((request) => (
+              <article key={request.id} className="request-card">
+                <header className="request-card-head">
+                  <h3 className="request-card-title">{dict.cardTitle} — {request.assetNameAr}</h3>
+                  <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>
+                </header>
+                <div className="request-card-meta"><span>{request.requesterName}</span><span className="chip chip-sm">{request.assetNumber}</span></div>
+                {request.reason && <p className="request-card-notes">{request.reason}</p>}
+                {request.suggestedStartDate && <p className="request-card-banner">{dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b></p>}
+                <RequestCardActivity actions={request.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+                <div className="request-card-actions">
+                  {(request.status === "PENDING" || request.status === "POSTPONED") && permissions.includes("as.act.approve") && <button type="button" className="btn btn-primary btn-sm" disabled={busyAction !== null} onClick={() => void act(request.id, "approve")}>{dict.approve}</button>}
+                  {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && permissions.includes("as.act.reject") && <button type="button" className="btn btn-seal btn-sm" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "reject" })}>{dict.reject}</button>}
+                  {(request.status === "PENDING" || request.status === "APPROVED") && permissions.includes("as.act.postpone") && <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "postpone" })}>{dict.postpone}</button>}
+                  <Link className="btn btn-outline btn-sm" href={`/asset-requests/${request.id}`}>{dict.cardOpen}</Link>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </div>
@@ -207,6 +239,8 @@ export default function AssetRequestList({
           </div>
         </div>
       )}
+
+      {pendingAction && <RequestActionDialog title={pendingAction.action === "reject" ? dict.reject : dict.postpone} reasonLabel={dict.reasonLabel} cancelLabel={commonDict.cancel} submitting={busyAction !== null} reason={reason} onReasonChange={setReason} onConfirm={() => void act(pendingAction.id, pendingAction.action, reason)} onCancel={() => { setPendingAction(null); setReason(""); }} />}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>

@@ -39,10 +39,12 @@ public class NeedRequestController {
     @PreAuthorize("hasAnyAuthority('wh.view', 'wh.request')")
     public PagedResponse<NeedRequestListItem> search(
             @RequestParam(required = false) NeedRequestStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean mine,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
-        UUID restrictToRequesterId = hasPermission(actor, "wh.view") ? null : actor.getId();
-        Page<NeedRequest> page = needRequestService.search(status, restrictToRequesterId, pageable);
+        UUID restrictToRequesterId = mine || !hasPermission(actor, "wh.view") ? actor.getId() : null;
+        Page<NeedRequest> page = needRequestService.search(status, restrictToRequesterId, q, pageable);
         Set<UUID> ids = page.getContent().stream().map(NeedRequest::getId).collect(Collectors.toSet());
         Map<UUID, List<Attachment>> attachments = ids.isEmpty()
                 ? Map.of()
