@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
+import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import ItemForm from "@/components/ItemForm";
@@ -50,6 +51,7 @@ export default function ItemDirectory({
   const router = useRouter();
   const entityLocale = useEntityLocale();
   const [q, setQ] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState<PagedResponse<InventoryItemListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
@@ -73,14 +75,16 @@ export default function ItemDirectory({
   const [sort, setSort] = useState<Sort>({ field: "dateAdded", dir: "desc" });
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [size, setSize] = useState(10);
+  const [printRows, setPrintRows] = useState<InventoryItemListItem[] | null>(null);
+  const requestSequence = useRef(0);
 
   const filtersActive =
-    filters.categoryId !== "" || filters.dateFrom !== "" || filters.dateTo !== "" || lowStockOnly || q !== "";
+    filters.categoryId !== "" || filters.dateFrom !== "" || filters.dateTo !== "" || lowStockOnly || appliedQuery !== "";
 
   function applyFilter(patch: Partial<Filters>) {
     const next = { ...filters, ...patch };
     setFilters(next);
-    load(0, q, lowStockOnly, sort, next);
+    load(0, appliedQuery, lowStockOnly, sort, next);
   }
 
   // Printed reports state what they are scoped to -- otherwise a filtered
@@ -100,6 +104,7 @@ export default function ItemDirectory({
   function clearFilters() {
     setFilters(NO_FILTERS);
     setQ("");
+    setAppliedQuery("");
     setLowStockOnly(false);
     load(0, "", false, sort, NO_FILTERS);
   }
@@ -108,7 +113,29 @@ export default function ItemDirectory({
     const next: Sort =
       sort.field === field ? { field, dir: sort.dir === "asc" ? "desc" : "asc" } : { field, dir: "asc" };
     setSort(next);
-    load(0, q, lowStockOnly, next);
+    load(0, appliedQuery, lowStockOnly, next);
+  }
+
+  function queryString(
+    pageNumber: number,
+    query: string,
+    lowStock: boolean,
+    sortBy: Sort,
+    filterBy: Filters,
+    perPage: number
+  ) {
+    const params = new URLSearchParams({
+      q: query,
+      lowStockOnly: String(lowStock),
+      page: String(pageNumber),
+      size: String(perPage),
+    });
+    params.append("sort", `${sortBy.field},${sortBy.dir}`);
+    params.append("sort", "id,asc");
+    if (filterBy.categoryId) params.set("categoryId", filterBy.categoryId);
+    if (filterBy.dateFrom) params.set("dateFrom", filterBy.dateFrom);
+    if (filterBy.dateTo) params.set("dateTo", filterBy.dateTo);
+    return `?${params.toString()}`;
   }
 
   function load(
@@ -119,24 +146,22 @@ export default function ItemDirectory({
     filterBy: Filters = filters,
     perPage: number = size
   ) {
+    const sequence = ++requestSequence.current;
     setLoadingPage(pageNumber);
-    // Empty filter = omitted, not sent blank: the endpoint treats a missing
-    // param as "no filter", and an empty string would fail date parsing.
-    const extra =
-      (filterBy.categoryId ? `&categoryId=${filterBy.categoryId}` : "") +
-      (filterBy.dateFrom ? `&dateFrom=${filterBy.dateFrom}` : "") +
-      (filterBy.dateTo ? `&dateTo=${filterBy.dateTo}` : "");
     apiFetch<PagedResponse<InventoryItemListItem>>(
-      `${basePath}?q=${encodeURIComponent(query)}&lowStockOnly=${lowStock}&page=${pageNumber}` +
-        `&sort=${sortBy.field},${sortBy.dir}&size=${perPage}${extra}`
+      `${basePath}${queryString(pageNumber, query, lowStock, sortBy, filterBy, perPage)}`
     )
-      .then(setPage)
+      .then((nextPage) => {
+        if (sequence === requestSequence.current) setPage(nextPage);
+      })
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
         }
       })
-      .finally(() => setLoadingPage(null));
+      .finally(() => {
+        if (sequence === requestSequence.current) setLoadingPage(null);
+      });
   }
 
   useEffect(() => {
@@ -154,6 +179,7 @@ export default function ItemDirectory({
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
+    setAppliedQuery(q);
     load(0, q, lowStockOnly);
   }
 
@@ -166,22 +192,14 @@ export default function ItemDirectory({
 
   function handleAdded(item: InventoryItemDetail) {
     setShowAddModal(false);
-    load(0, q, lowStockOnly);
+    load(0, appliedQuery, lowStockOnly);
     setToast(commonDict.actionSuccess);
     void item;
   }
 
   async function handleExport() {
-    // Exports what is on screen, filters included -- exporting the whole
-    // list while the view is filtered would silently hand back the wrong
-    // rows. Same params as load(), minus paging.
-    const extra =
-      (filters.categoryId ? `&categoryId=${filters.categoryId}` : "") +
-      (filters.dateFrom ? `&dateFrom=${filters.dateFrom}` : "") +
-      (filters.dateTo ? `&dateTo=${filters.dateTo}` : "");
-    const all = await apiFetch<PagedResponse<InventoryItemListItem>>(
-      `${basePath}?q=${encodeURIComponent(q)}&lowStockOnly=${lowStockOnly}` +
-        `&sort=${sort.field},${sort.dir}${extra}&size=10000`
+    const rows = await fetchAllPaged<InventoryItemListItem>((pageNumber) =>
+      `${basePath}${queryString(pageNumber, appliedQuery, lowStockOnly, sort, filters, 100)}`
     );
     await exportToXlsx(
       dict.title,
@@ -196,8 +214,18 @@ export default function ItemDirectory({
         { header: dict.columnUnit, value: (i: InventoryItemListItem) => i.unit ?? "" },
         { header: dict.columnMinQuantity, value: (i: InventoryItemListItem) => i.minQuantity },
       ],
-      all.content
+      rows
     );
+  }
+
+  async function handlePrint() {
+    const rows = await fetchAllPaged<InventoryItemListItem>((pageNumber) =>
+      `${basePath}${queryString(pageNumber, appliedQuery, lowStockOnly, sort, filters, 100)}`
+    );
+    setPrintRows(rows);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    window.print();
+    setPrintRows(null);
   }
 
   if (!page) return <SectionLoading />;
@@ -259,7 +287,7 @@ export default function ItemDirectory({
                 checked={lowStockOnly}
                 onChange={(e) => {
                   setLowStockOnly(e.target.checked);
-                  load(0, q, e.target.checked);
+                  load(0, appliedQuery, e.target.checked);
                 }}
               />
               {dict.lowStockOnly}
@@ -287,7 +315,7 @@ export default function ItemDirectory({
             {/* Same window.print() as the print button: "PDF" here means the
                 A4 print view saved as PDF, which is what the legacy app's
                 export-pdf action did too. */}
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
               <IconFilePdf className="ic-sm" />
               {commonDict.exportPdf}
             </button>
@@ -349,7 +377,7 @@ export default function ItemDirectory({
                 </tr>
               </thead>
               <tbody>
-                {page.content.map((item) => (
+                {(printRows ?? page.content).map((item) => (
                   <tr key={item.id} className="clickable" onClick={() => setViewItemId(item.id)}>
                     <td>
                       {item.imageUrl ? (
@@ -398,10 +426,10 @@ export default function ItemDirectory({
           size={size}
           loadingPage={loadingPage}
           rowsPerPageLabel={commonDict.rowsPerPage}
-          onPage={(i) => load(i, q, lowStockOnly)}
+          onPage={(i) => load(i, appliedQuery, lowStockOnly)}
           onSize={(next) => {
             setSize(next);
-            load(0, q, lowStockOnly, sort, filters, next);
+            load(0, appliedQuery, lowStockOnly, sort, filters, next);
           }}
         />
       </div>
@@ -490,7 +518,7 @@ export default function ItemDirectory({
                   basePath={basePath}
                   onSubmitted={() => {
                     setEditItem(null);
-                    load(page.page, q, lowStockOnly);
+                    load(page.page, appliedQuery, lowStockOnly);
                     setToast(commonDict.actionSuccess);
                   }}
                   formId="item-edit-form"

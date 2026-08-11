@@ -1011,7 +1011,7 @@ img[data-viewable] {
   position: sticky;
   bottom: 0;
   z-index: 4;
-  padding: 12px 0 4px;
+  padding: 12px 20px;
   background: var(--card);
   border-top: 1px solid var(--line-soft);
 }
@@ -1034,6 +1034,18 @@ img[data-viewable] {
   padding: 6px 10px;
   background: #fff;
   color: var(--ink);
+}
+
+.invoice-line-row {
+  grid-template-columns: minmax(0, 2fr) minmax(90px, 0.65fr) minmax(130px, 0.9fr);
+}
+.invoice-totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 16px;
+  font-size: 13px;
 }
 
 /* Report title under the printed header, e.g. "تقرير سجل الأصناف". */
@@ -2077,6 +2089,10 @@ body.lang-en .modal-head h3 {
      un-migrated pages an equivalent margin via body padding instead. */
   body:not(:has(.print-page)) {
     padding: 16mm;
+  }
+  .table-scroll {
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   body:has(.overlay) > *:not(.overlay) {

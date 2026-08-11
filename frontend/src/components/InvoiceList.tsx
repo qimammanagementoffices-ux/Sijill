@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
+import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import NewInvoiceView from "@/components/NewInvoiceView";
@@ -42,6 +43,8 @@ export default function InvoiceList({
   const [dateTo, setDateTo] = useState("");
   const [sort, setSort] = useState<Sort>({ field: "invoiceDate", dir: "desc" });
   const [size, setSize] = useState(10);
+  const [printRows, setPrintRows] = useState<InvoiceDetail[] | null>(null);
+  const requestSequence = useRef(0);
 
   const filtersActive = dateFrom !== "" || dateTo !== "";
 
@@ -53,11 +56,12 @@ export default function InvoiceList({
     const by = next.sortBy ?? sort;
     const perPage = next.size ?? size;
     const pageNumber = next.page ?? 0;
-    return (
-      "?sort=" + by.field + "," + by.dir + "&size=" + perPage + "&page=" + pageNumber +
-      (from ? "&dateFrom=" + from : "") +
-      (to ? "&dateTo=" + to : "")
-    );
+    const params = new URLSearchParams({ size: String(perPage), page: String(pageNumber) });
+    params.append("sort", `${by.field},${by.dir}`);
+    params.append("sort", "id,asc");
+    if (from) params.set("dateFrom", from);
+    if (to) params.set("dateTo", to);
+    return `?${params.toString()}`;
   }
 
   function toggleSort(field: string) {
@@ -74,15 +78,20 @@ export default function InvoiceList({
   }
 
   function load(next: Partial<{ from: string; to: string; sortBy: Sort; size: number; page: number }> = {}) {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     apiFetch<PagedResponse<InvoiceDetail>>(basePath + queryString(next))
-      .then(setPage)
+      .then((nextPage) => {
+        if (sequence === requestSequence.current) setPage(nextPage);
+      })
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (sequence === requestSequence.current) setLoading(false);
+      });
   }
 
   useEffect(() => {
@@ -98,7 +107,9 @@ export default function InvoiceList({
   }, [router]);
 
   async function handleExport() {
-    const all = await apiFetch<PagedResponse<InvoiceDetail>>(`${basePath}${queryString({ size: 10000 })}`);
+    const rows = await fetchAllPaged<InvoiceDetail>((pageNumber) =>
+      `${basePath}${queryString({ size: 100, page: pageNumber })}`
+    );
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -110,8 +121,18 @@ export default function InvoiceList({
         { header: dict.taxTotalLabel, value: (i: InvoiceDetail) => i.taxTotal },
         { header: dict.columnTotal, value: (i: InvoiceDetail) => i.total },
       ],
-      all.content
+      rows
     );
+  }
+
+  async function handlePrint() {
+    const rows = await fetchAllPaged<InvoiceDetail>((pageNumber) =>
+      `${basePath}${queryString({ size: 100, page: pageNumber })}`
+    );
+    setPrintRows(rows);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    window.print();
+    setPrintRows(null);
   }
 
   function handleAdded(invoice: InvoiceDetail) {
@@ -178,7 +199,7 @@ export default function InvoiceList({
               {commonDict.exportXlsx}
             </button>
             {/* Same print path as the item list: "PDF" is the A4 print view. */}
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
               <IconFilePdf className="ic-sm" />
               {commonDict.exportPdf}
             </button>
@@ -243,7 +264,7 @@ export default function InvoiceList({
                 </tr>
               </thead>
               <tbody>
-                {page.content.map((invoice) => (
+                {(printRows ?? page.content).map((invoice) => (
                   <tr key={invoice.id} className="clickable" onClick={() => setViewInvoice(invoice)}>
                     <td className="mono">{invoice.invoiceNumber}</td>
                     <td className="mono">{invoice.invoiceDate}</td>

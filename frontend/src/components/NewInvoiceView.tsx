@@ -8,6 +8,12 @@ import SectionLoading from "@/components/SectionLoading";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
 
+function localToday() {
+  const today = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+}
+
 // Shared by warehouse and maintenance invoice-add modals. itemsPath is the
 // matching domain's items endpoint ("/warehouse/items" or
 // "/maintenance/parts") used to populate the line-item picker.
@@ -33,7 +39,7 @@ export default function NewInvoiceView({
 }) {
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(localToday);
   const [vendor, setVendor] = useState("");
   const [taxRate, setTaxRate] = useState("15");
   const [lines, setLines] = useState<LineDraft[]>([{ inventoryItemId: "", quantity: "1", unitPrice: "0" }]);
@@ -144,7 +150,7 @@ export default function NewInvoiceView({
             {lines.map((line, index) => (
               <div
                 key={index}
-                className="form-grid"
+                className="form-grid invoice-line-row"
                 style={{
                   marginBottom: 10,
                   alignItems: "end",
@@ -199,12 +205,11 @@ export default function NewInvoiceView({
               {dict.addLine}
             </button>
 
-            <p className="mono" style={{ marginTop: 16, fontSize: 13 }}>
-              {dict.subtotalLabel}: {subtotal.toFixed(2)} — {dict.taxTotalLabel}: {taxTotal.toFixed(2)} —{" "}
-              <strong>
-                {dict.totalLabel}: {(subtotal + taxTotal).toFixed(2)}
-              </strong>
-            </p>
+            <div className="invoice-totals mono">
+              <span>{dict.subtotalLabel}: {subtotal.toFixed(2)}</span>
+              <span>{dict.taxTotalLabel}: {taxTotal.toFixed(2)}</span>
+              <strong>{dict.totalLabel}: {(subtotal + taxTotal).toFixed(2)}</strong>
+            </div>
           </div>
         </div>
 
