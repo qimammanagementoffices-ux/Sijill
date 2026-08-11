@@ -116,7 +116,7 @@ export default function TranslationTable({
         </div>
 
         <div className="table-scroll">
-          <table>
+          <table className="translation-table">
             <thead>
               <tr>
                 <th>{dict.columnKey}</th>
@@ -183,7 +183,7 @@ export default function TranslationTable({
         </div>
 
         {page.totalPages > 1 && (
-          <div className="panel-note" style={{ display: "flex", gap: 6, paddingTop: 14 }}>
+          <div className="translation-pagination">
             {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
               <button
                 key={i}

@@ -1048,6 +1048,37 @@ img[data-viewable] {
   font-size: 13px;
 }
 
+.translation-table {
+  table-layout: fixed;
+  min-width: 760px;
+}
+.translation-table th:first-child {
+  width: 22%;
+}
+.translation-table th:last-child {
+  width: 90px;
+}
+.translation-table td {
+  min-width: 0;
+  overflow: hidden;
+}
+.translation-table input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.translation-table code {
+  overflow-wrap: anywhere;
+}
+.translation-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line-soft);
+}
+
 /* Report title under the printed header, e.g. "تقرير سجل الأصناف". */
 .ps-report-title {
   text-align: center;
