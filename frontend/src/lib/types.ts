@@ -57,6 +57,13 @@ export type PagedResponse<T> = {
   totalPages: number;
 };
 
+export type CostBreakdownRow = { nameAr: string; nameEn: string; total: number };
+export type CostDashboardDto = {
+  total: number;
+  byDepartment: CostBreakdownRow[];
+  byRequester: CostBreakdownRow[];
+};
+
 export type PermissionDto = { key: string; description: string };
 export type PermissionOverviewDto = { key: string; employeeCount: number };
 

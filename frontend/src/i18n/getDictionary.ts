@@ -58,11 +58,13 @@ export type Dictionary = {
     jobTitlesNav: string;
     warehouseItemsNav: string;
     warehouseInvoicesNav: string;
+    warehouseCostsNav: string;
     warehouseRequestsNav: string;
     warehouseCategoriesNav: string;
     translationsNav: string;
     maintenancePartsNav: string;
     maintenanceInvoicesNav: string;
+    maintenanceCostsNav: string;
     maintenanceRequestsNav: string;
     maintenanceCategoriesNav: string;
     maintenanceFaultTypesNav: string;
@@ -324,6 +326,20 @@ export type Dictionary = {
     statusPostponed: string;
     statusRejected: string;
     statusClosed: string;
+  };
+  costs: {
+    title: string;
+    total: string;
+    byDepartment: string;
+    byRequester: string;
+    department: string;
+    requester: string;
+    amount: string;
+    from: string;
+    to: string;
+    apply: string;
+    note: string;
+    reportTitle: string;
   };
   faultTypes: {
     title: string;

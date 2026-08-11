@@ -99,6 +99,7 @@ export default function AppShell({
     employee.permissions.includes("wh.view") || employee.permissions.includes("wh.request");
   const canViewInvoices = employee.permissions.includes("wh.invoices");
   const canManageWarehouseItems = employee.permissions.includes("wh.items");
+  const canViewCosts = employee.permissions.includes("wh.costs");
   const canManageTranslations = employee.permissions.includes("sys.translations");
   const canViewMaintenance =
     employee.permissions.includes("mt.view") || employee.permissions.includes("mt.request");
@@ -140,6 +141,7 @@ export default function AppShell({
       items: [
         ...(canViewWarehouse ? [{ href: "/warehouse/items", label: dict.warehouseItemsNav }] : []),
         ...(canViewInvoices ? [{ href: "/warehouse/invoices", label: dict.warehouseInvoicesNav }] : []),
+        ...(canViewCosts ? [{ href: "/warehouse/costs", label: dict.warehouseCostsNav }] : []),
         ...(canViewWarehouse ? [{ href: "/warehouse/requests", label: dict.warehouseRequestsNav }] : []),
       ],
     },
@@ -150,6 +152,7 @@ export default function AppShell({
       items: [
         ...(canViewWarehouse ? [{ href: "/maintenance/parts", label: dict.maintenancePartsNav }] : []),
         ...(canViewInvoices ? [{ href: "/maintenance/invoices", label: dict.maintenanceInvoicesNav }] : []),
+        ...(canViewCosts ? [{ href: "/maintenance/costs", label: dict.maintenanceCostsNav }] : []),
         ...(canViewMaintenance ? [{ href: "/maintenance/requests", label: dict.maintenanceRequestsNav }] : []),
         ...(canManageWarehouseItems
           ? [{ href: "/maintenance/fault-types", label: dict.maintenanceFaultTypesNav }]
