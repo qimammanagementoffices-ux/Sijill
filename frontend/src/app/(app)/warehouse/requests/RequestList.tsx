@@ -207,9 +207,9 @@ export default function RequestList({
                   )}
                 </div>
 
-                {request.lines.length > 0 && (
+                {(request.lines?.length ?? 0) > 0 && (
                   <div className="request-card-chips">
-                    {request.lines.map((line) => (
+                    {(request.lines ?? []).map((line) => (
                       <span key={line.id} className="chip">
                         {line.itemNameAr} × {line.quantityRequested}
                       </span>

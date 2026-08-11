@@ -9,14 +9,14 @@ type RequestAction = {
 };
 
 export default function RequestCardActivity({
-  actions,
-  attachments,
+  actions = [],
+  attachments = [],
   actionLabel,
   activityTitle,
   attachmentsDict,
 }: {
-  actions: RequestAction[];
-  attachments: AttachmentDto[];
+  actions?: RequestAction[];
+  attachments?: AttachmentDto[];
   actionLabel: (action: string) => string;
   activityTitle: string;
   attachmentsDict: Dictionary["attachments"];
