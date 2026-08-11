@@ -1032,24 +1032,74 @@ img[data-viewable] {
 }
 .request-card-timeline {
   display: grid;
-  gap: 7px;
+  gap: 10px;
   margin: 0;
-  padding-inline-start: 18px;
+  padding: 2px 0 2px;
   font-size: 12px;
   color: var(--ink-soft);
 }
-.request-card-timeline li > div {
+.request-card-timeline li {
+  --timeline-tone: #8a6f2d;
+  --timeline-bg: #fbf3dc;
+  --timeline-line: #e8d39a;
+  position: relative;
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+}
+.request-card-timeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: -11px;
+  inset-inline-start: 7px;
+  border-inline-start: 1px dashed var(--timeline-line);
+}
+.request-timeline-marker {
+  width: 15px;
+  height: 15px;
+  margin-top: 5px;
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  background: var(--timeline-tone);
+  box-shadow: 0 0 0 1px var(--timeline-line);
+  z-index: 1;
+}
+.request-timeline-content {
+  min-width: 0;
+  padding: 6px 9px 7px;
+  border: 1px solid var(--timeline-line);
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--timeline-bg), var(--card) 74%);
+}
+.request-timeline-head {
   display: flex;
-  gap: 8px;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.request-timeline-status {
+  color: var(--timeline-tone);
+  font-size: 12px;
 }
 .request-card-timeline time {
-  color: var(--slate);
+  color: var(--ink-soft);
   font-size: 11px;
+  white-space: nowrap;
 }
+.request-timeline-actor { display: block; margin-top: 3px; color: var(--slate); font-size: 11px; }
 .request-card-timeline p {
-  margin: 3px 0 0;
+  margin: 6px 0 0;
+  padding-top: 5px;
+  border-top: 1px dashed var(--timeline-line);
+}
+.request-timeline-approved, .request-timeline-finished { --timeline-tone: #267a4d; --timeline-bg: #eaf7ef; --timeline-line: #addbbe; }
+.request-timeline-rejected { --timeline-tone: #a13a3a; --timeline-bg: #fceded; --timeline-line: #efb8b8; }
+.request-timeline-postponed { --timeline-tone: #98600d; --timeline-bg: #fff5dd; --timeline-line: #ecd096; }
+.request-timeline-submitted, .request-timeline-started { --timeline-tone: #2c678f; --timeline-bg: #edf6fb; --timeline-line: #b7d5e8; }
+@media (max-width: 520px) {
+  .request-timeline-head { align-items: flex-start; flex-direction: column; gap: 2px; }
 }
 
 /* Paged-table footer: page buttons at the start of the line (right in RTL),

@@ -8,6 +8,22 @@ type RequestAction = {
   createdAt: string;
 };
 
+const ACTION_TONE: Record<string, string> = {
+  SUBMIT: "submitted",
+  APPROVE: "approved",
+  REJECT: "rejected",
+  POSTPONE: "postponed",
+  START: "started",
+  FINISH: "finished",
+};
+
+function formatActionDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(date);
+}
+
 export default function RequestCardActivity({
   actions = [],
   attachments = [],
@@ -47,15 +63,18 @@ export default function RequestCardActivity({
           <h4>{activityTitle}</h4>
           <ol className="request-card-timeline">
             {actions.map((entry, index) => (
-              <li key={`${entry.createdAt}-${entry.action}-${index}`}>
-                <div>
-                  <b>{actionLabel(entry.action)}</b>
-                  <span>{entry.actorName}</span>
-                  <time dateTime={entry.createdAt}>
-                    {new Date(entry.createdAt).toISOString().slice(0, 16).replace("T", " ")} UTC
-                  </time>
+              <li key={`${entry.createdAt}-${entry.action}-${index}`} className={`request-timeline-${ACTION_TONE[entry.action] ?? "default"}`}>
+                <span className="request-timeline-marker" aria-hidden="true" />
+                <div className="request-timeline-content">
+                  <div className="request-timeline-head">
+                    <b className="request-timeline-status">{actionLabel(entry.action)}</b>
+                    <time dateTime={entry.createdAt}>{formatActionDate(entry.createdAt)}</time>
+                  </div>
+                  {entry.actorName?.trim() && entry.actorName.trim() !== "فارغ" && (
+                    <span className="request-timeline-actor">{entry.actorName}</span>
+                  )}
+                  {entry.reason && <p>{entry.reason}</p>}
                 </div>
-                {entry.reason && <p>{entry.reason}</p>}
               </li>
             ))}
           </ol>
