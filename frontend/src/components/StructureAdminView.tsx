@@ -32,11 +32,15 @@ export default function StructureAdminView({
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
   const [newNameHi, setNewNameHi] = useState("");
-  const [editing, setEditing] = useState<Record<string, { nameAr: string; nameEn: string; nameHi: string }>>({});
+  const [editingItem, setEditingItem] = useState<LocalizedEntityDto | null>(null);
+  const [editNameAr, setEditNameAr] = useState("");
+  const [editNameEn, setEditNameEn] = useState("");
+  const [editNameHi, setEditNameHi] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   function load() {
     apiFetch<LocalizedEntityDto[]>(`/${entity}`)
@@ -75,24 +79,36 @@ export default function StructureAdminView({
     }
   }
 
-  async function handleUpdate(item: LocalizedEntityDto) {
-    const edited = editing[item.id];
-    if (!edited) return;
+  function openEdit(item: LocalizedEntityDto) {
+    setEditingItem(item);
+    setEditNameAr(item.nameAr);
+    setEditNameEn(item.nameEn);
+    setEditNameHi(item.nameHi ?? "");
     setError(null);
+  }
+
+  async function handleUpdate(e: FormEvent) {
+    e.preventDefault();
+    if (!editingItem) return;
+    setError(null);
+    setEditSubmitting(true);
     try {
-      await apiFetch(`/${entity}/${item.id}`, {
+      await apiFetch(`/${entity}/${editingItem.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          nameAr: edited.nameAr,
-          nameEn: edited.nameEn,
-          nameHi: edited.nameHi || null,
-          version: item.version,
+          nameAr: editNameAr,
+          nameEn: editNameEn,
+          nameHi: editNameHi || null,
+          version: editingItem.version,
         }),
       });
+      setEditingItem(null);
       load();
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setEditSubmitting(false);
     }
   }
 
@@ -131,43 +147,14 @@ export default function StructureAdminView({
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => {
-                  const edited = editing[item.id] ?? { nameAr: item.nameAr, nameEn: item.nameEn, nameHi: item.nameHi ?? "" };
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <input
-                          type="text"
-                          value={edited.nameAr}
-                          onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameAr: e.target.value } })}
-                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={edited.nameHi}
-                          onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameHi: e.target.value } })}
-                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                          dir="rtl"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={edited.nameEn}
-                          onChange={(e) => setEditing({ ...editing, [item.id]: { ...edited, nameEn: e.target.value } })}
-                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                        />
-                      </td>
-                      <td>
-                        <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(item)}>
-                          {dict.save}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {items.map((item) => (
+                  <tr key={item.id} className="clickable" onClick={() => openEdit(item)}>
+                    <td>{item.nameAr}</td>
+                    <td>{item.nameHi || "—"}</td>
+                    <td dir="ltr">{item.nameEn}</td>
+                    <td><button type="button" className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); openEdit(item); }}>{dict.save}</button></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -211,6 +198,38 @@ export default function StructureAdminView({
               <button type="submit" form="structure-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
                 {addSubmitting && <span className="spinner" />}
                 {dict.addNew}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingItem && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-head">
+              <h3>{dict.save}</h3>
+              <button type="button" className="modal-close" onClick={() => setEditingItem(null)} aria-label="close" disabled={editSubmitting}>×</button>
+            </div>
+            <div className="modal-body">
+              <form id="structure-edit-form" onSubmit={handleUpdate} className="form-grid">
+                <TrilingualNameFields
+                  nameAr={editNameAr}
+                  setNameAr={setEditNameAr}
+                  nameEn={editNameEn}
+                  setNameEn={setEditNameEn}
+                  nameHi={editNameHi}
+                  setNameHi={setEditNameHi}
+                  dict={categoriesModalDict}
+                  errorsDict={errorsDict}
+                />
+              </form>
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditingItem(null)} disabled={editSubmitting}>{commonDict.cancel}</button>
+              <button type="submit" form="structure-edit-form" className="btn btn-primary btn-sm" disabled={editSubmitting}>
+                {editSubmitting && <span className="spinner" />}
+                {dict.save}
               </button>
             </div>
           </div>
