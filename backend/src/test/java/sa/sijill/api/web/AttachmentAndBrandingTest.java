@@ -68,6 +68,20 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void uploadRejectsFilesLargerThanTwoMegabytesBeforeTouchingStorage() throws Exception {
+        String token = createAdminAndGetToken("0599900009");
+        var file = new MockMultipartFile("file", "large.png", "image/png", new byte[2 * 1024 * 1024 + 1]);
+
+        mockMvc.perform(multipart("/api/v1/attachments")
+                        .file(file)
+                        .param("ownerType", "INVENTORY_ITEM")
+                        .param("ownerId", UUID.randomUUID().toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.fields.file").value("must be 2MB or smaller"));
+    }
+
+    @Test
     void uploadRequiresTheOwningDomainsManagePermission() throws Exception {
         String adminToken = createAdminAndGetToken("0599900002");
         String viewOnlyToken = createEmployeeAndLogin(adminToken, "0599900003", Set.of("wh.view"));

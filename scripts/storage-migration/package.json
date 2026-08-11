@@ -1,0 +1,13 @@
+{
+  "name": "sijill-storage-migration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "plan": "node --env-file-if-exists=.env.migration.local migrate-storage.mjs",
+    "migrate": "node --env-file-if-exists=.env.migration.local migrate-storage.mjs --execute",
+    "verify": "node --env-file-if-exists=.env.migration.local migrate-storage.mjs --verify-only"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1107.0"
+  }
+}

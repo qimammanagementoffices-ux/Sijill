@@ -1,6 +1,7 @@
 import { clearToken, getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
 
 export class ApiError extends Error {
   status: number;
@@ -66,6 +67,11 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 // application/json, which would break the browser's automatic boundary
 // header for FormData.
 export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  for (const value of formData.values()) {
+    if (value instanceof File && value.size > MAX_UPLOAD_SIZE_BYTES) {
+      throw new ApiError(400, "File must be 2MB or smaller", "VALIDATION_ERROR");
+    }
+  }
   const token = getToken();
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",

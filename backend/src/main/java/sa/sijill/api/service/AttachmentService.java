@@ -22,7 +22,7 @@ public class AttachmentService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES =
             Set.of("image/jpeg", "image/png", "image/webp", "application/pdf");
-    private static final long MAX_SIZE_BYTES = 10L * 1024 * 1024; // 10 MB
+    private static final long MAX_SIZE_BYTES = 2L * 1024 * 1024; // 2 MiB
 
     private final AttachmentRepository attachmentRepository;
     private final StorageService storageService;
@@ -46,7 +46,7 @@ public class AttachmentService {
                     "Unsupported file type", Map.of("file", "must be JPEG, PNG, WEBP, or PDF"));
         }
         if (file.getSize() > MAX_SIZE_BYTES) {
-            throw ApiException.validation("File too large", Map.of("file", "must be 10MB or smaller"));
+            throw ApiException.validation("File too large", Map.of("file", "must be 2MB or smaller"));
         }
 
         StorageService.UploadResult uploaded = storageService.upload(file, ownerType.name().toLowerCase());
