@@ -67,7 +67,11 @@ public class AttachmentService {
     public void delete(UUID id) {
         Attachment attachment =
                 attachmentRepository.findById(id).orElseThrow(() -> ApiException.notFound("Attachment not found"));
-        storageService.delete(attachment.getStorageKey());
         attachmentRepository.delete(attachment);
+        // Let PostgreSQL reject a still-referenced attachment before its
+        // Supabase object is removed. Otherwise a foreign-key conflict leaves
+        // the database row pointing at a file that no longer exists.
+        attachmentRepository.flush();
+        storageService.delete(attachment.getStorageKey());
     }
 }

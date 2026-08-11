@@ -53,7 +53,10 @@ export default function EditProfileModal({
       );
       setPhotoAttachmentId(uploaded.id);
       setPhotoUrl(uploaded.url);
-      if (previousId && previousId !== uploaded.id) {
+      // The current persisted photo remains referenced until profile save;
+      // EmployeeService deletes it after clearing that reference. Only a
+      // superseded, not-yet-saved upload can be removed immediately.
+      if (previousId && previousId !== uploaded.id && previousId !== employee.photoAttachmentId) {
         try {
           await apiFetch(`/attachments/${previousId}`, { method: "DELETE" });
         } catch (err) {
@@ -75,10 +78,12 @@ export default function EditProfileModal({
       const attachmentId = photoAttachmentId;
       setPhotoAttachmentId(null);
       setPhotoUrl(null);
-      try {
-        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
-      } catch (err) {
-        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      if (attachmentId !== employee.photoAttachmentId) {
+        try {
+          await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);

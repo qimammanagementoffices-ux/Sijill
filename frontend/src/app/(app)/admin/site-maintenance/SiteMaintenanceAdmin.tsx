@@ -55,8 +55,8 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  async function save(imageAttachmentId: string | null | undefined) {
-    if (!setting) return;
+  async function save(imageAttachmentId: string | null | undefined): Promise<boolean> {
+    if (!setting) return false;
     setError(null);
     setSuccess(false);
     try {
@@ -74,8 +74,10 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
       });
       setSetting(updated);
       setSuccess(true);
+      return true;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+      return false;
     }
   }
 
@@ -85,7 +87,6 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
     setError(null);
     setUploading(true);
     try {
-      const previousAttachmentId = setting.imageAttachmentId;
       const formData = new FormData();
       formData.append("ownerType", "MAINTENANCE");
       formData.append("ownerId", MAINTENANCE_OWNER_ID);
@@ -94,16 +95,13 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
         `/attachments?ownerType=MAINTENANCE&ownerId=${MAINTENANCE_OWNER_ID}`,
         formData
       );
-      await save(uploaded.id);
-      // Replacing an image previously left the old attachment row/storage
-      // file orphaned -- only explicit "Remove" cleaned up. Clean up the
-      // superseded one here too, once the new reference is safely saved.
-      if (previousAttachmentId && previousAttachmentId !== uploaded.id) {
+      const saved = await save(uploaded.id);
+      if (!saved) {
+        // The failed settings update never referenced this upload, so clean
+        // it up without replacing the more useful save error above.
         try {
-          await apiFetch(`/attachments/${previousAttachmentId}`, { method: "DELETE" });
-        } catch (err) {
-          if (!(err instanceof ApiError && err.status === 404)) throw err;
-        }
+          await apiFetch(`/attachments/${uploaded.id}`, { method: "DELETE" });
+        } catch {}
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
@@ -117,17 +115,7 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
     setError(null);
     setUploading(true);
     try {
-      const attachmentId = setting.imageAttachmentId;
       await save(null);
-      try {
-        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
-      } catch (err) {
-        // The reference is already cleared above (the goal state), so a 404
-        // here just means the row was already gone (e.g. a prior click's
-        // request already deleted it) -- not a real failure, don't surface
-        // it as one. Any other error still should be shown.
-        if (!(err instanceof ApiError && err.status === 404)) throw err;
-      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {

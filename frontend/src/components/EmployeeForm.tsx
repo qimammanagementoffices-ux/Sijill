@@ -98,9 +98,11 @@ export default function EmployeeForm({
       );
       setPhotoAttachmentId(uploaded.id);
       setPhotoUrl(uploaded.url);
-      // Replacing a not-yet-saved photo would otherwise leave the
-      // superseded upload orphaned in storage forever.
-      if (previousId && previousId !== uploaded.id) {
+      // A persisted photo is still referenced by the employee row until
+      // submit, so deleting it here violates the foreign key. The backend
+      // removes it after the employee update clears that reference. Only
+      // clean up a superseded upload that has never been saved.
+      if (previousId && previousId !== uploaded.id && previousId !== initial?.photoAttachmentId) {
         try {
           await apiFetch(`/attachments/${previousId}`, { method: "DELETE" });
         } catch (err) {
@@ -122,10 +124,15 @@ export default function EmployeeForm({
       const attachmentId = photoAttachmentId;
       setPhotoAttachmentId(null);
       setPhotoUrl(null);
-      try {
-        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
-      } catch (err) {
-        if (!(err instanceof ApiError && err.status === 404)) throw err;
+      // Persisted photos are cleared and deleted by EmployeeService when
+      // the form is submitted. An unsaved upload has no database reference,
+      // so it is safe (and necessary) to delete immediately.
+      if (attachmentId !== initial?.photoAttachmentId) {
+        try {
+          await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);

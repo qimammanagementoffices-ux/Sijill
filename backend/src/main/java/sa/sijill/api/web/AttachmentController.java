@@ -23,6 +23,9 @@ import sa.sijill.api.web.dto.AttachmentDto;
 @RequestMapping("/api/v1/attachments")
 public class AttachmentController {
 
+    private static final UUID MAINTENANCE_SETTING_OWNER_ID =
+            UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private final AttachmentService attachmentService;
     private final AttachmentRepository attachmentRepository;
 
@@ -34,7 +37,7 @@ public class AttachmentController {
     @GetMapping
     public List<AttachmentDto> list(
             @RequestParam AttachmentOwnerType ownerType, @RequestParam UUID ownerId, @AuthenticationPrincipal Employee actor) {
-        requirePermission(actor, viewPermissionFor(ownerType));
+        requirePermission(actor, viewPermissionFor(ownerType, ownerId));
         return attachmentService.list(ownerType, ownerId).stream().map(AttachmentDto::from).toList();
     }
 
@@ -45,7 +48,7 @@ public class AttachmentController {
             @RequestParam MultipartFile file,
             @AuthenticationPrincipal Employee actor) {
         if (!isSelfPhoto(ownerType, ownerId, actor)) {
-            requirePermission(actor, managePermissionFor(ownerType));
+            requirePermission(actor, managePermissionFor(ownerType, ownerId));
         }
         return AttachmentDto.from(attachmentService.upload(ownerType, ownerId, file, actor));
     }
@@ -55,7 +58,7 @@ public class AttachmentController {
         Attachment attachment =
                 attachmentRepository.findById(id).orElseThrow(() -> ApiException.notFound("Attachment not found"));
         if (!isSelfPhoto(attachment.getOwnerType(), attachment.getOwnerId(), actor)) {
-            requirePermission(actor, managePermissionFor(attachment.getOwnerType()));
+            requirePermission(actor, managePermissionFor(attachment.getOwnerType(), attachment.getOwnerId()));
         }
         attachmentService.delete(id);
         return ResponseEntity.noContent().build();
@@ -73,26 +76,34 @@ public class AttachmentController {
     // wh.request (they attach quotes/photos to their own request), while an
     // approver holds only wh.view -- mirroring NeedRequestController's
     // hasAnyAuthority('wh.view', 'wh.request') on the request itself.
-    private List<String> viewPermissionFor(AttachmentOwnerType ownerType) {
+    private List<String> viewPermissionFor(AttachmentOwnerType ownerType, UUID ownerId) {
         return switch (ownerType) {
             case INVENTORY_ITEM -> List.of("wh.view");
             case ROOM, ASSET -> List.of("as.view");
             case BRANDING -> List.of("sys.branding");
-            case MAINTENANCE -> List.of("sys.maintenance");
+            case MAINTENANCE -> isMaintenanceSetting(ownerId)
+                    ? List.of("sys.maintenance")
+                    : List.of("mt.view", "mt.request");
             case EMPLOYEE -> List.of("emp.view");
             case NEED_REQUEST -> List.of("wh.view", "wh.request");
         };
     }
 
-    private List<String> managePermissionFor(AttachmentOwnerType ownerType) {
+    private List<String> managePermissionFor(AttachmentOwnerType ownerType, UUID ownerId) {
         return switch (ownerType) {
             case INVENTORY_ITEM -> List.of("wh.items");
             case ROOM, ASSET -> List.of("as.manage");
             case BRANDING -> List.of("sys.branding");
-            case MAINTENANCE -> List.of("sys.maintenance");
+            case MAINTENANCE -> isMaintenanceSetting(ownerId)
+                    ? List.of("sys.maintenance")
+                    : List.of("mt.view", "mt.request");
             case EMPLOYEE -> List.of("emp.manage");
             case NEED_REQUEST -> List.of("wh.request", "wh.view");
         };
+    }
+
+    private boolean isMaintenanceSetting(UUID ownerId) {
+        return MAINTENANCE_SETTING_OWNER_ID.equals(ownerId);
     }
 
     private void requirePermission(Employee employee, List<String> anyOfKeys) {

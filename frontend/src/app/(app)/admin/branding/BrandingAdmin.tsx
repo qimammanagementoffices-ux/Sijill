@@ -115,7 +115,6 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setError(null);
     setUploading(true);
     try {
-      const previousLogoAttachmentId = branding.logoAttachmentId;
       const formData = new FormData();
       formData.append("ownerType", "BRANDING");
       formData.append("ownerId", BRANDING_OWNER_ID);
@@ -124,23 +123,24 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         `/attachments?ownerType=BRANDING&ownerId=${BRANDING_OWNER_ID}`,
         formData
       );
-      const updated = await apiFetch<BrandingDto>("/branding", {
-        method: "PUT",
-        body: JSON.stringify(payload(uploaded.id, branding.version)),
-      });
+      let updated: BrandingDto;
+      try {
+        updated = await apiFetch<BrandingDto>("/branding", {
+          method: "PUT",
+          body: JSON.stringify(payload(uploaded.id, branding.version)),
+        });
+      } catch (err) {
+        // The upload is not referenced when the settings update fails.
+        // Best-effort cleanup prevents an orphaned Supabase object while
+        // preserving the original update error for the user.
+        try {
+          await apiFetch(`/attachments/${uploaded.id}`, { method: "DELETE" });
+        } catch {}
+        throw err;
+      }
       setBranding(updated);
       setToast(dict.saveSuccess);
       revalidateBranding();
-      // Replacing the logo previously left the old attachment row/storage
-      // file orphaned. Clean up the superseded one now that the new
-      // reference is safely saved.
-      if (previousLogoAttachmentId && previousLogoAttachmentId !== uploaded.id) {
-        try {
-          await apiFetch(`/attachments/${previousLogoAttachmentId}`, { method: "DELETE" });
-        } catch (err) {
-          if (!(err instanceof ApiError && err.status === 404)) throw err;
-        }
-      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -153,7 +153,6 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setError(null);
     setUploading(true);
     try {
-      const attachmentId = branding.logoAttachmentId;
       const updated = await apiFetch<BrandingDto>("/branding", {
         method: "PUT",
         body: JSON.stringify(payload(null, branding.version)),
@@ -161,11 +160,6 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       setBranding(updated);
       setToast(dict.saveSuccess);
       revalidateBranding();
-      try {
-        await apiFetch(`/attachments/${attachmentId}`, { method: "DELETE" });
-      } catch (err) {
-        if (!(err instanceof ApiError && err.status === 404)) throw err;
-      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {

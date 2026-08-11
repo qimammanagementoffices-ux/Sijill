@@ -224,7 +224,7 @@ export default function ItemForm({
                       {dict.uploadImages}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         multiple
                         // Appends rather than replaces: picking a second
                         // time is how you add another image, not how you

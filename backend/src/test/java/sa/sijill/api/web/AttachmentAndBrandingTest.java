@@ -108,6 +108,36 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void maintenanceRequesterCanListRequestAttachmentsButNotSiteMaintenanceMedia() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900010");
+        String requesterToken = createEmployeeAndLogin(adminToken, "0599900011", Set.of("mt.request"));
+        var unsupportedFile = new MockMultipartFile("file", "notes.txt", "text/plain", "hello".getBytes());
+        String requestId = UUID.randomUUID().toString();
+
+        mockMvc.perform(get("/api/v1/attachments")
+                        .param("ownerType", "MAINTENANCE")
+                        .param("ownerId", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        // Unsupported media reaches validation only when the requester's
+        // maintenance attachment manage permission was accepted.
+        mockMvc.perform(multipart("/api/v1/attachments")
+                        .file(unsupportedFile)
+                        .param("ownerType", "MAINTENANCE")
+                        .param("ownerId", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/v1/attachments")
+                        .param("ownerType", "MAINTENANCE")
+                        .param("ownerId", "00000000-0000-0000-0000-000000000001")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void deleteOfUnknownAttachmentReturns404() throws Exception {
         String token = createAdminAndGetToken("0599900005");
 
