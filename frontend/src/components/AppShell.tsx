@@ -265,7 +265,11 @@ export default function AppShell({
             </div>
           )}
         </nav>
-        <div className="sidebar-foot">{employee.employeeNumber}</div>
+        <footer className="sidebar-foot">
+          <b>{schoolName || "مدارس الريادة النموذجية"} © 2026</b>
+          <span>الإصدار التجريبي 1.0</span>
+          <span dir="ltr">Build 2026-07-21-10</span>
+        </footer>
       </aside>
 
       <div className="main">
