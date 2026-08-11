@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
@@ -37,6 +37,7 @@ export default function MaintenanceRequestList({
   attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState("");
   const [page, setPage] = useState<PagedResponse<MaintenanceRequestListItem> | null>(null);
   const [filtering, setFiltering] = useState(false);
@@ -72,6 +73,10 @@ export default function MaintenanceRequestList({
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") setShowAddModal(true);
+  }, [searchParams]);
 
   function statusLabel(s: string) {
     return {

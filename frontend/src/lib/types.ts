@@ -401,7 +401,11 @@ export type BrandingDto = {
   primaryColor: string;
   accentColor: string;
   platformName: string | null;
+  platformNameEn: string | null;
+  platformNameHi: string | null;
   schoolName: string | null;
+  schoolNameEn: string | null;
+  schoolNameHi: string | null;
   schoolLabel: string | null;
   subtitle: string | null;
   logoAttachmentId: string | null;

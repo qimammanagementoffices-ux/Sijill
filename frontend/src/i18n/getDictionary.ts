@@ -78,6 +78,11 @@ export type Dictionary = {
     siteMaintenanceNav: string;
     languagesNav: string;
     permissionsOverviewNav: string;
+    quickActionsTitle: string;
+    assetRequestsShortcut: string;
+    newAssetRequestShortcut: string;
+    maintenanceNeedsShortcut: string;
+    newMaintenanceRequestShortcut: string;
   };
   dashboardStats: {
     warehouseTitle: string;
@@ -409,8 +414,13 @@ export type Dictionary = {
     colorLabel: string;
     accentColorLabel: string;
     platformNameLabel: string;
+    platformNameEnLabel: string;
+    platformNameHiLabel: string;
     platformNamePlaceholder: string;
     schoolNameLabel: string;
+    schoolNameEnLabel: string;
+    schoolNameHiLabel: string;
+    translationsLabel: string;
     schoolLabelLabel: string;
     subtitleLabel: string;
     logoLabel: string;
@@ -421,6 +431,9 @@ export type Dictionary = {
     presetBlue: string;
     presetPurple: string;
     presetGray: string;
+    presetTeal: string;
+    presetBurgundy: string;
+    presetSunset: string;
     save: string;
     saveSuccess: string;
     reset: string;

@@ -30,8 +30,20 @@ public class BrandingSetting {
     @Column(name = "platform_name")
     private String platformName;
 
+    @Column(name = "platform_name_en")
+    private String platformNameEn;
+
+    @Column(name = "platform_name_hi")
+    private String platformNameHi;
+
     @Column(name = "school_name")
     private String schoolName;
+
+    @Column(name = "school_name_en")
+    private String schoolNameEn;
+
+    @Column(name = "school_name_hi")
+    private String schoolNameHi;
 
     @Column(name = "school_label")
     private String schoolLabel;

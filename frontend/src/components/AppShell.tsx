@@ -111,6 +111,8 @@ export default function AppShell({
   const canManageSiteMaintenance = employee.permissions.includes("sys.maintenance");
 
   const canManagePermissions = employee.permissions.includes("emp.manage");
+  const platformName = currentLocale === "en" ? branding.platformNameEn || branding.platformName : currentLocale === "hi" ? branding.platformNameHi || branding.platformName : branding.platformName;
+  const schoolName = currentLocale === "en" ? branding.schoolNameEn || branding.schoolName : currentLocale === "hi" ? branding.schoolNameHi || branding.schoolName : branding.schoolName;
 
   // The four operational areas collapse into an accordion (icon + label,
   // click to reveal their sub-pages) rather than always showing every link
@@ -205,7 +207,7 @@ export default function AppShell({
         <div className="brand">
           <BrandSeal logoUrl={branding.logoUrl} className="brand-seal" />
           <h1 className="disp">
-            {[branding.platformName || dict.appName, branding.schoolName].filter(Boolean).join(" — ")}
+            {[platformName || dict.appName, schoolName].filter(Boolean).join(" — ")}
           </h1>
           <p>{branding.subtitle || dict.appTagline}</p>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
@@ -35,6 +35,7 @@ export default function AssetRequestList({
   attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [view, setView] = useState<"pending" | "all" | "mine">("pending");
   const [q, setQ] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
@@ -77,6 +78,10 @@ export default function AssetRequestList({
     apiFetch<{ permissions: string[] }>("/auth/me").then((me) => setPermissions(me.permissions)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") setShowAddModal(true);
+  }, [searchParams]);
 
   function statusLabel(s: string) {
     return {

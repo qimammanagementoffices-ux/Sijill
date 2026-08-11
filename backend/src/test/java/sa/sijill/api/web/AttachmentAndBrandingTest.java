@@ -155,7 +155,8 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.preset").value("default"));
 
-        var update = new UpdateBrandingRequest("blue", "#2563eb", "#8B2635", null, null, null, null, null, 0);
+        var update = new UpdateBrandingRequest(
+                "blue", "#2563eb", "#8B2635", null, null, null, null, null, null, null, null, null, 0);
         mockMvc.perform(put("/api/v1/branding")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -179,7 +180,8 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
     @Test
     void invalidColorIsRejected() throws Exception {
         String adminToken = createAdminAndGetToken("0599900008");
-        var update = new UpdateBrandingRequest("custom", "not-a-color", "#8B2635", null, null, null, null, null, 0);
+        var update = new UpdateBrandingRequest(
+                "custom", "not-a-color", "#8B2635", null, null, null, null, null, null, null, null, null, 0);
 
         mockMvc.perform(put("/api/v1/branding")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)

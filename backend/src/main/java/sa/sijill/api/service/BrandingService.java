@@ -51,7 +51,11 @@ public class BrandingService {
         setting.setPrimaryColor(request.primaryColor());
         setting.setAccentColor(request.accentColor());
         setting.setPlatformName(blankToNull(request.platformName()));
+        setting.setPlatformNameEn(blankToNull(request.platformNameEn()));
+        setting.setPlatformNameHi(blankToNull(request.platformNameHi()));
         setting.setSchoolName(blankToNull(request.schoolName()));
+        setting.setSchoolNameEn(blankToNull(request.schoolNameEn()));
+        setting.setSchoolNameHi(blankToNull(request.schoolNameHi()));
         setting.setSchoolLabel(blankToNull(request.schoolLabel()));
         setting.setSubtitle(blankToNull(request.subtitle()));
         setting.setLogoAttachment(resolveAttachment(request.logoAttachmentId()));
@@ -74,7 +78,11 @@ public class BrandingService {
         setting.setPrimaryColor(DEFAULT_COLOR);
         setting.setAccentColor(DEFAULT_ACCENT_COLOR);
         setting.setPlatformName(null);
+        setting.setPlatformNameEn(null);
+        setting.setPlatformNameHi(null);
         setting.setSchoolName(null);
+        setting.setSchoolNameEn(null);
+        setting.setSchoolNameHi(null);
         setting.setSchoolLabel(null);
         setting.setSubtitle(null);
         setting.setLogoAttachment(null);

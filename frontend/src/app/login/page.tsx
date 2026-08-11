@@ -12,13 +12,15 @@ export default async function LoginPage() {
     getAvailableLocales(),
     getBranding(),
   ]);
+  const platformName = locale === "en" ? branding.platformNameEn || branding.platformName : locale === "hi" ? branding.platformNameHi || branding.platformName : branding.platformName;
+  const schoolName = locale === "en" ? branding.schoolNameEn || branding.schoolName : locale === "hi" ? branding.schoolNameHi || branding.schoolName : branding.schoolName;
 
   return (
     <main className="login-wrap">
       <div className="login-card">
         <BrandSeal logoUrl={branding.logoUrl} className="login-seal disp" />
         <h1 className="disp">
-          {[branding.platformName || dict.dashboard?.appName || "سِجِلّ", branding.schoolName]
+          {[platformName || dict.dashboard?.appName || "سِجِلّ", schoolName]
             .filter(Boolean)
             .join(" — ")}
         </h1>

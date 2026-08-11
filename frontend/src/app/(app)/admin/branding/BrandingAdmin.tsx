@@ -23,6 +23,9 @@ const PRESETS: { key: string; primary: string; accent: string; labelKey: keyof D
   { key: "blue", primary: "#1D4ED8", accent: "#B4791E", labelKey: "presetBlue" },
   { key: "purple", primary: "#4C1D95", accent: "#8B2635", labelKey: "presetPurple" },
   { key: "gray", primary: "#374151", accent: "#8B2635", labelKey: "presetGray" },
+  { key: "teal", primary: "#0F766E", accent: "#0EA5A4", labelKey: "presetTeal" },
+  { key: "burgundy", primary: "#6B2138", accent: "#C58A35", labelKey: "presetBurgundy" },
+  { key: "sunset", primary: "#A34A36", accent: "#E7A43C", labelKey: "presetSunset" },
 ];
 
 function swatchGradient(primary: string, accent: string): string {
@@ -44,7 +47,11 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
   const [color, setColor] = useState("#0f766e");
   const [accentColor, setAccentColor] = useState("#8B2635");
   const [platformName, setPlatformName] = useState("");
+  const [platformNameEn, setPlatformNameEn] = useState("");
+  const [platformNameHi, setPlatformNameHi] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schoolNameEn, setSchoolNameEn] = useState("");
+  const [schoolNameHi, setSchoolNameHi] = useState("");
   const [schoolLabel, setSchoolLabel] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +67,11 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
         setColor(b.primaryColor);
         setAccentColor(b.accentColor);
         setPlatformName(b.platformName ?? "");
+        setPlatformNameEn(b.platformNameEn ?? "");
+        setPlatformNameHi(b.platformNameHi ?? "");
         setSchoolName(b.schoolName ?? "");
+        setSchoolNameEn(b.schoolNameEn ?? "");
+        setSchoolNameHi(b.schoolNameHi ?? "");
         setSchoolLabel(b.schoolLabel ?? "");
         setSubtitle(b.subtitle ?? "");
       })
@@ -82,7 +93,11 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       primaryColor: color,
       accentColor,
       platformName: platformName || null,
+      platformNameEn: platformNameEn || null,
+      platformNameHi: platformNameHi || null,
       schoolName: schoolName || null,
+      schoolNameEn: schoolNameEn || null,
+      schoolNameHi: schoolNameHi || null,
       schoolLabel: schoolLabel || null,
       subtitle: subtitle || null,
       logoAttachmentId: logoAttachmentId !== undefined ? logoAttachmentId : branding?.logoAttachmentId ?? null,
@@ -175,7 +190,11 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     setColor(updated.primaryColor);
     setAccentColor(updated.accentColor);
     setPlatformName(updated.platformName ?? "");
+    setPlatformNameEn(updated.platformNameEn ?? "");
+    setPlatformNameHi(updated.platformNameHi ?? "");
     setSchoolName(updated.schoolName ?? "");
+    setSchoolNameEn(updated.schoolNameEn ?? "");
+    setSchoolNameHi(updated.schoolNameHi ?? "");
     setSchoolLabel(updated.schoolLabel ?? "");
     setSubtitle(updated.subtitle ?? "");
     setToast(dict.saveSuccess);
@@ -231,6 +250,23 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
                 onChange={(e) => setPlatformName(e.target.value)}
                 placeholder={dict.platformNamePlaceholder}
               />
+            </div>
+            <div className="field span2 branding-translation-title">{dict.translationsLabel}</div>
+            <div className="field">
+              <label>{dict.schoolNameEnLabel}</label>
+              <input type="text" value={schoolNameEn} onChange={(e) => setSchoolNameEn(e.target.value)} dir="ltr" />
+            </div>
+            <div className="field">
+              <label>{dict.platformNameEnLabel}</label>
+              <input type="text" value={platformNameEn} onChange={(e) => setPlatformNameEn(e.target.value)} dir="ltr" />
+            </div>
+            <div className="field">
+              <label>{dict.schoolNameHiLabel}</label>
+              <input type="text" value={schoolNameHi} onChange={(e) => setSchoolNameHi(e.target.value)} dir="ltr" />
+            </div>
+            <div className="field">
+              <label>{dict.platformNameHiLabel}</label>
+              <input type="text" value={platformNameHi} onChange={(e) => setPlatformNameHi(e.target.value)} dir="ltr" />
             </div>
             <div className="field span2">
               <label>{dict.schoolLabelLabel}</label>

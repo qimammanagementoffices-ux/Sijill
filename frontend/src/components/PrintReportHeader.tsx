@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/apiClient";
 import type { BrandingDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+import { useEntityLocale } from "@/i18n/entityName";
 
 // Shared header for every printable A4 report (master spec §7): branding
 // logo/name, report title, generated timestamp, and an optional
@@ -22,12 +23,16 @@ export default function PrintReportHeader({
   dict: Dictionary["common"];
 }) {
   const [branding, setBranding] = useState<BrandingDto | null>(null);
+  const locale = useEntityLocale();
 
   useEffect(() => {
     apiFetch<BrandingDto>("/branding")
       .then(setBranding)
       .catch(() => {});
   }, []);
+
+  const platformName = locale === "en" ? branding?.platformNameEn || branding?.platformName : locale === "hi" ? branding?.platformNameHi || branding?.platformName : branding?.platformName;
+  const schoolName = locale === "en" ? branding?.schoolNameEn || branding?.schoolName : locale === "hi" ? branding?.schoolNameHi || branding?.schoolName : branding?.schoolName;
 
   return (
     <header className="ps-header">
@@ -38,8 +43,8 @@ export default function PrintReportHeader({
           </div>
         )}
         <div className="ps-school">
-          <div className="n1">{branding?.platformName || dict.appName}</div>
-          {branding?.schoolName && <div className="n2">{branding.schoolName}</div>}
+          <div className="n1">{platformName || dict.appName}</div>
+          {schoolName && <div className="n2">{schoolName}</div>}
           {branding?.schoolLabel && <div className="n2">{branding.schoolLabel}</div>}
         </div>
       </div>
