@@ -268,6 +268,7 @@ export default function ItemDirectory({
               <input
                 type="date"
                 value={filters.dateFrom}
+                max={filters.dateTo || undefined}
                 onChange={(e) => applyFilter({ dateFrom: e.target.value })}
                 style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
               />
@@ -277,6 +278,7 @@ export default function ItemDirectory({
               <input
                 type="date"
                 value={filters.dateTo}
+                min={filters.dateFrom || undefined}
                 onChange={(e) => applyFilter({ dateTo: e.target.value })}
                 style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
               />

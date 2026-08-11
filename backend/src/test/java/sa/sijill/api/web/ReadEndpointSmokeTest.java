@@ -237,6 +237,12 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].lines[0].itemCode").value(partCode));
 
+        mockMvc.perform(get("/api/v1/maintenance/invoices")
+                        .param("dateFrom", LocalDate.now().plusDays(1).toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
         var maintenanceRequest = new SubmitMaintenanceRequestRequest(
                 null, UUID.fromString(faultTypeId), "Room 1", MaintenancePriority.MEDIUM, "smoke test fault");
         String maintenanceRequestBody = mockMvc.perform(post("/api/v1/maintenance/requests")

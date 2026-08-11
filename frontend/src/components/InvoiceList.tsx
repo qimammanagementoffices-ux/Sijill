@@ -162,6 +162,7 @@ export default function InvoiceList({
               <input
                 type="date"
                 value={dateFrom}
+                max={dateTo || undefined}
                 onChange={(e) => {
                   setDateFrom(e.target.value);
                   load({ from: e.target.value });
@@ -174,6 +175,7 @@ export default function InvoiceList({
               <input
                 type="date"
                 value={dateTo}
+                min={dateFrom || undefined}
                 onChange={(e) => {
                   setDateTo(e.target.value);
                   load({ to: e.target.value });

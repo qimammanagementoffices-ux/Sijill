@@ -77,8 +77,8 @@ export default function CostDashboard({ domain, dict, commonDict }: {
     <div className="panel">
       <div className="panel-head no-print">
         <form className="filter-row" onSubmit={submit}>
-          <label>{dict.from}<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-          <label>{dict.to}<input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+          <label>{dict.from}<input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} /></label>
+          <label>{dict.to}<input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></label>
           <button className="btn btn-outline btn-sm" type="submit">{dict.apply}</button>
           {loading && <span className="spinner" />}
         </form>

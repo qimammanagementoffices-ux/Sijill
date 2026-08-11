@@ -31,10 +31,27 @@ export default function AssetViewModal({
 }) {
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [transfers, setTransfers] = useState<AssetTransferDto[] | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    setQrUrl(null);
     apiFetch<AssetDetail>(`/assets/${assetId}`).then(setAsset).catch(() => onClose());
     apiFetch<AssetTransferDto[]>(`/assets/${assetId}/transfers`).then(setTransfers).catch(() => {});
+    apiFetchBlob(`/assets/${assetId}/qr`)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        if (cancelled) URL.revokeObjectURL(objectUrl);
+        else setQrUrl(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setQrUrl(null);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [assetId, onClose]);
 
   async function downloadQr() {
@@ -48,13 +65,14 @@ export default function AssetViewModal({
   }
 
   function printSticker() {
+    if (!asset || !qrUrl) return;
     const w = window.open("", "_blank", "width=400,height=500");
-    if (!w || !asset) return;
+    if (!w) return;
     w.document.write(`<html dir="rtl"><head><title>${asset.assetNumber}</title>
       <style>body{font-family:sans-serif;text-align:center;padding:20px}
       img{max-width:200px}h2{margin:8px 0}p{margin:4px 0;font-size:14px}</style></head>
       <body><h2>${asset.nameAr}</h2><p>${asset.assetNumber}</p>
-      <img src="${location.origin}/api/v1/assets/${assetId}/qr" />
+      <img src="${qrUrl}" />
       <script>window.onload=function(){window.print()}<\/script></body></html>`);
     w.document.close();
   }
@@ -112,18 +130,20 @@ export default function AssetViewModal({
                   <button type="button" className="btn btn-outline btn-sm" onClick={downloadQr}>
                     {dict.downloadQr}
                   </button>
-                  <button type="button" className="btn btn-outline btn-sm" onClick={printSticker}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={printSticker} disabled={!qrUrl}>
                     {dict.printSticker}
                   </button>
                 </div>
               </div>
 
               <div style={{ flexShrink: 0, textAlign: "center" }}>
-                <img
-                  src={`/api/v1/assets/${assetId}/qr`}
-                  alt="QR"
-                  style={{ width: 180, height: 180, borderRadius: 8, border: "1px solid var(--line)" }}
-                />
+                {qrUrl ? (
+                  <img
+                    src={qrUrl}
+                    alt="QR"
+                    style={{ width: 180, height: 180, borderRadius: 8, border: "1px solid var(--line)" }}
+                  />
+                ) : <SectionLoading />}
               </div>
             </div>
           )}
