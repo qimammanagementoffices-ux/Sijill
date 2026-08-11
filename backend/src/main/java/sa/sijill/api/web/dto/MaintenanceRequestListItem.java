@@ -1,8 +1,12 @@
 package sa.sijill.api.web.dto;
 
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
+import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.MaintenanceRequest;
+import sa.sijill.api.domain.MaintenanceRequestAction;
 
 public record MaintenanceRequestListItem(
         UUID id,
@@ -11,9 +15,13 @@ public record MaintenanceRequestListItem(
         LocalizedRef faultType,
         String priority,
         String status,
-        LocalDate suggestedStartDate) {
+        LocalDate suggestedStartDate,
+        String location,
+        String description,
+        List<MaintenanceRequestActionDto> actions,
+        List<AttachmentDto> attachments) {
 
-    public static MaintenanceRequestListItem from(MaintenanceRequest request) {
+    public static MaintenanceRequestListItem from(MaintenanceRequest request, List<Attachment> attachments) {
         return new MaintenanceRequestListItem(
                 request.getId(),
                 request.getRequester().getName(),
@@ -26,6 +34,13 @@ public record MaintenanceRequestListItem(
                                 request.getFaultType().getNameEn()),
                 request.getPriority().name(),
                 request.getStatus().name(),
-                request.getSuggestedStartDate());
+                request.getSuggestedStartDate(),
+                request.getLocation(),
+                request.getDescription(),
+                request.getActions().stream()
+                        .sorted(Comparator.comparing(MaintenanceRequestAction::getCreatedAt))
+                        .map(MaintenanceRequestActionDto::from)
+                        .toList(),
+                attachments.stream().map(AttachmentDto::from).toList());
     }
 }

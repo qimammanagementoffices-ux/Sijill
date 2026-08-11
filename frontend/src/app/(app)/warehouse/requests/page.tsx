@@ -4,5 +4,12 @@ import RequestList from "./RequestList";
 
 export default async function WarehouseRequestsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <RequestList dict={dict.warehouseRequests} errorsDict={dict.errors} commonDict={dict.common} />;
+  return (
+    <RequestList
+      dict={dict.warehouseRequests}
+      errorsDict={dict.errors}
+      commonDict={dict.common}
+      attachmentsDict={dict.attachments}
+    />
+  );
 }

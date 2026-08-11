@@ -287,6 +287,7 @@ export type Dictionary = {
     statusFilterAll: string;
     cardTitle: string;
     cardOpen: string;
+    activityTitle: string;
     notesLabel: string;
     addLine: string;
     quantityRequestedLabel: string;
@@ -340,6 +341,9 @@ export type Dictionary = {
     columnStatus: string;
     columnSuggestedStart: string;
     statusFilterAll: string;
+    cardTitle: string;
+    cardOpen: string;
+    activityTitle: string;
     faultTypeLabel: string;
     locationLabel: string;
     priorityLabel: string;

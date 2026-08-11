@@ -9,6 +9,8 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import NewRequestView from "@/components/NewRequestView";
+import RequestActionDialog from "@/components/RequestActionDialog";
+import RequestCardActivity from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import type { NeedRequestDetail, NeedRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -26,10 +28,12 @@ export default function RequestList({
   dict,
   errorsDict,
   commonDict,
+  attachmentsDict,
 }: {
   dict: Dictionary["warehouseRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
+  attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
@@ -38,6 +42,10 @@ export default function RequestList({
   const [showAddModal, setShowAddModal] = useState(false);
   const [, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [reason, setReason] = useState("");
 
   function load(statusFilter: string) {
     const query = statusFilter ? `?status=${statusFilter}` : "";
@@ -58,6 +66,9 @@ export default function RequestList({
       return;
     }
     load("");
+    apiFetch<{ permissions: string[] }>("/auth/me")
+      .then((me) => setPermissions(me.permissions))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -69,6 +80,35 @@ export default function RequestList({
       REJECTED: dict.statusRejected,
       CLOSED: dict.statusClosed,
     }[s];
+  }
+
+  function actionLabel(action: string) {
+    return {
+      SUBMIT: dict.submit,
+      APPROVE: dict.approve,
+      REJECT: dict.reject,
+      POSTPONE: dict.postpone,
+      FINISH: dict.finish,
+    }[action] ?? action;
+  }
+
+  async function act(id: string, action: "approve" | "reject" | "postpone", actionReason?: string) {
+    const key = `${id}:${action}`;
+    setBusyAction(key);
+    try {
+      await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/${action}`, {
+        method: "POST",
+        body: action === "approve" ? undefined : JSON.stringify({ reason: actionReason || null }),
+      });
+      setPendingAction(null);
+      setReason("");
+      load(status);
+      setToast(commonDict.actionSuccess);
+    } catch (error) {
+      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+    } finally {
+      setBusyAction(null);
+    }
   }
 
   async function handleExport() {
@@ -185,7 +225,49 @@ export default function RequestList({
                   </p>
                 )}
 
+                <RequestCardActivity
+                  actions={request.actions}
+                  attachments={request.attachments}
+                  actionLabel={actionLabel}
+                  activityTitle={dict.activityTitle}
+                  attachmentsDict={attachmentsDict}
+                />
+
                 <div className="request-card-actions">
+                  {(request.status === "PENDING" || request.status === "POSTPONED") &&
+                    permissions.includes("wh.act.approve") && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={busyAction !== null}
+                        onClick={() => void act(request.id, "approve")}
+                      >
+                        {busyAction === `${request.id}:approve` && <span className="spinner" />}
+                        {dict.approve}
+                      </button>
+                    )}
+                  {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
+                    permissions.includes("wh.act.reject") && (
+                      <button
+                        type="button"
+                        className="btn btn-seal btn-sm"
+                        disabled={busyAction !== null}
+                        onClick={() => setPendingAction({ id: request.id, action: "reject" })}
+                      >
+                        {dict.reject}
+                      </button>
+                    )}
+                  {(request.status === "PENDING" || request.status === "APPROVED") &&
+                    permissions.includes("wh.act.postpone") && (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        disabled={busyAction !== null}
+                        onClick={() => setPendingAction({ id: request.id, action: "postpone" })}
+                      >
+                        {dict.postpone}
+                      </button>
+                    )}
                   <Link className="btn btn-outline btn-sm" href={`/warehouse/requests/${request.id}`}>
                     {dict.cardOpen}
                   </Link>
@@ -217,6 +299,22 @@ export default function RequestList({
             </div>
           </div>
         </div>
+      )}
+
+      {pendingAction && (
+        <RequestActionDialog
+          title={pendingAction.action === "reject" ? dict.reject : dict.postpone}
+          reasonLabel={dict.reasonLabel}
+          cancelLabel={commonDict.cancel}
+          submitting={busyAction !== null}
+          reason={reason}
+          onReasonChange={setReason}
+          onConfirm={() => void act(pendingAction.id, pendingAction.action, reason)}
+          onCancel={() => {
+            setPendingAction(null);
+            setReason("");
+          }}
+        />
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

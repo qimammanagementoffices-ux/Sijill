@@ -180,6 +180,8 @@ export type NeedRequestListItem = {
   suggestedStartDate: string | null;
   notes: string | null;
   lines: NeedRequestLineDto[];
+  actions: NeedRequestActionDto[];
+  attachments: AttachmentDto[];
 };
 
 export type NeedRequestDetail = {
@@ -240,6 +242,10 @@ export type MaintenanceRequestListItem = {
   priority: MaintenancePriority;
   status: MaintenanceRequestStatusValue;
   suggestedStartDate: string | null;
+  location: string | null;
+  description: string | null;
+  actions: MaintenanceRequestActionDto[];
+  attachments: AttachmentDto[];
 };
 
 export type MaintenanceRequestDetail = {

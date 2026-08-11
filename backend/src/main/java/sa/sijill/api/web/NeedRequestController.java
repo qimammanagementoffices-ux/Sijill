@@ -1,6 +1,11 @@
 package sa.sijill.api.web;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -8,10 +13,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Employee;
+import sa.sijill.api.domain.Attachment;
+import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.NeedRequest;
 import sa.sijill.api.domain.NeedRequestStatus;
 import sa.sijill.api.domain.Permission;
 import sa.sijill.api.error.ApiException;
+import sa.sijill.api.repository.AttachmentRepository;
 import sa.sijill.api.service.NeedRequestService;
 import sa.sijill.api.web.dto.*;
 
@@ -20,9 +28,11 @@ import sa.sijill.api.web.dto.*;
 public class NeedRequestController {
 
     private final NeedRequestService needRequestService;
+    private final AttachmentRepository attachmentRepository;
 
-    public NeedRequestController(NeedRequestService needRequestService) {
+    public NeedRequestController(NeedRequestService needRequestService, AttachmentRepository attachmentRepository) {
         this.needRequestService = needRequestService;
+        this.attachmentRepository = attachmentRepository;
     }
 
     @GetMapping
@@ -33,7 +43,14 @@ public class NeedRequestController {
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = hasPermission(actor, "wh.view") ? null : actor.getId();
         Page<NeedRequest> page = needRequestService.search(status, restrictToRequesterId, pageable);
-        return PagedResponse.from(page, NeedRequestListItem::from);
+        Set<UUID> ids = page.getContent().stream().map(NeedRequest::getId).collect(Collectors.toSet());
+        Map<UUID, List<Attachment>> attachments = ids.isEmpty()
+                ? Map.of()
+                : attachmentRepository.findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.NEED_REQUEST, ids).stream()
+                        .sorted(Comparator.comparing(Attachment::getCreatedAt))
+                        .collect(Collectors.groupingBy(Attachment::getOwnerId));
+        return PagedResponse.from(page, request ->
+                NeedRequestListItem.from(request, attachments.getOrDefault(request.getId(), List.of())));
     }
 
     @GetMapping("/{id}")

@@ -144,6 +144,13 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0));
 
+        mockMvc.perform(get("/api/v1/maintenance/requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterAToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].location").value("Room 5"))
+                .andExpect(jsonPath("$.content[0].description").value("leaky faucet"))
+                .andExpect(jsonPath("$.content[0].actions[0].action").value("SUBMIT"))
+                .andExpect(jsonPath("$.content[0].attachments.length()").value(0));
+
         mockMvc.perform(get("/api/v1/maintenance/requests/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterBToken))
                 .andExpect(status().isForbidden());

@@ -169,6 +169,8 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/warehouse/requests").header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterAToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].actions[0].action").value("SUBMIT"))
+                .andExpect(jsonPath("$.content[0].attachments.length()").value(0));
     }
 }

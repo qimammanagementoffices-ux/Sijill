@@ -968,6 +968,35 @@ img[data-viewable] {
   padding-top: 12px;
   border-top: 1px dashed var(--line-soft);
 }
+.request-card-section {
+  margin-top: 12px;
+}
+.request-card-section h4 {
+  margin: 0 0 7px;
+  font-size: 12px;
+  color: var(--slate);
+}
+.request-card-timeline {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.request-card-timeline li > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.request-card-timeline time {
+  color: var(--slate);
+  font-size: 11px;
+}
+.request-card-timeline p {
+  margin: 3px 0 0;
+}
 
 /* Paged-table footer: page buttons at the start of the line (right in RTL),
    rows-per-page at the end. */

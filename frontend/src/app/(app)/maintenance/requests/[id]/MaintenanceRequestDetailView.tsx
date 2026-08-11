@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import type { InventoryItemListItem, MaintenanceRequestDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import AttachmentUploader from "@/components/AttachmentUploader";
 import Toast from "@/components/Toast";
 
 type PartDraft = { inventoryItemId: string; quantity: string };
@@ -24,10 +25,12 @@ export default function MaintenanceRequestDetailView({
   id,
   dict,
   commonDict,
+  attachmentsDict,
 }: {
   id: string;
   dict: Dictionary["maintenanceRequests"];
   commonDict: Dictionary["common"];
+  attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
   const [request, setRequest] = useState<MaintenanceRequestDetail | null>(null);
@@ -155,6 +158,16 @@ export default function MaintenanceRequestDetailView({
             </table>
           </div>
         )}
+
+        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
+          <AttachmentUploader
+            ownerType="MAINTENANCE"
+            ownerId={request.id}
+            dict={attachmentsDict}
+            canManage={request.status === "PENDING" || request.status === "POSTPONED"}
+            onAction={() => setToast(commonDict.actionSuccess)}
+          />
+        </div>
 
         {request.status === "IN_PROGRESS" && !parts && (
           <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>

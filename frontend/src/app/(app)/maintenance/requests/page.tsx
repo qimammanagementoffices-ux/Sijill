@@ -4,5 +4,12 @@ import MaintenanceRequestList from "./MaintenanceRequestList";
 
 export default async function MaintenanceRequestsPage() {
   const dict = await getDictionary(await getRequestLocale());
-  return <MaintenanceRequestList dict={dict.maintenanceRequests} errorsDict={dict.errors} commonDict={dict.common} />;
+  return (
+    <MaintenanceRequestList
+      dict={dict.maintenanceRequests}
+      errorsDict={dict.errors}
+      commonDict={dict.common}
+      attachmentsDict={dict.attachments}
+    />
+  );
 }
