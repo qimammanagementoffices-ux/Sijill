@@ -143,7 +143,6 @@ export default function StructureAdminView({
                   <th>{dict.nameArLabel}</th>
                   <th>{categoriesModalDict.nameHiLabel}</th>
                   <th>{dict.nameEnLabel}</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +151,6 @@ export default function StructureAdminView({
                     <td>{item.nameAr}</td>
                     <td>{item.nameHi || "—"}</td>
                     <td dir="ltr">{item.nameEn}</td>
-                    <td><button type="button" className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); openEdit(item); }}>{dict.save}</button></td>
                   </tr>
                 ))}
               </tbody>
