@@ -297,8 +297,8 @@ export default function MaintenanceRequestList({
       </div>
 
       {showAddModal && (
-        <div className="overlay" role="dialog" aria-modal="true">
-          <div className="modal wide">
+        <div className="overlay maintenance-request-overlay" role="dialog" aria-modal="true">
+          <div className="modal wide maintenance-request-modal">
             <div className="modal-head">
               <h3>{dict.addNew}</h3>
               <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
@@ -308,6 +308,7 @@ export default function MaintenanceRequestList({
             <div className="modal-body">
               <NewMaintenanceRequestView
                 dict={dict}
+                attachmentsDict={attachmentsDict}
                 errorsDict={errorsDict}
                 onSubmitted={handleAdded}
                 formId="mt-request-add-form"
@@ -318,9 +319,10 @@ export default function MaintenanceRequestList({
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAddModal(false)} disabled={addSubmitting}>
                 {commonDict.cancel}
               </button>
-              <button type="submit" form="mt-request-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
+              <button type="submit" form="mt-request-add-form" className="btn btn-seal btn-sm" disabled={addSubmitting}>
                 {addSubmitting && <span className="spinner" />}
                 {dict.submit}
+                {!addSubmitting && <span aria-hidden="true">✓</span>}
               </button>
             </div>
           </div>

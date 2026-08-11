@@ -30,7 +30,7 @@ public class RoomController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'mt.view', 'mt.request')")
     public List<RoomDto> list() {
         Map<UUID, Long> counts = assetRepository.countAssetsByRoom().stream()
                 .collect(Collectors.toMap(RoomAssetCount::getRoomId, RoomAssetCount::getCount));
@@ -41,7 +41,7 @@ public class RoomController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'mt.view', 'mt.request')")
     public PagedResponse<RoomDto> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) UUID departmentId,
@@ -53,7 +53,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'mt.view', 'mt.request')")
     public RoomDto get(@PathVariable UUID id) {
         Room room = roomService.get(id);
         return RoomDto.from(room, assetRepository.countByRoom_Id(room.getId()));

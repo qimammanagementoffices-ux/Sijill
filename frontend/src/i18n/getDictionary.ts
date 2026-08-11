@@ -370,10 +370,16 @@ export type Dictionary = {
     cardTitle: string;
     cardOpen: string;
     activityTitle: string;
+    departmentLabel: string;
+    roomLabel: string;
     faultTypeLabel: string;
     locationLabel: string;
     priorityLabel: string;
     descriptionLabel: string;
+    descriptionPlaceholder: string;
+    attachmentsHint: string;
+    addAttachment: string;
+    attachmentsFailed: string;
     submit: string;
     approve: string;
     reject: string;

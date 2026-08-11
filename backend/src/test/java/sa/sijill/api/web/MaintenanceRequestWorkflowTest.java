@@ -76,6 +76,9 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
     void fullWorkflowSubmitApproveStartFinishWithPartsUsedDecrementsStock() throws Exception {
         String adminToken = createAdminAndGetToken("0599333333");
         String requesterToken = createEmployeeAndLogin(adminToken, "0599444444", Set.of("mt.request"));
+
+        mockMvc.perform(get("/api/v1/rooms").header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk());
         String partId = createPartWithStock(adminToken, 10);
 
         var submit = new SubmitMaintenanceRequestRequest(null, null, "Room 12", MaintenancePriority.HIGH, "AC not cooling");
