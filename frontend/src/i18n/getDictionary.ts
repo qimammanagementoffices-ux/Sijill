@@ -466,6 +466,10 @@ export type Dictionary = {
   rooms: {
     title: string;
     addNew: string;
+    searchPlaceholder: string;
+    search: string;
+    filterAllDepartments: string;
+    noResults: string;
     roomNumberLabel: string;
     nameArLabel: string;
     nameEnLabel: string;

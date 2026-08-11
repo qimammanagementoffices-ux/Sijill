@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import sa.sijill.api.domain.Department;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.Room;
@@ -39,6 +41,10 @@ public class RoomService {
 
     public List<Room> list() {
         return roomRepository.findAll();
+    }
+
+    public Page<Room> search(String q, UUID departmentId, Pageable pageable) {
+        return roomRepository.search(q, departmentId, pageable);
     }
 
     public Room get(UUID id) {

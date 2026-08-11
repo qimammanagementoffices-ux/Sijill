@@ -269,6 +269,21 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/rooms").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(post("/api/v1/rooms")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpsertRoomRequest("SMOKE-202", "قاعة ثانية", "Second Room", "Annex", "2", null, null, null, null))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/rooms/search")
+                        .param("q", "SMOKE")
+                        .param("sort", "roomNumber,desc")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[0].roomNumber").value("SMOKE-202"));
+
         String assetCategoryBody = mockMvc.perform(post("/api/v1/assets/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

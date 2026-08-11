@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Room;
@@ -11,6 +14,7 @@ import sa.sijill.api.repository.AssetRepository;
 import sa.sijill.api.repository.RoomAssetCount;
 import sa.sijill.api.service.RoomService;
 import sa.sijill.api.web.dto.RoomDto;
+import sa.sijill.api.web.dto.PagedResponse;
 import sa.sijill.api.web.dto.UpsertRoomRequest;
 
 @RestController
@@ -34,6 +38,18 @@ public class RoomController {
         return rooms.stream()
                 .map(room -> RoomDto.from(room, counts.getOrDefault(room.getId(), 0L)))
                 .toList();
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    public PagedResponse<RoomDto> search(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) UUID departmentId,
+            @PageableDefault(size = 20, sort = "roomNumber") Pageable pageable) {
+        Page<Room> page = roomService.search(q, departmentId, pageable);
+        Map<UUID, Long> counts = assetRepository.countAssetsByRoom().stream()
+                .collect(Collectors.toMap(RoomAssetCount::getRoomId, RoomAssetCount::getCount));
+        return PagedResponse.from(page, room -> RoomDto.from(room, counts.getOrDefault(room.getId(), 0L)));
     }
 
     @GetMapping("/{id}")

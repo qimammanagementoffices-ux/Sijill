@@ -1,16 +1,18 @@
 "use client";
 
 import { entityName, useEntityLocale } from "@/i18n/entityName";
-import { useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import { exportToXlsx } from "@/lib/exportXlsx";
+import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
+import TableFooter from "@/components/TableFooter";
 import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -24,6 +26,8 @@ type Edited = {
   departmentId: string;
   custodianId: string;
 };
+
+type Sort = { field: string; dir: "asc" | "desc" };
 
 export default function RoomAdmin({
   dict,
@@ -40,7 +44,15 @@ export default function RoomAdmin({
 }) {
   const entityLocale = useEntityLocale();
   const router = useRouter();
-  const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [page, setPage] = useState<PagedResponse<RoomDto> | null>(null);
+  const [q, setQ] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [sort, setSort] = useState<Sort>({ field: "roomNumber", dir: "asc" });
+  const [size, setSize] = useState(10);
+  const [loadingPage, setLoadingPage] = useState<number | null>(null);
+  const [printRows, setPrintRows] = useState<RoomDto[] | null>(null);
+  const requestSequence = useRef(0);
   const [canManage, setCanManage] = useState(false);
   const [photosOpenFor, setPhotosOpenFor] = useState<string | null>(null);
   const [newRoomNumber, setNewRoomNumber] = useState("");
@@ -59,10 +71,38 @@ export default function RoomAdmin({
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
 
-  function load() {
-    apiFetch<RoomDto[]>("/rooms")
-      .then(setRooms)
-      .catch(() => router.replace("/dashboard"));
+  function queryString(
+    pageNumber: number,
+    query: string,
+    departmentId: string,
+    sortBy: Sort,
+    perPage: number
+  ) {
+    const params = new URLSearchParams({ page: String(pageNumber), size: String(perPage) });
+    params.append("sort", `${sortBy.field},${sortBy.dir}`);
+    params.append("sort", "id,asc");
+    if (query) params.set("q", query);
+    if (departmentId) params.set("departmentId", departmentId);
+    return `?${params.toString()}`;
+  }
+
+  function load(
+    pageNumber = 0,
+    query = appliedQuery,
+    departmentId = departmentFilter,
+    sortBy = sort,
+    perPage = size
+  ) {
+    const sequence = ++requestSequence.current;
+    setLoadingPage(pageNumber);
+    apiFetch<PagedResponse<RoomDto>>(`/rooms/search${queryString(pageNumber, query, departmentId, sortBy, perPage)}`)
+      .then((nextPage) => {
+        if (sequence === requestSequence.current) setPage(nextPage);
+      })
+      .catch(() => router.replace("/dashboard"))
+      .finally(() => {
+        if (sequence === requestSequence.current) setLoadingPage(null);
+      });
   }
 
   useEffect(() => {
@@ -70,7 +110,7 @@ export default function RoomAdmin({
       router.replace("/login");
       return;
     }
-    load();
+    load(0, "", "");
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanManage(me.permissions.includes("as.manage")))
       .catch(() => {});
@@ -86,6 +126,31 @@ export default function RoomAdmin({
 
   function openAddModal() {
     setShowAddModal(true);
+  }
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    setAppliedQuery(q);
+    load(0, q);
+  }
+
+  function applyDepartmentFilter(departmentId: string) {
+    setDepartmentFilter(departmentId);
+    load(0, appliedQuery, departmentId);
+  }
+
+  function clearFilters() {
+    setQ("");
+    setAppliedQuery("");
+    setDepartmentFilter("");
+    load(0, "", "");
+  }
+
+  function toggleSort(field: string) {
+    const next: Sort =
+      sort.field === field ? { field, dir: sort.dir === "asc" ? "desc" : "asc" } : { field, dir: "asc" };
+    setSort(next);
+    load(0, appliedQuery, departmentFilter, next);
   }
 
   async function handleCreate(e: FormEvent) {
@@ -116,7 +181,7 @@ export default function RoomAdmin({
       setNewDepartmentId("");
       setNewCustodianId("");
       setShowAddModal(false);
-      load();
+      load(0);
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
@@ -144,7 +209,7 @@ export default function RoomAdmin({
           version: room.version,
         }),
       });
-      load();
+      load(page?.page ?? 0);
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
@@ -152,6 +217,9 @@ export default function RoomAdmin({
   }
 
   async function handleExport() {
+    const rooms = await fetchAllPaged<RoomDto>((pageNumber) =>
+      `/rooms/search${queryString(pageNumber, appliedQuery, departmentFilter, sort, 100)}`
+    );
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -164,11 +232,24 @@ export default function RoomAdmin({
         { header: dict.custodianLabel, value: (r: RoomDto) => r.custodianName ?? "" },
         { header: dict.assetCountLabel, value: (r: RoomDto) => r.assetCount },
       ],
-      rooms ?? []
+      rooms
     );
   }
 
-  if (!rooms) return <SectionLoading />;
+  async function handlePrint() {
+    const rooms = await fetchAllPaged<RoomDto>((pageNumber) =>
+      `/rooms/search${queryString(pageNumber, appliedQuery, departmentFilter, sort, 100)}`
+    );
+    setPrintRows(rooms);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    window.print();
+    setPrintRows(null);
+  }
+
+  if (!page) return <SectionLoading />;
+
+  const rooms = printRows ?? page.content;
+  const filtersActive = appliedQuery !== "" || departmentFilter !== "";
 
   return (
     <>
@@ -186,12 +267,37 @@ export default function RoomAdmin({
       )}
 
       <div className="panel">
-        <div className="panel-head no-print" style={{ justifyContent: "flex-end" }}>
+        <div className="panel-head no-print">
+          <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={dict.searchPlaceholder}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 280 }}
+            />
+            <select
+              value={departmentFilter}
+              onChange={(e) => applyDepartmentFilter(e.target.value)}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
+            >
+              <option value="">{dict.filterAllDepartments}</option>
+              {(departments ?? []).map((department) => (
+                <option key={department.id} value={department.id}>
+                  {entityName(department, entityLocale)}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="btn btn-outline btn-sm">{dict.search}</button>
+            {filtersActive && (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters} aria-label="clear">×</button>
+            )}
+          </form>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               {commonDict.exportXlsx}
             </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
               {commonDict.print}
             </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>
@@ -202,21 +308,33 @@ export default function RoomAdmin({
 
         {rooms.length === 0 ? (
           <div className="empty">
-            <b>{dict.title}</b>
+            <b>{dict.noResults}</b>
           </div>
         ) : (
-          <div className="table-scroll">
+          <div className="table-scroll table-loading-wrap">
+            {loadingPage !== null && (
+              <div className="table-loading-veil no-print"><span className="spinner spinner-lg" /></div>
+            )}
             <table>
               <thead>
                 <tr>
-                  <th>{dict.roomNumberLabel}</th>
-                  <th>{dict.nameArLabel}</th>
-                  <th>{dict.nameHiLabel}</th>
-                  <th>{dict.nameEnLabel}</th>
-                  <th>{dict.buildingLabel}</th>
-                  <th>{dict.floorLabel}</th>
-                  <th>{dict.departmentLabel}</th>
-                  <th>{dict.custodianLabel}</th>
+                  {([
+                    ["roomNumber", dict.roomNumberLabel],
+                    ["nameAr", dict.nameArLabel],
+                    ["nameHi", dict.nameHiLabel],
+                    ["nameEn", dict.nameEnLabel],
+                    ["building", dict.buildingLabel],
+                    ["floor", dict.floorLabel],
+                    ["department.nameAr", dict.departmentLabel],
+                    ["custodian.name", dict.custodianLabel],
+                  ] as const).map(([field, label]) => (
+                    <th key={field}>
+                      <button type="button" className="th-sort" onClick={() => toggleSort(field)}>
+                        {label}
+                        <span className="th-sort-arrow">{sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}</span>
+                      </button>
+                    </th>
+                  ))}
                   <th>{dict.assetCountLabel}</th>
                   <th></th>
                 </tr>
@@ -234,8 +352,8 @@ export default function RoomAdmin({
                     custodianId: room.custodianId ?? "",
                   };
                   return (
-                    <>
-                      <tr key={room.id}>
+                    <Fragment key={room.id}>
+                      <tr>
                         <td>
                           <input
                             type="text"
@@ -341,13 +459,26 @@ export default function RoomAdmin({
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
             </table>
           </div>
         )}
+
+        <TableFooter
+          page={page.page}
+          totalPages={page.totalPages}
+          size={size}
+          loadingPage={loadingPage}
+          rowsPerPageLabel={commonDict.rowsPerPage}
+          onPage={(pageNumber) => load(pageNumber)}
+          onSize={(next) => {
+            setSize(next);
+            load(0, appliedQuery, departmentFilter, sort, next);
+          }}
+        />
 
       </div>
 

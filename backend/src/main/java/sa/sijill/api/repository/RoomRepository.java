@@ -1,7 +1,32 @@
 package sa.sijill.api.repository;
 
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import sa.sijill.api.domain.Room;
 
-public interface RoomRepository extends JpaRepository<Room, UUID> {}
+public interface RoomRepository extends JpaRepository<Room, UUID> {
+
+    @Query("""
+            select r from Room r
+            left join r.department d
+            left join r.custodian c
+            where (:q is null or :q = ''
+              or lower(r.roomNumber) like lower(concat('%', :q, '%'))
+              or lower(r.nameAr) like lower(concat('%', :q, '%'))
+              or lower(r.nameEn) like lower(concat('%', :q, '%'))
+              or lower(coalesce(r.nameHi, '')) like lower(concat('%', :q, '%'))
+              or lower(coalesce(r.building, '')) like lower(concat('%', :q, '%'))
+              or lower(coalesce(r.floor, '')) like lower(concat('%', :q, '%'))
+              or lower(coalesce(d.nameAr, '')) like lower(concat('%', :q, '%'))
+              or lower(coalesce(c.name, '')) like lower(concat('%', :q, '%')))
+              and (:departmentId is null or d.id = :departmentId)
+            """)
+    Page<Room> search(
+            @Param("q") String q,
+            @Param("departmentId") UUID departmentId,
+            Pageable pageable);
+}
