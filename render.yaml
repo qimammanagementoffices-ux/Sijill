@@ -60,6 +60,11 @@ services:
         value: us-east-1
       - key: OBJECT_STORAGE_BUCKET
         sync: false
+      # Separate private bucket for pg_dump snapshots. Do not mark this
+      # bucket public in Supabase. Existing backups remain readable from the
+      # attachment bucket during the migration compatibility window.
+      - key: OBJECT_STORAGE_BACKUP_BUCKET
+        sync: false
       - key: OBJECT_STORAGE_ACCESS_KEY
         sync: false
       - key: OBJECT_STORAGE_SECRET_KEY

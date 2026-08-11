@@ -48,6 +48,7 @@ public abstract class AbstractIntegrationTest {
         // what's covered instead (validation, permissions).
         registry.add("OBJECT_STORAGE_ENDPOINT", () -> "http://localhost:9999");
         registry.add("OBJECT_STORAGE_BUCKET", () -> "test-bucket");
+        registry.add("OBJECT_STORAGE_BACKUP_BUCKET", () -> "test-backup-bucket");
         registry.add("OBJECT_STORAGE_ACCESS_KEY", () -> "test-access-key");
         registry.add("OBJECT_STORAGE_SECRET_KEY", () -> "test-secret-key");
         registry.add("OBJECT_STORAGE_PUBLIC_URL_BASE", () -> "http://localhost:9999/public");

@@ -14,7 +14,8 @@ Three Render services plus one external dependency:
 - `sijill-api` — Spring Boot backend (Docker), health check `/actuator/health`
 - `sijill-frontend` — Next.js frontend (Node runtime)
 - `sijill-postgres` — managed Postgres (free plan)
-- Object storage — S3-compatible (Supabase Storage), external to Render, holds attachments and backup dumps
+- Object storage — S3-compatible (Supabase Storage), external to Render, with
+  a public attachment bucket and a separate private backup bucket
 
 ## 2. Normal deploy
 
@@ -76,7 +77,12 @@ in. The API went down with its DB role stuck on `NOLOGIN`. This is why
 
 ## 5. Backup & restore / DR drill
 
-- Scheduled backups run daily at 02:00 server time (`BackupScheduler`, cron `0 0 2 * * *`), uploading a `pg_dump -Fc` snapshot to the private `backups/` prefix of the object storage bucket (never a public URL — dumps contain PII and PIN hashes).
+- Scheduled backups run daily at 02:00 server time (`BackupScheduler`, cron `0 0 2 * * *`), uploading a `pg_dump -Fc` snapshot under `backups/` in the private backup bucket (never a public URL — dumps contain PII and PIN hashes).
+- `OBJECT_STORAGE_BACKUP_BUCKET` must name a private Supabase bucket distinct
+  from the public `OBJECT_STORAGE_BUCKET`. Backups created before this split
+  remain readable from the former shared bucket during the compatibility
+  window; move those objects to the private bucket before removing that
+  fallback in a later release.
 - Manual backup: `/admin/backups` → "Run backup now" (requires `sys.backup`).
 - Restore: same page → "Restore" on any snapshot → re-enter your PIN to confirm. This always takes a fresh safety snapshot of the *current* state first (tagged "Pre-restore" in the list) before overwriting the live database, and force-logs out the current session afterward (the restore may have replaced the employee table under you).
 - Restore is rate-limited (3 attempts/60s per employee) and audited (`BACKUP_RESTORED` entries in the audit log, viewable with `sys.audit.view`).

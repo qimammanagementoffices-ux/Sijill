@@ -34,7 +34,14 @@ app:
   object-storage:
     endpoint: ${OBJECT_STORAGE_ENDPOINT}
     region: ${OBJECT_STORAGE_REGION:us-east-1}
+    # Public bucket for normal attachments. Keep OBJECT_STORAGE_BUCKET as the
+    # established name so existing deployments and stored attachment URLs do
+    # not change during the backup-bucket rollout.
     bucket: ${OBJECT_STORAGE_BUCKET}
+    # Private bucket for database dumps. The fallback keeps an older deploy
+    # bootable while Render's environment is being updated; production must
+    # set this to the new private bucket before creating another backup.
+    backup-bucket: ${OBJECT_STORAGE_BACKUP_BUCKET:${OBJECT_STORAGE_BUCKET}}
     access-key: ${OBJECT_STORAGE_ACCESS_KEY}
     secret-key: ${OBJECT_STORAGE_SECRET_KEY}
     # Public read URL prefix for the bucket — Supabase Storage serves public

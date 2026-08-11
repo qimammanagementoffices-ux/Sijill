@@ -20,8 +20,8 @@ import sa.sijill.api.repository.BackupSnapshotRepository;
 // Shells out to pg_dump (added to the runtime image in Dockerfile) rather
 // than reimplementing a dump format — custom format (-Fc) so it's directly
 // usable with pg_restore later. Snapshots go to object storage under
-// backups/, never via a public URL (see StorageService.uploadPrivateFile) —
-// a dump contains PII and PIN hashes.
+// backups/ in the dedicated private backup bucket, never via a public URL
+// (see StorageService.uploadPrivateFile) — a dump contains PII and PIN hashes.
 @Service
 public class BackupService {
 
@@ -79,7 +79,7 @@ public class BackupService {
     @Transactional
     public void delete(UUID id) {
         BackupSnapshot snapshot = get(id);
-        storageService.delete(snapshot.getStorageKey());
+        storageService.deletePrivateFile(snapshot.getStorageKey());
         backupSnapshotRepository.delete(snapshot);
     }
 
