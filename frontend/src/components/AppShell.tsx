@@ -105,6 +105,7 @@ export default function AppShell({
     employee.permissions.includes("mt.view") || employee.permissions.includes("mt.request");
   const canViewAssets =
     employee.permissions.includes("as.view") || employee.permissions.includes("as.request");
+  const canViewAssetRecords = employee.permissions.includes("as.view");
   const canManageBranding = employee.permissions.includes("sys.branding");
   const canManageBackups = employee.permissions.includes("sys.backup");
   const canManageSiteMaintenance = employee.permissions.includes("sys.maintenance");
@@ -166,6 +167,7 @@ export default function AppShell({
       items: [
         ...(canViewAssets ? [{ href: "/rooms", label: dict.roomsNav }] : []),
         ...(canViewAssets ? [{ href: "/assets", label: dict.assetsNav }] : []),
+        ...(canViewAssetRecords ? [{ href: "/assets/acquisitions", label: dict.assetAcquisitionsNav }] : []),
         ...(canViewAssets ? [{ href: "/asset-requests", label: dict.assetRequestsNav }] : []),
       ],
     },

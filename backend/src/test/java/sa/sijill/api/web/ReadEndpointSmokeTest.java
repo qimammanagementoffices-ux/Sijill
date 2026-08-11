@@ -340,6 +340,25 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.category.en").value("Electronics"))
                 .andExpect(jsonPath("$.room.en").value("Smoke Room"));
 
+        String acquisitionBody = mockMvc.perform(post("/api/v1/assets/acquisitions")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpsertAssetAcquisitionRequest(
+                                "ACQ-SMOKE-1", LocalDate.now(), "Smoke Vendor", new BigDecimal("125.50"),
+                                "smoke acquisition", List.of(UUID.fromString(assetId)), null))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assets[0].assetNumber").value(assetNumber))
+                .andReturn().getResponse().getContentAsString();
+        String acquisitionId = objectMapper.readTree(acquisitionBody).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/assets/acquisitions")
+                        .param("q", "ACQ-SMOKE")
+                        .param("assetId", assetId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(acquisitionId));
+
         mockMvc.perform(get("/api/v1/public/assets/" + publicToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assetNumber").value(assetNumber));

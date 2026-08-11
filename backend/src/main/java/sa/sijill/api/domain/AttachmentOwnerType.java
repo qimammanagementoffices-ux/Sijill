@@ -7,5 +7,6 @@ public enum AttachmentOwnerType {
     BRANDING,
     MAINTENANCE,
     EMPLOYEE,
-    NEED_REQUEST
+    NEED_REQUEST,
+    ASSET_ACQUISITION
 }

@@ -305,6 +305,17 @@ export type AssetListItem = {
   thumbnailUrl: string | null;
 };
 
+export type AssetAcquisitionDto = {
+  id: string;
+  documentNumber: string;
+  documentDate: string;
+  vendor: string | null;
+  amount: number;
+  notes: string | null;
+  assets: { id: string; assetNumber: string; nameAr: string; nameEn: string }[];
+  version: number;
+};
+
 export type AssetDetail = {
   id: string;
   assetNumber: string;
@@ -362,7 +373,8 @@ export type AttachmentOwnerType =
   | "BRANDING"
   | "MAINTENANCE"
   | "EMPLOYEE"
-  | "NEED_REQUEST";
+  | "NEED_REQUEST"
+  | "ASSET_ACQUISITION";
 
 export type AttachmentDto = {
   id: string;

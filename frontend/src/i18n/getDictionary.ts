@@ -72,6 +72,7 @@ export type Dictionary = {
     assetsNav: string;
     assetCategoriesNav: string;
     assetRequestsNav: string;
+    assetAcquisitionsNav: string;
     brandingNav: string;
     backupsNav: string;
     siteMaintenanceNav: string;
@@ -585,6 +586,25 @@ export type Dictionary = {
     statusPostponed: string;
     statusRejected: string;
     statusClosed: string;
+  };
+  assetAcquisitions: {
+    title: string;
+    addNew: string;
+    editTitle: string;
+    searchPlaceholder: string;
+    allAssets: string;
+    documentNumber: string;
+    documentDate: string;
+    vendor: string;
+    assets: string;
+    addAsset: string;
+    noAssets: string;
+    amount: string;
+    notes: string;
+    save: string;
+    delete: string;
+    noResults: string;
+    assetCount: string;
   };
   publicAsset: {
     notFound: string;
