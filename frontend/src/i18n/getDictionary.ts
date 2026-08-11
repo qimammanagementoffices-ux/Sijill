@@ -484,6 +484,11 @@ export type Dictionary = {
   assets: {
     title: string;
     addNew: string;
+    searchPlaceholder: string;
+    search: string;
+    filterAllCategories: string;
+    filterAllRooms: string;
+    filterAllStatuses: string;
     noResults: string;
     columnImage: string;
     columnAssetNumber: string;

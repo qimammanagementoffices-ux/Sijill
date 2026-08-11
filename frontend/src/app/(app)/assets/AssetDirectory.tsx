@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
+import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import NewAssetView from "@/components/NewAssetView";
@@ -13,7 +14,9 @@ import Toast from "@/components/Toast";
 import CategoriesModal from "@/components/CategoriesModal";
 import AssetViewModal from "@/components/AssetViewModal";
 import AssetEditModal from "@/components/AssetEditModal";
-import type { AssetDetail, AssetListItem, PagedResponse } from "@/lib/types";
+import TableFooter from "@/components/TableFooter";
+import { entityName, useEntityLocale } from "@/i18n/entityName";
+import type { AssetDetail, AssetListItem, CategoryDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_CHIP_CLASS: Record<string, string> = {
@@ -21,6 +24,8 @@ const STATUS_CHIP_CLASS: Record<string, string> = {
   MAINTENANCE: "s-pending",
   RETIRED: "s-postponed",
 };
+
+type Sort = { field: string; dir: "asc" | "desc" };
 
 export default function AssetDirectory({
   dict,
@@ -35,8 +40,20 @@ export default function AssetDirectory({
   categoriesModalDict: Dictionary["categoriesModal"];
   attachmentsDict: Dictionary["attachments"];
 }) {
+  const entityLocale = useEntityLocale();
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sort, setSort] = useState<Sort>({ field: "assetNumber", dir: "asc" });
+  const [size, setSize] = useState(10);
+  const [loadingPage, setLoadingPage] = useState<number | null>(null);
+  const [printRows, setPrintRows] = useState<AssetListItem[] | null>(null);
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [rooms, setRooms] = useState<RoomDto[]>([]);
+  const requestSequence = useRef(0);
   const [page, setPage] = useState<PagedResponse<AssetListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -46,13 +63,31 @@ export default function AssetDirectory({
   const [viewAssetId, setViewAssetId] = useState<string | null>(null);
   const [editAssetId, setEditAssetId] = useState<string | null>(null);
 
-  function load(pageNumber: number, query: string) {
-    apiFetch<PagedResponse<AssetListItem>>(`/assets?q=${encodeURIComponent(query)}&page=${pageNumber}`)
-      .then(setPage)
+  function queryString(pageNumber: number, query: string, categoryId: string, roomId: string, status: string, sortBy: Sort, perPage: number) {
+    const params = new URLSearchParams({ page: String(pageNumber), size: String(perPage) });
+    params.append("sort", `${sortBy.field},${sortBy.dir}`);
+    params.append("sort", "id,asc");
+    if (query) params.set("q", query);
+    if (categoryId) params.set("categoryId", categoryId);
+    if (roomId) params.set("roomId", roomId);
+    if (status) params.set("status", status);
+    return `?${params.toString()}`;
+  }
+
+  function load(pageNumber = 0, query = appliedQuery, categoryId = categoryFilter, roomId = roomFilter, status = statusFilter, sortBy = sort, perPage = size) {
+    const sequence = ++requestSequence.current;
+    setLoadingPage(pageNumber);
+    apiFetch<PagedResponse<AssetListItem>>(`/assets${queryString(pageNumber, query, categoryId, roomId, status, sortBy, perPage)}`)
+      .then((nextPage) => {
+        if (sequence === requestSequence.current) setPage(nextPage);
+      })
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
         }
+      })
+      .finally(() => {
+        if (sequence === requestSequence.current) setLoadingPage(null);
       });
   }
 
@@ -61,16 +96,44 @@ export default function AssetDirectory({
       router.replace("/login");
       return;
     }
-    load(0, "");
+    load(0, "", "", "", "");
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanManage(me.permissions.includes("as.manage")))
+      .catch(() => {});
+    Promise.all([apiFetch<CategoryDto[]>("/assets/categories"), apiFetch<RoomDto[]>("/rooms")])
+      .then(([nextCategories, nextRooms]) => {
+        setCategories(nextCategories);
+        setRooms(nextRooms);
+      })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
+    setAppliedQuery(q);
     load(0, q);
+  }
+
+  function applyFilters(categoryId: string, roomId: string, status: string) {
+    setCategoryFilter(categoryId);
+    setRoomFilter(roomId);
+    setStatusFilter(status);
+    load(0, appliedQuery, categoryId, roomId, status);
+  }
+
+  function clearFilters() {
+    setQ("");
+    setAppliedQuery("");
+    applyFilters("", "", "");
+  }
+
+  function toggleSort(field: string) {
+    const next: Sort = sort.field === field
+      ? { field, dir: sort.dir === "asc" ? "desc" : "asc" }
+      : { field, dir: "asc" };
+    setSort(next);
+    load(0, appliedQuery, categoryFilter, roomFilter, statusFilter, next);
   }
 
   function statusLabel(status: string) {
@@ -82,7 +145,9 @@ export default function AssetDirectory({
   }
 
   async function handleExport() {
-    const all = await apiFetch<PagedResponse<AssetListItem>>(`/assets?q=${encodeURIComponent(q)}&size=10000`);
+    const all = await fetchAllPaged<AssetListItem>((pageNumber) =>
+      `/assets${queryString(pageNumber, appliedQuery, categoryFilter, roomFilter, statusFilter, sort, 100)}`
+    );
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -92,20 +157,33 @@ export default function AssetDirectory({
         { header: dict.columnCategory, value: (a: AssetListItem) => a.category?.ar ?? "" },
         { header: dict.columnRoom, value: (a: AssetListItem) => a.room?.ar ?? "" },
         { header: dict.columnCustodian, value: (a: AssetListItem) => a.custodianName ?? "" },
-        { header: dict.columnStatus, value: (a: AssetListItem) => a.status },
+        { header: dict.columnStatus, value: (a: AssetListItem) => statusLabel(a.status) ?? a.status },
       ],
-      all.content
+      all
     );
+  }
+
+  async function handlePrint() {
+    const all = await fetchAllPaged<AssetListItem>((pageNumber) =>
+      `/assets${queryString(pageNumber, appliedQuery, categoryFilter, roomFilter, statusFilter, sort, 100)}`
+    );
+    setPrintRows(all);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    window.print();
+    setPrintRows(null);
   }
 
   function handleAdded(asset: AssetDetail) {
     setShowAddModal(false);
-    load(0, q);
+    load(0);
     setToast(commonDict.actionSuccess);
     void asset;
   }
 
   if (!page) return <SectionLoading />;
+
+  const assets = printRows ?? page.content;
+  const filtersActive = appliedQuery !== "" || categoryFilter !== "" || roomFilter !== "" || statusFilter !== "";
 
   return (
     <>
@@ -124,17 +202,33 @@ export default function AssetDirectory({
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              placeholder={dict.searchPlaceholder}
               style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 260 }}
             />
             <button type="submit" className="btn btn-outline btn-sm">
-              {dict.title}
+              {dict.search}
             </button>
+            <select value={categoryFilter} onChange={(e) => applyFilters(e.target.value, roomFilter, statusFilter)}>
+              <option value="">{dict.filterAllCategories}</option>
+              {categories.map((category) => <option key={category.id} value={category.id}>{entityName(category, entityLocale)}</option>)}
+            </select>
+            <select value={roomFilter} onChange={(e) => applyFilters(categoryFilter, e.target.value, statusFilter)}>
+              <option value="">{dict.filterAllRooms}</option>
+              {rooms.map((room) => <option key={room.id} value={room.id}>{room.roomNumber} — {entityName(room, entityLocale)}</option>)}
+            </select>
+            <select value={statusFilter} onChange={(e) => applyFilters(categoryFilter, roomFilter, e.target.value)}>
+              <option value="">{dict.filterAllStatuses}</option>
+              <option value="ACTIVE">{dict.statusActive}</option>
+              <option value="MAINTENANCE">{dict.statusMaintenance}</option>
+              <option value="RETIRED">{dict.statusRetired}</option>
+            </select>
+            {filtersActive && <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters} aria-label="clear">×</button>}
           </form>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               {commonDict.exportXlsx}
             </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
               {commonDict.print}
             </button>
             <Link href="/assets/custody-report" className="btn btn-outline btn-sm">
@@ -153,26 +247,26 @@ export default function AssetDirectory({
           </div>
         </div>
 
-        {page.content.length === 0 ? (
+        {assets.length === 0 ? (
           <div className="empty">
             <b>{dict.noResults}</b>
           </div>
         ) : (
-          <div className="table-scroll">
+          <div className="table-scroll table-loading-wrap">
+            {loadingPage !== null && <div className="table-loading-veil no-print"><span className="spinner spinner-lg" /></div>}
             <table>
               <thead>
                 <tr>
                   <th>{dict.columnImage}</th>
-                  <th>{dict.columnAssetNumber}</th>
-                  <th>{dict.columnName}</th>
-                  <th>{dict.columnCategory}</th>
-                  <th>{dict.columnRoom}</th>
-                  <th>{dict.columnCustodian}</th>
-                  <th>{dict.columnStatus}</th>
+                  {([[
+                    "assetNumber", dict.columnAssetNumber
+                  ], ["nameAr", dict.columnName], ["category.nameAr", dict.columnCategory], ["room.nameAr", dict.columnRoom], ["custodian.name", dict.columnCustodian], ["status", dict.columnStatus]] as const).map(([field, label]) => (
+                    <th key={field}><button type="button" className="th-sort" onClick={() => toggleSort(field)}>{label}<span className="th-sort-arrow">{sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}</span></button></th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {page.content.map((asset) => (
+                {assets.map((asset) => (
                   <tr key={asset.id} className="clickable" onClick={() => setViewAssetId(asset.id)}>
                     <td>
                       {asset.thumbnailUrl ? (
@@ -207,21 +301,9 @@ export default function AssetDirectory({
           </div>
         )}
 
-        {page.totalPages > 1 && (
-          <div className="panel-note no-print" style={{ display: "flex", gap: 6, paddingTop: 14 }}>
-            {Array.from({ length: page.totalPages }, (_, i) => i).map((i) => (
-              <button
-                key={i}
-                type="button"
-                className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
-                onClick={() => load(i, q)}
-                disabled={i === page.page}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
+        <TableFooter page={page.page} totalPages={page.totalPages} size={size} loadingPage={loadingPage}
+          rowsPerPageLabel={commonDict.rowsPerPage} onPage={(pageNumber) => load(pageNumber)}
+          onSize={(next) => { setSize(next); load(0, appliedQuery, categoryFilter, roomFilter, statusFilter, sort, next); }} />
       </div>
 
       {showAddModal && (
@@ -280,7 +362,7 @@ export default function AssetDirectory({
             setEditAssetId(viewAssetId);
             setViewAssetId(null);
           }}
-          onChanged={() => load(page?.page ?? 0, q)}
+          onChanged={() => load(page?.page ?? 0)}
         />
       )}
 
@@ -295,12 +377,12 @@ export default function AssetDirectory({
           onClose={() => setEditAssetId(null)}
           onSaved={() => {
             setEditAssetId(null);
-            load(page?.page ?? 0, q);
+            load(page?.page ?? 0);
             setToast(commonDict.actionSuccess);
           }}
           onDeleted={() => {
             setEditAssetId(null);
-            load(0, q);
+            load(0);
             setToast(commonDict.actionSuccess);
           }}
         />

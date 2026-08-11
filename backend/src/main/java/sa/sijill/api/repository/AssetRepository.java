@@ -17,17 +17,26 @@ public interface AssetRepository extends JpaRepository<Asset, UUID> {
 
     @Query("""
             select a from Asset a
+            left join a.category category
+            left join a.room room
+            left join a.custodian custodian
             where (:q is null or :q = ''
                 or lower(a.nameAr) like lower(concat('%', :q, '%'))
                 or lower(a.nameEn) like lower(concat('%', :q, '%'))
-                or lower(a.assetNumber) like lower(concat('%', :q, '%')))
+                or lower(coalesce(a.nameHi, '')) like lower(concat('%', :q, '%'))
+                or lower(a.assetNumber) like lower(concat('%', :q, '%'))
+                or lower(coalesce(category.nameAr, '')) like lower(concat('%', :q, '%'))
+                or lower(coalesce(room.nameAr, '')) like lower(concat('%', :q, '%'))
+                or lower(coalesce(custodian.name, '')) like lower(concat('%', :q, '%')))
               and (:status is null or a.status = :status)
-              and (:roomId is null or a.room.id = :roomId)
+              and (:roomId is null or room.id = :roomId)
+              and (:categoryId is null or category.id = :categoryId)
             """)
     Page<Asset> search(
             @Param("q") String q,
             @Param("status") AssetStatus status,
             @Param("roomId") UUID roomId,
+            @Param("categoryId") UUID categoryId,
             Pageable pageable);
 
     java.util.List<Asset> findByCustodianId(UUID custodianId);

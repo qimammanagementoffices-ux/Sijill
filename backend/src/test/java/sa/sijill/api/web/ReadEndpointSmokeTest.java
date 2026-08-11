@@ -321,6 +321,17 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/assets").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(get("/api/v1/assets")
+                        .param("q", "Projector")
+                        .param("categoryId", assetCategoryId)
+                        .param("roomId", roomId)
+                        .param("status", "ACTIVE")
+                        .param("sort", "assetNumber,desc")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(assetId));
+
         mockMvc.perform(get("/api/v1/assets/" + assetId).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.category.en").value("Electronics"))

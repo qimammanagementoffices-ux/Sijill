@@ -46,8 +46,9 @@ public class AssetController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) AssetStatus status,
             @RequestParam(required = false) UUID roomId,
+            @RequestParam(required = false) UUID categoryId,
             @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
-        Page<Asset> page = assetService.search(q, status, roomId, pageable);
+        Page<Asset> page = assetService.search(q, status, roomId, categoryId, pageable);
         List<UUID> ids = page.getContent().stream().map(Asset::getId).toList();
         Map<UUID, String> thumbnails = attachmentRepository
                 .findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.ASSET, ids)
