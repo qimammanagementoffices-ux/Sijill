@@ -197,6 +197,10 @@ export default function AppShell({
     .sort((a, b) => b.length - a.length)[0];
 
   const activeGroupKey = collapsibleGroups.find((g) => g.items.some((item) => item.href === activeHref))?.key;
+  const activeGroup = collapsibleGroups.find((g) => g.key === activeGroupKey);
+  const activeItem = activeGroup?.items.find((item) => item.href === activeHref)
+    ?? adminItems.find((item) => item.href === activeHref);
+  const isNestedPage = Boolean(activeHref && pathname && pathname !== activeHref);
 
   const initial = employee.name.trim().charAt(0).toUpperCase() || "?";
 
@@ -295,7 +299,22 @@ export default function AppShell({
             </button>
           </div>
         </header>
-        <main className="content">{children}</main>
+        <main className="content">
+          {pathname !== "/dashboard" && activeItem && (
+            <nav className="breadcrumbs no-print" aria-label="Breadcrumb">
+              <Link href="/dashboard">{dict.dashboardNav}</Link>
+              <span className="breadcrumb-separator" aria-hidden="true">‹</span>
+              {activeGroup && <span className="breadcrumb-group">{activeGroup.label}</span>}
+              {activeGroup && <span className="breadcrumb-separator" aria-hidden="true">‹</span>}
+              {isNestedPage ? (
+                <Link href={activeItem.href} aria-current="location">{activeItem.label}</Link>
+              ) : (
+                <span className="breadcrumb-current" aria-current="page">{activeItem.label}</span>
+              )}
+            </nav>
+          )}
+          {children}
+        </main>
       </div>
 
       {showProfileModal && (

@@ -425,6 +425,39 @@ body.lang-en .brand h1 {
   text-transform: uppercase;
   margin-bottom: 6px;
 }
+.content > :not(.breadcrumbs) .eyebrow,
+.content > .eyebrow {
+  display: none;
+}
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  margin: 0 0 9px;
+  color: var(--slate);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.breadcrumbs a {
+  color: var(--seal);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.breadcrumbs a:hover,
+.breadcrumbs a:focus-visible {
+  border-bottom-color: currentColor;
+}
+.breadcrumb-separator {
+  color: var(--line);
+  font-size: 17px;
+  line-height: 1;
+}
+.breadcrumb-group { color: var(--ink-soft); }
+.breadcrumb-current {
+  color: var(--ink);
+  font-weight: 800;
+}
 .section-title {
   font-family: "Cairo", sans-serif;
   font-size: 25px;
