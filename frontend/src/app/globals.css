@@ -1093,6 +1093,19 @@ img[data-viewable] {
   padding-top: 12px;
   border-top: 1px dashed var(--line-soft);
 }
+.request-decision {
+  min-height: 36px;
+  padding-inline: 13px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 800;
+}
+.request-decision-approve { color: var(--sage); background: var(--sage-soft); }
+.request-decision-postpone { color: var(--slate); background: var(--slate-soft); }
+.request-decision-reject { color: var(--seal); background: var(--seal-soft); }
+.request-decision-approve::after { content: "✓"; font-size: 12px; }
+.request-decision-reject::after { content: "⊘"; font-size: 13px; font-weight: 500; }
+.request-decision:hover { filter: saturate(1.08) brightness(.97); }
 .request-view-modal .modal-body {
   display: grid;
   gap: 16px;

@@ -262,7 +262,7 @@ export default function MaintenanceRequestList({
                     permissions.includes("mt.act.approve") && (
                       <button
                         type="button"
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-sm request-decision request-decision-approve"
                         disabled={busyAction !== null}
                         onClick={() => void act(request.id, "approve")}
                       >
@@ -274,7 +274,7 @@ export default function MaintenanceRequestList({
                     permissions.includes("mt.act.reject") && (
                       <button
                         type="button"
-                        className="btn btn-seal btn-sm"
+                        className="btn btn-sm request-decision request-decision-reject"
                         disabled={busyAction !== null}
                         onClick={() => setPendingAction({ id: request.id, action: "reject" })}
                       >
@@ -285,7 +285,7 @@ export default function MaintenanceRequestList({
                     permissions.includes("mt.act.postpone") && (
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm"
+                        className="btn btn-sm request-decision request-decision-postpone"
                         disabled={busyAction !== null}
                         onClick={() => setPendingAction({ id: request.id, action: "postpone" })}
                       >
