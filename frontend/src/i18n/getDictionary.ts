@@ -364,6 +364,10 @@ export type Dictionary = {
   maintenanceRequests: {
     title: string;
     addNew: string;
+    searchPlaceholder: string;
+    pendingTab: string;
+    allTab: string;
+    mineTab: string;
     noResults: string;
     columnRequester: string;
     columnDepartment: string;

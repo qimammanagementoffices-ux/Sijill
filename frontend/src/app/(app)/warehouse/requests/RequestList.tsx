@@ -172,7 +172,7 @@ export default function RequestList({
         <PrintReportHeader title={dict.title} dict={commonDict} />
       </div>
 
-      <div className="panel">
+      <div className="panel request-directory-panel">
         <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">

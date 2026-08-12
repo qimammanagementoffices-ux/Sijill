@@ -16,11 +16,18 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
             select r from MaintenanceRequest r
             where (:status is null or r.status = :status)
               and (:requesterId is null or r.requester.id = :requesterId)
+              and (:q is null or :q = ''
+                or lower(r.requester.name) like lower(concat('%', :q, '%'))
+                or lower(coalesce(r.location, '')) like lower(concat('%', :q, '%'))
+                or lower(coalesce(r.description, '')) like lower(concat('%', :q, '%'))
+                or lower(r.faultType.nameAr) like lower(concat('%', :q, '%'))
+                or lower(r.faultType.nameEn) like lower(concat('%', :q, '%')))
             order by r.createdAt desc
             """)
     Page<MaintenanceRequest> search(
             @Param("status") MaintenanceRequestStatus status,
             @Param("requesterId") UUID requesterId,
+            @Param("q") String q,
             Pageable pageable);
 
     long countByStatus(MaintenanceRequestStatus status);

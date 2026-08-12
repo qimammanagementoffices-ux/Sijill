@@ -965,6 +965,24 @@ img[data-viewable] {
   flex-direction: column;
   gap: 12px;
 }
+.request-directory-panel {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.request-directory-panel > .panel-head {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.request-directory-panel .empty {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
 .request-toolbar,
 .request-tabs {
   display: flex;
@@ -987,6 +1005,7 @@ img[data-viewable] {
   border-radius: var(--radius);
   background: var(--card);
   padding: 14px 16px;
+  box-shadow: 0 8px 22px rgb(30 42 65 / 8%);
 }
 .request-card-head {
   display: flex;

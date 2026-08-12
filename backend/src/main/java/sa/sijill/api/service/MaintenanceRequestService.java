@@ -46,8 +46,8 @@ public class MaintenanceRequestService {
         this.auditService = auditService;
     }
 
-    public Page<MaintenanceRequest> search(MaintenanceRequestStatus status, UUID restrictToRequesterId, Pageable pageable) {
-        return maintenanceRequestRepository.search(status, restrictToRequesterId, pageable);
+    public Page<MaintenanceRequest> search(MaintenanceRequestStatus status, UUID restrictToRequesterId, String q, Pageable pageable) {
+        return maintenanceRequestRepository.search(status, restrictToRequesterId, q, pageable);
     }
 
     public MaintenanceRequest get(UUID id) {

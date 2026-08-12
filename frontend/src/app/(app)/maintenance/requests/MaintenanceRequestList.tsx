@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
@@ -12,10 +11,10 @@ import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
 import RequestCardActivity from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
+import TableSearch from "@/components/TableSearch";
 import type { MaintenanceRequestDetail, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
-const STATUSES = ["PENDING", "APPROVED", "POSTPONED", "REJECTED", "IN_PROGRESS", "CLOSED"] as const;
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
   APPROVED: "s-approved",
@@ -38,7 +37,10 @@ export default function MaintenanceRequestList({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("PENDING");
+  const [mine, setMine] = useState(false);
+  const [q, setQ] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [page, setPage] = useState<PagedResponse<MaintenanceRequestListItem> | null>(null);
   const [filtering, setFiltering] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -47,12 +49,16 @@ export default function MaintenanceRequestList({
   const [permissions, setPermissions] = useState<string[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [viewRequest, setViewRequest] = useState<MaintenanceRequestListItem | null>(null);
   const [reason, setReason] = useState("");
 
-  function load(statusFilter: string) {
-    const query = statusFilter ? `?status=${statusFilter}` : "";
+  function load(statusFilter = status, query = appliedQuery, mineOnly = mine) {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (query) params.set("q", query);
+    if (mineOnly) params.set("mine", "true");
     setFiltering(true);
-    apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests${query}`)
+    apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests?${params.toString()}`)
       .then(setPage)
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -67,7 +73,7 @@ export default function MaintenanceRequestList({
       router.replace("/login");
       return;
     }
-    load("");
+    load("PENDING", "", false);
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setPermissions(me.permissions))
       .catch(() => {});
@@ -109,6 +115,18 @@ export default function MaintenanceRequestList({
     }[action] ?? action;
   }
 
+  function selectView(nextStatus: string, mineOnly: boolean) {
+    setStatus(nextStatus);
+    setMine(mineOnly);
+    load(nextStatus, appliedQuery, mineOnly);
+  }
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    setAppliedQuery(q);
+    load(status, q, mine);
+  }
+
   async function act(id: string, action: "approve" | "reject" | "postpone" | "start", actionReason?: string) {
     const key = `${id}:${action}`;
     setBusyAction(key);
@@ -122,7 +140,7 @@ export default function MaintenanceRequestList({
       });
       setPendingAction(null);
       setReason("");
-      load(status);
+      load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
       setToast(error instanceof ApiError ? error.message : errorsDict.generic);
@@ -132,8 +150,11 @@ export default function MaintenanceRequestList({
   }
 
   async function handleExport() {
-    const query = status ? `?status=${status}&size=10000` : "?size=10000";
-    const all = await apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests${query}`);
+    const params = new URLSearchParams({ size: "10000" });
+    if (status) params.set("status", status);
+    if (appliedQuery) params.set("q", appliedQuery);
+    if (mine) params.set("mine", "true");
+    const all = await apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests?${params.toString()}`);
     await exportToXlsx(
       dict.title,
       dict.title,
@@ -150,7 +171,7 @@ export default function MaintenanceRequestList({
 
   function handleAdded(request: MaintenanceRequestDetail) {
     setShowAddModal(false);
-    load(status);
+    load();
     setToast(commonDict.actionSuccess);
     void request;
   }
@@ -167,26 +188,20 @@ export default function MaintenanceRequestList({
         <PrintReportHeader title={dict.title} dict={commonDict} />
       </div>
 
-      <div className="panel">
-        <div className="panel-head no-print">
-          <div className="filter-row">
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                load(e.target.value);
-              }}
-            >
-              <option value="">{dict.statusFilterAll}</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
-            </select>
+      <div className="panel request-directory-panel">
+        <div className="panel-head table-toolbar no-print">
+          <div className="request-toolbar">
+            <div className="request-tabs">
+              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{dict.pendingTab}</button>
+              <button type="button" className={`btn btn-sm ${status === "" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
+            </div>
+            <form className="filter-row" onSubmit={handleSearch}>
+              <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
+            </form>
             {filtering && <span className="spinner" />}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="table-toolbar-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               {commonDict.exportXlsx}
             </button>
@@ -288,9 +303,9 @@ export default function MaintenanceRequestList({
                       {dict.start}
                     </button>
                   )}
-                  <Link className="btn btn-outline btn-sm" href={`/maintenance/requests/${request.id}`}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(request)}>
                     {dict.cardOpen}
-                  </Link>
+                  </button>
                 </div>
               </article>
             ))}
@@ -345,6 +360,30 @@ export default function MaintenanceRequestList({
             setReason("");
           }}
         />
+      )}
+
+      {viewRequest && (
+        <div className="overlay no-print" role="dialog" aria-modal="true" aria-labelledby="maintenance-request-view-title">
+          <div className="modal wide request-view-modal">
+            <div className="modal-head">
+              <h3 id="maintenance-request-view-title">{dict.cardTitle} — {viewRequest.faultType?.ar ?? "—"}</h3>
+              <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
+            </div>
+            <div className="modal-body">
+              <div className="request-view-summary">
+                <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}><span className="dot" />{statusLabel(viewRequest.status)}</span>
+                <div><b>{dict.columnRequester}</b><span>{viewRequest.requesterName}</span></div>
+                <div><b>{dict.columnDepartment}</b><span>{viewRequest.department?.ar ?? "—"}</span></div>
+                <div><b>{dict.columnSuggestedStart}</b><span className="mono">{viewRequest.suggestedStartDate ?? "—"}</span></div>
+                <div><b>{dict.locationLabel}</b><span>{viewRequest.location ?? "—"}</span></div>
+                <div><b>{dict.priorityLabel}</b><span>{priorityLabel(viewRequest.priority)}</span></div>
+              </div>
+              {viewRequest.description && <p className="request-view-notes">{viewRequest.description}</p>}
+              <RequestCardActivity actions={viewRequest.actions} attachments={viewRequest.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+            </div>
+            <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button></div>
+          </div>
+        </div>
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

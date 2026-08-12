@@ -40,10 +40,12 @@ public class MaintenanceRequestController {
     @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request')")
     public PagedResponse<MaintenanceRequestListItem> search(
             @RequestParam(required = false) MaintenanceRequestStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean mine,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
-        UUID restrictToRequesterId = hasPermission(actor, "mt.view") ? null : actor.getId();
-        Page<MaintenanceRequest> page = maintenanceRequestService.search(status, restrictToRequesterId, pageable);
+        UUID restrictToRequesterId = mine || !hasPermission(actor, "mt.view") ? actor.getId() : null;
+        Page<MaintenanceRequest> page = maintenanceRequestService.search(status, restrictToRequesterId, q, pageable);
         Set<UUID> ids = page.getContent().stream().map(MaintenanceRequest::getId).collect(Collectors.toSet());
         Map<UUID, List<Attachment>> attachments = ids.isEmpty()
                 ? Map.of()

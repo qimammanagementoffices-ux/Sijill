@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
@@ -48,6 +47,7 @@ export default function AssetRequestList({
   const [permissions, setPermissions] = useState<string[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
   const [reason, setReason] = useState("");
 
   function queryFor(nextView: "pending" | "all" | "mine", query: string) {
@@ -161,7 +161,7 @@ export default function AssetRequestList({
         <PrintReportHeader title={dict.title} dict={commonDict} />
       </div>
 
-      <div className="panel">
+      <div className="panel request-directory-panel">
         <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">
@@ -207,7 +207,7 @@ export default function AssetRequestList({
                   {(request.status === "PENDING" || request.status === "POSTPONED") && permissions.includes("as.act.approve") && <button type="button" className="btn btn-primary btn-sm" disabled={busyAction !== null} onClick={() => void act(request.id, "approve")}>{dict.approve}</button>}
                   {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && permissions.includes("as.act.reject") && <button type="button" className="btn btn-seal btn-sm" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "reject" })}>{dict.reject}</button>}
                   {(request.status === "PENDING" || request.status === "APPROVED") && permissions.includes("as.act.postpone") && <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "postpone" })}>{dict.postpone}</button>}
-                  <Link className="btn btn-outline btn-sm" href={`/asset-requests/${request.id}`}>{dict.cardOpen}</Link>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(request)}>{dict.cardOpen}</button>
                 </div>
               </article>
             ))}
@@ -247,6 +247,28 @@ export default function AssetRequestList({
       )}
 
       {pendingAction && <RequestActionDialog title={pendingAction.action === "reject" ? dict.reject : dict.postpone} reasonLabel={dict.reasonLabel} cancelLabel={commonDict.cancel} submitting={busyAction !== null} reason={reason} onReasonChange={setReason} onConfirm={() => void act(pendingAction.id, pendingAction.action, reason)} onCancel={() => { setPendingAction(null); setReason(""); }} />}
+
+      {viewRequest && (
+        <div className="overlay no-print" role="dialog" aria-modal="true" aria-labelledby="asset-request-view-title">
+          <div className="modal wide request-view-modal">
+            <div className="modal-head">
+              <h3 id="asset-request-view-title">{dict.cardTitle} — {viewRequest.assetNameAr}</h3>
+              <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
+            </div>
+            <div className="modal-body">
+              <div className="request-view-summary">
+                <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}><span className="dot" />{statusLabel(viewRequest.status)}</span>
+                <div><b>{dict.columnRequester}</b><span>{viewRequest.requesterName}</span></div>
+                <div><b>{dict.columnAsset}</b><span>{viewRequest.assetNumber} — {viewRequest.assetNameAr}</span></div>
+                <div><b>{dict.columnSuggestedStart}</b><span className="mono">{viewRequest.suggestedStartDate ?? "—"}</span></div>
+              </div>
+              {viewRequest.reason && <p className="request-view-notes">{viewRequest.reason}</p>}
+              <RequestCardActivity actions={viewRequest.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+            </div>
+            <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button></div>
+          </div>
+        </div>
+      )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>
