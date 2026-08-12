@@ -361,6 +361,7 @@ export default function AssetDirectory({
       {editAssetId && (
         <AssetEditModal
           assetId={editAssetId}
+          rooms={rooms}
           dict={dict}
           attachmentsDict={attachmentsDict}
           commonDict={commonDict}

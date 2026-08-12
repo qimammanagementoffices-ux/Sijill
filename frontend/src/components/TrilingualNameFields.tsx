@@ -40,15 +40,16 @@ export default function TrilingualNameFields({
   const [error, setError] = useState<string | null>(null);
 
   async function handleAutoTranslate() {
-    if (!lastEdited) return;
-    const text = { ar: nameAr, en: nameEn, hi: nameHi }[lastEdited];
+    const sourceLang = lastEdited ?? (nameAr.trim() ? "ar" : nameEn.trim() ? "en" : nameHi.trim() ? "hi" : null);
+    if (!sourceLang) return;
+    const text = { ar: nameAr, en: nameEn, hi: nameHi }[sourceLang];
     if (!text || !text.trim()) return;
     setError(null);
     setTranslating(true);
     try {
       const result = await apiFetch<{ nameAr: string; nameEn: string; nameHi: string }>("/translate", {
         method: "POST",
-        body: JSON.stringify({ text, sourceLang: lastEdited }),
+        body: JSON.stringify({ text, sourceLang }),
       });
       setNameAr(result.nameAr);
       setNameEn(result.nameEn);
@@ -112,7 +113,7 @@ export default function TrilingualNameFields({
           type="button"
           className="btn btn-outline btn-sm"
           onClick={handleAutoTranslate}
-          disabled={!lastEdited || translating}
+          disabled={(!lastEdited && !nameAr.trim() && !nameEn.trim() && !nameHi.trim()) || translating}
         >
           {translating && <span className="spinner" />}
           {dict.autoTranslate}

@@ -10,6 +10,7 @@ import type {
   AssetDetail,
   AssetStatusValue,
   CategoryDto,
+  RoomDto,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -20,6 +21,7 @@ export default function AssetEditModal({
   commonDict,
   categoriesModalDict,
   errorsDict,
+  rooms,
   onClose,
   onSaved,
   onDeleted,
@@ -30,6 +32,7 @@ export default function AssetEditModal({
   commonDict: Dictionary["common"];
   categoriesModalDict: Dictionary["categoriesModal"];
   errorsDict: Dictionary["errors"];
+  rooms: RoomDto[];
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
@@ -44,6 +47,7 @@ export default function AssetEditModal({
   const [nameEn, setNameEn] = useState("");
   const [nameHi, setNameHi] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [roomId, setRoomId] = useState("");
   const [status, setStatus] = useState<AssetStatusValue>("ACTIVE");
   const [acquisitionDate, setAcquisitionDate] = useState("");
   const [acquisitionCost, setAcquisitionCost] = useState("");
@@ -61,6 +65,7 @@ export default function AssetEditModal({
       setNameEn(a.nameEn);
       setNameHi(a.nameHi ?? "");
       setCategoryId(a.category?.id ?? "");
+      setRoomId(a.room?.id ?? "");
       setStatus(a.status);
       setAcquisitionDate(a.acquisitionDate ?? "");
       setAcquisitionCost(a.acquisitionCost != null ? String(a.acquisitionCost) : "");
@@ -99,6 +104,16 @@ export default function AssetEditModal({
           version: asset.version,
         }),
       });
+      if (roomId && roomId !== (asset.room?.id ?? "")) {
+        await apiFetch(`/assets/${assetId}/transfers`, {
+          method: "POST",
+          body: JSON.stringify({
+            toRoomId: roomId,
+            toEmployeeId: asset.custodianId,
+            reason: dict.editAsset,
+          }),
+        });
+      }
       onSaved();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
@@ -157,7 +172,16 @@ export default function AssetEditModal({
                 </div>
                 <div className="field">
                   <label>{dict.roomLabel}</label>
-                  <input type="text" value={asset.room ? `${asset.room.ar}` : "—"} disabled />
+                  <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+                    <option value="">—</option>
+                    {rooms
+                      .filter((room) => room.active || room.id === asset.room?.id)
+                      .map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.roomNumber} — {entityName(room, entityLocale)}
+                        </option>
+                      ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label>{dict.statusLabel}</label>
