@@ -62,6 +62,13 @@ public class EmployeeController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/reactivate")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public ResponseEntity<Void> reactivate(@PathVariable UUID id) {
+        employeeService.reactivate(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{id}/permissions")
     @PreAuthorize("hasAuthority('emp.manage')")
     public EmployeeDetail updatePermissions(@PathVariable UUID id, @RequestBody UpdatePermissionsRequest request) {

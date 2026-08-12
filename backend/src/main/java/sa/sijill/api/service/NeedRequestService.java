@@ -76,7 +76,7 @@ public class NeedRequestService {
 
         NeedRequest needRequest = new NeedRequest();
         needRequest.setRequester(requester);
-        needRequest.setDepartment(resolveDepartment(request.departmentId()));
+        needRequest.setDepartment(resolveRequesterDepartment(request.departmentId(), requester));
         needRequest.setCategory(resolveCategory(request.categoryId()));
         needRequest.setRoom(resolveRoom(request.roomId()));
         needRequest.setNotes(request.notes());
@@ -198,6 +198,14 @@ public class NeedRequestService {
         if (id == null) return null;
         return departmentRepository.findById(id).orElseThrow(() -> ApiException.validation(
                 "Department not found", Map.of("departmentId", "does not exist")));
+    }
+
+    private Department resolveRequesterDepartment(UUID id, Employee requester) {
+        Department department = resolveDepartment(id);
+        if (department != null && requester.getDepartments().stream().noneMatch(assigned -> assigned.getId().equals(id))) {
+            throw ApiException.forbidden("Department is not assigned to this employee");
+        }
+        return department;
     }
 
     private Category resolveCategory(UUID id) {

@@ -84,7 +84,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void deactivateBlocksLoginAndDoesNotDelete() throws Exception {
+    void deactivateBlocksLoginAndReactivateRestoresAccess() throws Exception {
         String token = createAdminAndGetToken("0575555555");
 
         var create = new CreateEmployeeRequest(
@@ -110,6 +110,15 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginRequest("0576666666", "1234"))))
                 .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/employees/" + id + "/reactivate")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0576666666", "1234"))))
+                .andExpect(status().isOk());
     }
 
     @Test

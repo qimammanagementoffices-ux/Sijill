@@ -31,7 +31,7 @@ function MaintenanceSparkIcon() {
   return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M29.5 9a10 10 0 0 0-9.2 13.9L9.5 33.7a3.4 3.4 0 0 0 4.8 4.8l10.8-10.8A10 10 0 0 0 39 18.5l-6 6-5.5-1.8-1.8-5.5Z" /><circle cx="13" cy="35" r="1.2" /></svg>;
 }
 
-function QuickActionCard({ tone, title, action, href, icon }: { tone: "asset" | "maintenance"; title: string; action: string; href: string; icon: React.ReactNode }) {
+function QuickActionCard({ tone, title, action, href, icon }: { tone: "asset" | "warehouse" | "maintenance"; title: string; action: string; href: string; icon: React.ReactNode }) {
   return <article className={`dashboard-quick-card dashboard-quick-${tone}`}>
     <span className="dashboard-quick-orb" />
     <div className="dashboard-quick-icon">{icon}</div>
@@ -68,6 +68,7 @@ export default function DashboardView({
 
   const isAdmin = employee?.permissions.includes("emp.manage") ?? false;
   const canRequestAssets = employee?.permissions.includes("as.request") ?? false;
+  const canRequestWarehouse = employee?.permissions.includes("wh.request") ?? false;
   const canRequestMaintenance = employee?.permissions.includes("mt.request") ?? false;
 
   return (
@@ -78,10 +79,11 @@ export default function DashboardView({
         {employee ? `, ${employee.name}` : ""}
       </h1>
 
-      {(canRequestAssets || canRequestMaintenance) && <section className="dashboard-quick-section no-print">
+      {(canRequestAssets || canRequestWarehouse || canRequestMaintenance) && <section className="dashboard-quick-section no-print">
         <div className="dashboard-quick-heading"><span />{dict.quickActionsTitle}<span /></div>
         <div className="dashboard-quick-grid">
           {canRequestAssets && <QuickActionCard tone="asset" title={dict.assetRequestsShortcut} action={dict.newAssetRequestShortcut} href="/asset-requests?new=1" icon={<AssetSparkIcon />} />}
+          {canRequestWarehouse && <QuickActionCard tone="warehouse" title={dict.warehouseNeedsShortcut} action={dict.newWarehouseRequestShortcut} href="/warehouse/requests?new=1" icon={<span aria-hidden="true">▣</span>} />}
           {canRequestMaintenance && <QuickActionCard tone="maintenance" title={dict.maintenanceNeedsShortcut} action={dict.newMaintenanceRequestShortcut} href="/maintenance/requests?new=1" icon={<MaintenanceSparkIcon />} />}
         </div>
       </section>}

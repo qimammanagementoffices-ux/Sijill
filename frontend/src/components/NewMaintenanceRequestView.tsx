@@ -3,7 +3,7 @@
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
-import type { AttachmentDto, FaultTypeDto, LocalizedEntityDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
+import type { AttachmentDto, FaultTypeDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 
@@ -29,7 +29,7 @@ export default function NewMaintenanceRequestView({
   onSubmittingChange?: (submitting: boolean) => void;
 }) {
   const entityLocale = useEntityLocale();
-  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [departments, setDepartments] = useState<LocalizedRef[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [departmentId, setDepartmentId] = useState("");
@@ -54,11 +54,10 @@ export default function NewMaintenanceRequestView({
   useEffect(() => {
     Promise.all([
       apiFetch<MeData>("/auth/me"),
-      apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<RoomDto[]>("/rooms"),
       apiFetch<FaultTypeDto[]>("/maintenance/fault-types"),
-    ]).then(([me, departmentRows, roomRows, faultTypeRows]) => {
-      setDepartments(departmentRows);
+    ]).then(([me, roomRows, faultTypeRows]) => {
+      setDepartments(me.departments);
       setRooms(roomRows.filter((room) => room.active));
       setFaultTypes(faultTypeRows);
       setDepartmentId(me.departments[0]?.id ?? "");
@@ -125,7 +124,7 @@ export default function NewMaintenanceRequestView({
           <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setRoomId(""); }}>
             <option value="">—</option>
             {departments.map((department) => (
-              <option key={department.id} value={department.id}>{entityName(department, entityLocale)}</option>
+              <option key={department.id} value={department.id}>{entityLocale === "en" ? department.en : department.ar}</option>
             ))}
           </select>
         </div>

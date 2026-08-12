@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
@@ -35,6 +35,7 @@ export default function RequestList({
   attachmentsDict: Dictionary["attachments"];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState("PENDING");
   const [mine, setMine] = useState(false);
   const [q, setQ] = useState("");
@@ -77,6 +78,10 @@ export default function RequestList({
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1" && permissions.includes("wh.request")) setShowAddModal(true);
+  }, [searchParams, permissions]);
 
   function statusLabel(s: string) {
     return {
@@ -187,9 +192,11 @@ export default function RequestList({
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               {commonDict.print}
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
-              {dict.addNew}
-            </button>
+            {permissions.includes("wh.request") && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+                {dict.addNew}
+              </button>
+            )}
           </div>
         </div>
 

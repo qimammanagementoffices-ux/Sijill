@@ -75,8 +75,8 @@ export default function MaintenanceRequestList({
   }, [router]);
 
   useEffect(() => {
-    if (searchParams.get("new") === "1") setShowAddModal(true);
-  }, [searchParams]);
+    if (searchParams.get("new") === "1" && permissions.includes("mt.request")) setShowAddModal(true);
+  }, [searchParams, permissions]);
 
   function statusLabel(s: string) {
     return {
@@ -193,9 +193,11 @@ export default function MaintenanceRequestList({
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               {commonDict.print}
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
-              {dict.addNew}
-            </button>
+            {permissions.includes("mt.request") && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+                {dict.addNew}
+              </button>
+            )}
           </div>
         </div>
 

@@ -62,7 +62,7 @@ public class MaintenanceRequestService {
 
         MaintenanceRequest maintenanceRequest = new MaintenanceRequest();
         maintenanceRequest.setRequester(requester);
-        maintenanceRequest.setDepartment(resolveDepartment(request.departmentId()));
+        maintenanceRequest.setDepartment(resolveRequesterDepartment(request.departmentId(), requester));
         maintenanceRequest.setFaultType(resolveFaultType(request.faultTypeId()));
         maintenanceRequest.setLocation(request.location());
         maintenanceRequest.setPriority(request.priority());
@@ -185,6 +185,14 @@ public class MaintenanceRequestService {
         if (id == null) return null;
         return departmentRepository.findById(id).orElseThrow(() -> ApiException.validation(
                 "Department not found", Map.of("departmentId", "does not exist")));
+    }
+
+    private Department resolveRequesterDepartment(UUID id, Employee requester) {
+        Department department = resolveDepartment(id);
+        if (department != null && requester.getDepartments().stream().noneMatch(assigned -> assigned.getId().equals(id))) {
+            throw ApiException.forbidden("Department is not assigned to this employee");
+        }
+        return department;
     }
 
     private FaultType resolveFaultType(UUID id) {

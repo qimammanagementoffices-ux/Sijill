@@ -582,6 +582,7 @@ body.lang-en .section-title {
   box-shadow: 0 15px 28px color-mix(in srgb, var(--ink) 18%, transparent);
 }
 .dashboard-quick-asset { background: linear-gradient(132deg, #173e58, #0b756c 66%, #18a18d); }
+.dashboard-quick-warehouse { background: linear-gradient(132deg, #66451d, #a56d25 63%, #d49a3a); }
 .dashboard-quick-maintenance { background: linear-gradient(132deg, #4b2851, #953f45 63%, #d27043); }
 .dashboard-quick-orb { position: absolute; z-index: -1; width: 190px; height: 190px; border-radius: 999px; inset-inline-end: -74px; top: -84px; background: rgb(255 255 255 / .14); box-shadow: -44px 122px 0 -8px rgb(255 255 255 / .08); }
 .dashboard-quick-icon { width: 43px; height: 43px; display: grid; place-items: center; border: 1px solid rgb(255 255 255 / .24); border-radius: 13px; background: rgb(255 255 255 / .13); }

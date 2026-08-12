@@ -82,6 +82,8 @@ export type Dictionary = {
     quickActionsTitle: string;
     assetRequestsShortcut: string;
     newAssetRequestShortcut: string;
+    warehouseNeedsShortcut: string;
+    newWarehouseRequestShortcut: string;
     maintenanceNeedsShortcut: string;
     newMaintenanceRequestShortcut: string;
   };
@@ -143,6 +145,8 @@ export type Dictionary = {
     submitUpdate: string;
     deactivate: string;
     deactivateConfirm: string;
+    reactivate: string;
+    reactivateConfirm: string;
     resetPin: string;
     resetPinSubmit: string;
     conflictNotice: string;

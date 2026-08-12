@@ -65,6 +65,13 @@ export default function EmployeeEditView({
     setToast(commonDict.actionSuccess);
   }
 
+  async function handleReactivate() {
+    if (!window.confirm(dict.reactivateConfirm)) return;
+    await apiFetch<void>(`/employees/${id}/reactivate`, { method: "POST" });
+    loadAll();
+    setToast(commonDict.actionSuccess);
+  }
+
   async function handleResetPin() {
     const pin = window.prompt(dict.pinLabel);
     if (!pin) return;
@@ -130,6 +137,11 @@ export default function EmployeeEditView({
         {employee.active && (
           <button type="button" className="btn btn-seal btn-sm" onClick={handleDeactivate}>
             {dict.deactivate}
+          </button>
+        )}
+        {!employee.active && (
+          <button type="button" className="btn btn-primary btn-sm" onClick={handleReactivate}>
+            {dict.reactivate}
           </button>
         )}
       </div>

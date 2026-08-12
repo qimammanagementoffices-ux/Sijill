@@ -156,6 +156,14 @@ public class EmployeeService {
     }
 
     @Transactional
+    public void reactivate(UUID id) {
+        Employee employee = get(id);
+        employee.setActive(true);
+        employeeRepository.save(employee);
+        auditService.record(employee, "EMPLOYEE_REACTIVATED", "Employee", employee.getId());
+    }
+
+    @Transactional
     public Employee updatePermissions(UUID id, UpdatePermissionsRequest request) {
         Employee employee = get(id);
         if (employee.getVersion() != request.version()) {
