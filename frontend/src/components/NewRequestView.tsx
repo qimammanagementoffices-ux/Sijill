@@ -40,6 +40,7 @@ export default function NewRequestView({
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
 
   const [step, setStep] = useState(1);
+  const [departmentId, setDepartmentId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [notes, setNotes] = useState("");
@@ -62,6 +63,7 @@ export default function NewRequestView({
       apiFetch<RoomDto[]>("/rooms"),
     ]).then(([m, c, i, r]) => {
       setMe(m);
+      setDepartmentId(m.departments.length === 1 ? (m.departments[0]?.id ?? "") : "");
       setCategories(c);
       setItems(i.content);
       setRooms(r);
@@ -92,7 +94,12 @@ export default function NewRequestView({
 
   const filteredItems = items?.filter((item) => !categoryId || item.category?.id === categoryId) ?? [];
 
-  const departmentName = me?.departments?.[0]?.ar ?? "—";
+  const selectedDepartment = me?.departments.find((department) => department.id === departmentId);
+  const departmentName = selectedDepartment
+    ? entityLocale === "en"
+      ? selectedDepartment.en
+      : selectedDepartment.ar
+    : "—";
   const filledLines = lines.filter((l) => l.inventoryItemId);
   const hasContent = customMode ? customText.trim().length > 0 : filledLines.length > 0;
 
@@ -104,7 +111,7 @@ export default function NewRequestView({
       const created = await apiFetch<NeedRequestDetail>("/warehouse/requests", {
         method: "POST",
         body: JSON.stringify({
-          departmentId: me?.departments?.[0]?.id ?? null,
+          departmentId: departmentId || null,
           categoryId: categoryId || null,
           roomId: roomId || null,
           notes: (customMode ? customText : notes) || null,
@@ -168,13 +175,31 @@ export default function NewRequestView({
       {/* Step 1: Department + Room + Category */}
       {step === 1 && (
         <div>
-          {/* Department and requester come from the signed-in employee --
-              read-only by design, so they are rendered as plain boxes
-              rather than disabled inputs that invite a click. */}
+          {/* Department choices come only from the signed-in employee. A
+              single assignment is shown as a locked legacy-style fact;
+              multiple assignments become a select in the same card. */}
           <div className="readonly-pair">
             <div className="readonly-box">
-              <span className="readonly-box-label">{dict.columnDepartment}</span>
-              <span className="readonly-box-value">{departmentName}</span>
+              <label className="readonly-box-label" htmlFor={me.departments.length > 1 ? "wizard-department" : undefined}>
+                {dict.columnDepartment}
+              </label>
+              {me.departments.length > 1 ? (
+                <select
+                  id="wizard-department"
+                  className="readonly-box-select"
+                  value={departmentId}
+                  onChange={(e) => setDepartmentId(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {me.departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {entityLocale === "en" ? department.en : department.ar}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="readonly-box-value">{departmentName}</span>
+              )}
             </div>
             <div className="readonly-box">
               <span className="readonly-box-label">{dict.columnRequester}</span>
@@ -222,7 +247,7 @@ export default function NewRequestView({
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={!categoryId}
+              disabled={!categoryId || (me.departments.length > 1 && !departmentId)}
               onClick={() => setStep(2)}
             >
               {dict.nextStep}
