@@ -79,6 +79,13 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         String requesterToken = createEmployeeAndLogin(adminToken, "0596222222", Set.of("wh.request"));
         String itemId = createItemWithStock(adminToken, 10);
 
+        mockMvc.perform(get("/api/v1/warehouse/categories")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/warehouse/items").param("size", "200")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk());
+
         var submit = new CreateNeedRequestRequest(
                 null, null, null, "need some", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
         String submitBody = mockMvc.perform(post("/api/v1/warehouse/requests")

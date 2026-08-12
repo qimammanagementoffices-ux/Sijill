@@ -38,7 +38,7 @@ public class InventoryItemController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('wh.view')")
+    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.request')")
     public PagedResponse<InventoryItemListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "false") boolean lowStockOnly,
@@ -53,7 +53,7 @@ public class InventoryItemController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('wh.view')")
+    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.request')")
     public InventoryItemDetail get(@PathVariable UUID id) {
         return InventoryItemDetail.from(inventoryItemService.get(id));
     }

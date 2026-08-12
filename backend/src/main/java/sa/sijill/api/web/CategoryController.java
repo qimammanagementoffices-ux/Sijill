@@ -21,7 +21,7 @@ public class CategoryController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('wh.view')")
+    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.request')")
     public List<CategoryDto> list() {
         return categoryService.list(Domain.WAREHOUSE).stream().map(CategoryDto::from).toList();
     }

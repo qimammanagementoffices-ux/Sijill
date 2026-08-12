@@ -81,6 +81,16 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
         String partId = createPartWithStock(adminToken, 10);
 
+        mockMvc.perform(get("/api/v1/maintenance/categories")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/maintenance/parts").param("size", "200")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/maintenance/fault-types")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk());
+
         var submit = new SubmitMaintenanceRequestRequest(null, null, "Room 12", MaintenancePriority.HIGH, "AC not cooling");
         String submitBody = mockMvc.perform(post("/api/v1/maintenance/requests")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)

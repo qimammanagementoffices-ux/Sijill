@@ -19,7 +19,7 @@ public class FaultTypeController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('mt.view')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request')")
     public List<FaultTypeDto> list() {
         return faultTypeService.list().stream().map(FaultTypeDto::from).toList();
     }

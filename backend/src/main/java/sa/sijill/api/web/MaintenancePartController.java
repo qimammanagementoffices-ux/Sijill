@@ -22,7 +22,8 @@ import sa.sijill.api.web.dto.*;
 // InventoryItemService warehouse items use (master spec §7: "one reusable
 // inventory module... not two copied code paths"). Same wh.* permissions
 // per the Phase 4 decision record note — the spec's mt.* catalogue has no
-// items/qty equivalent.
+// items/qty equivalent. Read access also follows the maintenance request
+// workflow so requesters can resolve parts referenced by their requests.
 @RestController
 @RequestMapping("/api/v1/maintenance/parts")
 public class MaintenancePartController {
@@ -37,7 +38,7 @@ public class MaintenancePartController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('wh.view')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request', 'wh.view')")
     public PagedResponse<InventoryItemListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "false") boolean lowStockOnly,
@@ -52,7 +53,7 @@ public class MaintenancePartController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('wh.view')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request', 'wh.view')")
     public InventoryItemDetail get(@PathVariable UUID id) {
         return InventoryItemDetail.from(inventoryItemService.get(id));
     }
