@@ -55,7 +55,7 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
     }
 
     private String createPartWithStock(String adminToken, int stock) throws Exception {
-        var createPart = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, null);
+        var createPart = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, 0, null);
         String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)

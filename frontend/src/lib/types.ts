@@ -183,6 +183,7 @@ export type NeedRequestListItem = {
   id: string;
   requesterName: string;
   department: LocalizedRef | null;
+  category: LocalizedRef | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
   notes: string | null;

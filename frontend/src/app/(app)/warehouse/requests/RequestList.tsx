@@ -206,7 +206,7 @@ export default function RequestList({
               <article key={request.id} className="request-card">
                 <header className="request-card-head">
                   <h3 className="request-card-title">
-                    {dict.cardTitle} — {request.department ? request.department.ar : "—"}
+                    {dict.cardTitle} — {request.category ? request.category.ar : "—"}
                   </h3>
                   <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
                     <span className="dot" />

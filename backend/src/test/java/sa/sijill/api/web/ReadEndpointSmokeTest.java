@@ -134,7 +134,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String categoryId = objectMapper.readTree(categoryBody).get("id").asText();
 
         var item = new CreateInventoryItemRequest(
-                "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5, null);
+                "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5, 0, null);
         String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -185,9 +185,12 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].lines[0].itemCode").value(itemCode));
 
+        assertDateRangeFilters("/api/v1/warehouse/invoices", token, "$.content[0].invoiceNumber", "SMOKE-INV-1");
+
         // Need request — department/category/line-item/action-actor associations.
         var request = new CreateNeedRequestRequest(
-                null, null, null, "smoke test", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
+                null, UUID.fromString(categoryId), null, "smoke test",
+                List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
         String requestBody = mockMvc.perform(post("/api/v1/warehouse/requests")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -202,7 +205,8 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .param("mine", "true")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].requesterName").exists());
+                .andExpect(jsonPath("$.content[0].requesterName").exists())
+                .andExpect(jsonPath("$.content[0].category.en").value("Stationery"));
 
         mockMvc.perform(get("/api/v1/warehouse/requests/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -230,7 +234,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String faultTypeId = objectMapper.readTree(faultTypeBody).get("id").asText();
 
-        var part = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, null);
+        var part = new CreateInventoryItemRequest("قطعة", "Part", null, "pcs", null, null, 0, 0, null);
         String partBody = mockMvc.perform(post("/api/v1/maintenance/parts")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -243,6 +247,8 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/maintenance/parts").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
+
+        assertDateRangeFilters("/api/v1/maintenance/parts", token, "$.content[0].id", partId);
 
         var maintenanceInvoice = new CreateInvoiceRequest(
                 "SMOKE-MINV-1",
@@ -259,11 +265,8 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].lines[0].itemCode").value(partCode));
 
-        mockMvc.perform(get("/api/v1/maintenance/invoices")
-                        .param("dateFrom", LocalDate.now().plusDays(1).toString())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isEmpty());
+        assertDateRangeFilters(
+                "/api/v1/maintenance/invoices", token, "$.content[0].invoiceNumber", "SMOKE-MINV-1");
 
         var maintenanceRequest = new SubmitMaintenanceRequestRequest(
                 null, UUID.fromString(faultTypeId), "Room 1", MaintenancePriority.MEDIUM, "smoke test fault");
@@ -399,6 +402,8 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].id").value(acquisitionId));
 
+        assertDateRangeFilters("/api/v1/assets/acquisitions", token, "$.content[0].id", acquisitionId);
+
         mockMvc.perform(get("/api/v1/public/assets/" + publicToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assetNumber").value(assetNumber));
@@ -444,5 +449,28 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").isNumber());
+    }
+
+    private void assertDateRangeFilters(String path, String token, String includedPath, String includedValue)
+            throws Exception {
+        String today = LocalDate.now().toString();
+        mockMvc.perform(get(path)
+                        .param("dateFrom", today)
+                        .param("dateTo", today)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(includedPath).value(includedValue));
+
+        mockMvc.perform(get(path)
+                        .param("dateFrom", LocalDate.now().plusDays(1).toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        mockMvc.perform(get(path)
+                        .param("dateTo", LocalDate.now().minusDays(1).toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
     }
 }
