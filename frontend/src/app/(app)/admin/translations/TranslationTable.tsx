@@ -8,6 +8,7 @@ import type { PagedResponse, TranslationRow } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
+import TableSearch from "@/components/TableSearch";
 
 type Edited = { valueAr: string; valueEn: string; valueHi: string };
 
@@ -100,18 +101,9 @@ export default function TranslationTable({
       )}
 
       <div className="panel">
-        <div className="panel-head">
+        <div className="panel-head table-toolbar">
           <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={dict.searchPlaceholder}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 280 }}
-            />
-            <button type="submit" className="btn btn-outline btn-sm">
-              {dict.search}
-            </button>
+            <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={dict.search} />
           </form>
         </div>
 

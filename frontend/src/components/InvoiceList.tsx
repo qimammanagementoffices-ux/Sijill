@@ -155,34 +155,41 @@ export default function InvoiceList({
       </div>
 
       <div className="panel">
-        <div className="panel-head no-print">
+        <div className="panel-head table-toolbar no-print">
           <div className="filter-row" style={{ flex: 1 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
-              {dict.filterDateFrom}
-              <input
-                type="date"
-                value={dateFrom}
-                max={dateTo || undefined}
+            <div className="date-range-filter" role="group" aria-label={dict.columnDate}>
+              <span className="date-range-label">{dict.columnDate}</span>
+              <label>
+                {dict.filterDateFrom}
+                <input
+                  type="date"
+                  value={dateFrom}
+                  max={dateTo || undefined}
                 onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  load({ from: e.target.value });
-                }}
-                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
-              />
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
-              {dict.filterDateTo}
-              <input
-                type="date"
-                value={dateTo}
-                min={dateFrom || undefined}
+                    const nextFrom = e.target.value;
+                    const nextTo = nextFrom && dateTo && nextFrom > dateTo ? "" : dateTo;
+                    setDateFrom(nextFrom);
+                    setDateTo(nextTo);
+                    load({ from: nextFrom, to: nextTo });
+                  }}
+                />
+              </label>
+              <label>
+                {dict.filterDateTo}
+                <input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom || undefined}
                 onChange={(e) => {
-                  setDateTo(e.target.value);
-                  load({ to: e.target.value });
-                }}
-                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
-              />
-            </label>
+                    const nextTo = e.target.value;
+                    const nextFrom = nextTo && dateFrom && nextTo < dateFrom ? "" : dateFrom;
+                    setDateTo(nextTo);
+                    setDateFrom(nextFrom);
+                    load({ from: nextFrom, to: nextTo });
+                  }}
+                />
+              </label>
+            </div>
             {filtersActive && (
               <button
                 type="button"
@@ -195,7 +202,7 @@ export default function InvoiceList({
               </button>
             )}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="table-toolbar-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}

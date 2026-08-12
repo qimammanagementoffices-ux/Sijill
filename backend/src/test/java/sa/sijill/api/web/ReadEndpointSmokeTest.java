@@ -148,6 +148,27 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/warehouse/items").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
 
+        // Entry-date filtering must constrain the server-side result set; the
+        // frontend exports and pagination use this same paged endpoint.
+        mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("dateFrom", LocalDate.now().toString())
+                        .param("dateTo", LocalDate.now().toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(itemId));
+
+        mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("dateFrom", LocalDate.now().plusDays(1).toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("dateTo", LocalDate.now().minusDays(1).toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
         // Invoice — this is the exact endpoint that 500'd in production.
         var invoice = new CreateInvoiceRequest(
                 "SMOKE-INV-1",

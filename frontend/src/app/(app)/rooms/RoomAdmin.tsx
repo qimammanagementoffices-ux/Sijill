@@ -12,6 +12,7 @@ import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 import TableFooter from "@/components/TableFooter";
+import TableSearch from "@/components/TableSearch";
 import { IconFilePdf, IconSheet, IconTrash } from "@/components/NavIcons";
 import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -306,15 +307,9 @@ export default function RoomAdmin({
       )}
 
       <div className="panel">
-        <div className="panel-head no-print">
+        <div className="panel-head table-toolbar no-print">
           <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={dict.searchPlaceholder}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 280 }}
-            />
+            <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={dict.search} />
             <select
               value={departmentFilter}
               onChange={(e) => applyDepartmentFilter(e.target.value)}
@@ -327,12 +322,11 @@ export default function RoomAdmin({
                 </option>
               ))}
             </select>
-            <button type="submit" className="btn btn-outline btn-sm">{dict.search}</button>
             {filtersActive && (
               <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters} aria-label="clear">×</button>
             )}
           </form>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="table-toolbar-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}

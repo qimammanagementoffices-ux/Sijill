@@ -12,6 +12,7 @@ import NewRequestView from "@/components/NewRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
 import RequestCardActivity from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
+import TableSearch from "@/components/TableSearch";
 import type { NeedRequestDetail, NeedRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -167,7 +168,7 @@ export default function RequestList({
       </div>
 
       <div className="panel">
-        <div className="panel-head no-print">
+        <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{dict.pendingTab}</button>
@@ -175,11 +176,11 @@ export default function RequestList({
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
             </div>
             <form className="filter-row" onSubmit={handleSearch}>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={dict.searchPlaceholder} />
+              <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
             </form>
             {filtering && <span className="spinner" />}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="table-toolbar-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               {commonDict.exportXlsx}
             </button>

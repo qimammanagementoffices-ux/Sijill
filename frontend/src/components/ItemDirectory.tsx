@@ -12,6 +12,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ItemForm from "@/components/ItemForm";
 import Toast from "@/components/Toast";
 import TableFooter from "@/components/TableFooter";
+import TableSearch from "@/components/TableSearch";
 import ItemViewModal from "@/components/ItemViewModal";
 import Lightbox from "@/components/Lightbox";
 import { IconSheet, IconFilePdf, IconTag } from "@/components/NavIcons";
@@ -60,6 +61,7 @@ export default function ItemDirectory({
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   // Which page is being fetched -- drives the spinner on the page button
   // that was clicked, rather than one shared "loading" flag.
   const [loadingPage, setLoadingPage] = useState<number | null>(null);
@@ -83,6 +85,8 @@ export default function ItemDirectory({
 
   function applyFilter(patch: Partial<Filters>) {
     const next = { ...filters, ...patch };
+    if (patch.dateFrom && next.dateTo && patch.dateFrom > next.dateTo) next.dateTo = "";
+    if (patch.dateTo && next.dateFrom && patch.dateTo < next.dateFrom) next.dateFrom = "";
     setFilters(next);
     load(0, appliedQuery, lowStockOnly, sort, next);
   }
@@ -148,6 +152,7 @@ export default function ItemDirectory({
   ) {
     const sequence = ++requestSequence.current;
     setLoadingPage(pageNumber);
+    setLoadError(null);
     apiFetch<PagedResponse<InventoryItemListItem>>(
       `${basePath}${queryString(pageNumber, query, lowStock, sortBy, filterBy, perPage)}`
     )
@@ -157,7 +162,9 @@ export default function ItemDirectory({
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
+          return;
         }
+        if (sequence === requestSequence.current) setLoadError(errorsDict.generic);
       })
       .finally(() => {
         if (sequence === requestSequence.current) setLoadingPage(null);
@@ -242,15 +249,9 @@ export default function ItemDirectory({
       </div>
 
       <div className="panel">
-        <div className="panel-head no-print">
+        <div className="panel-head table-toolbar no-print">
           <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={dict.searchPlaceholder}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 260 }}
-            />
+            <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={dict.search} />
             <select
               value={filters.categoryId}
               onChange={(e) => applyFilter({ categoryId: e.target.value })}
@@ -263,26 +264,27 @@ export default function ItemDirectory({
                 </option>
               ))}
             </select>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
-              {dict.filterDateFrom}
-              <input
-                type="date"
-                value={filters.dateFrom}
-                max={filters.dateTo || undefined}
-                onChange={(e) => applyFilter({ dateFrom: e.target.value })}
-                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
-              />
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
-              {dict.filterDateTo}
-              <input
-                type="date"
-                value={filters.dateTo}
-                min={filters.dateFrom || undefined}
-                onChange={(e) => applyFilter({ dateTo: e.target.value })}
-                style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px" }}
-              />
-            </label>
+            <div className="date-range-filter" role="group" aria-label={dict.columnDateAdded}>
+              <span className="date-range-label">{dict.columnDateAdded}</span>
+              <label>
+                {dict.filterDateFrom}
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  max={filters.dateTo || undefined}
+                  onChange={(e) => applyFilter({ dateFrom: e.target.value })}
+                />
+              </label>
+              <label>
+                {dict.filterDateTo}
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  min={filters.dateFrom || undefined}
+                  onChange={(e) => applyFilter({ dateTo: e.target.value })}
+                />
+              </label>
+            </div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
               <input
                 type="checkbox"
@@ -294,9 +296,6 @@ export default function ItemDirectory({
               />
               {dict.lowStockOnly}
             </label>
-            <button type="submit" className="btn btn-outline btn-sm">
-              {dict.search}
-            </button>
             {filtersActive && (
               <button
                 type="button"
@@ -309,7 +308,7 @@ export default function ItemDirectory({
               </button>
             )}
           </form>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="table-toolbar-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               <IconSheet className="ic-sm" />
               {commonDict.exportXlsx}
@@ -334,6 +333,8 @@ export default function ItemDirectory({
             )}
           </div>
         </div>
+
+        {loadError && <p className="panel-note" role="alert">{loadError}</p>}
 
         {page.content.length === 0 ? (
           <div className="empty">

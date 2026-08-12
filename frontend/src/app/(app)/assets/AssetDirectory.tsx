@@ -15,6 +15,7 @@ import CategoriesModal from "@/components/CategoriesModal";
 import AssetViewModal from "@/components/AssetViewModal";
 import AssetEditModal from "@/components/AssetEditModal";
 import TableFooter from "@/components/TableFooter";
+import TableSearch from "@/components/TableSearch";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type { AssetDetail, AssetListItem, CategoryDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -196,18 +197,9 @@ export default function AssetDirectory({
       </div>
 
       <div className="panel">
-        <div className="panel-head no-print">
+        <div className="panel-head table-toolbar no-print">
           <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={dict.searchPlaceholder}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px", flex: 1, maxWidth: 260 }}
-            />
-            <button type="submit" className="btn btn-outline btn-sm">
-              {dict.search}
-            </button>
+            <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={dict.search} />
             <select value={categoryFilter} onChange={(e) => applyFilters(e.target.value, roomFilter, statusFilter)}>
               <option value="">{dict.filterAllCategories}</option>
               {categories.map((category) => <option key={category.id} value={category.id}>{entityName(category, entityLocale)}</option>)}
@@ -224,7 +216,7 @@ export default function AssetDirectory({
             </select>
             {filtersActive && <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters} aria-label="clear">×</button>}
           </form>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="table-toolbar-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
               {commonDict.exportXlsx}
             </button>
