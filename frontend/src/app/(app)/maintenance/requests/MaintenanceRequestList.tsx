@@ -369,7 +369,9 @@ export default function MaintenanceRequestList({
               <h3 id="maintenance-request-view-title">{dict.cardTitle} — {viewRequest.faultType?.ar ?? "—"}</h3>
               <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body request-form-modal-body">
+              <div className="print-pages"><article className="print-page request-form-sheet">
+              <PrintReportHeader title={`${dict.cardTitle} — ${viewRequest.faultType?.ar ?? "—"}`} dict={commonDict} />
               <div className="request-view-summary">
                 <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}><span className="dot" />{statusLabel(viewRequest.status)}</span>
                 <div><b>{dict.columnRequester}</b><span>{viewRequest.requesterName}</span></div>
@@ -380,8 +382,9 @@ export default function MaintenanceRequestList({
               </div>
               {viewRequest.description && <p className="request-view-notes">{viewRequest.description}</p>}
               <RequestCardActivity actions={viewRequest.actions} attachments={viewRequest.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+              </article></div>
             </div>
-            <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button></div>
+            <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button><button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>{commonDict.print}</button></div>
           </div>
         </div>
       )}

@@ -354,7 +354,9 @@ export default function RequestList({
                 ×
               </button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body request-form-modal-body">
+              <div className="print-pages"><article className="print-page request-form-sheet">
+              <PrintReportHeader title={`${dict.cardTitle} — ${viewRequest.category?.ar ?? "—"}`} dict={commonDict} />
               <div className="request-view-summary">
                 <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}>
                   <span className="dot" />
@@ -394,10 +396,14 @@ export default function RequestList({
                 activityTitle={dict.activityTitle}
                 attachmentsDict={attachmentsDict}
               />
+              </article></div>
             </div>
             <div className="modal-foot">
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>
                 {commonDict.cancel}
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>
+                {commonDict.print}
               </button>
             </div>
           </div>

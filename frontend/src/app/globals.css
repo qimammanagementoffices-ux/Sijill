@@ -1093,6 +1093,17 @@ img[data-viewable] {
   display: grid;
   gap: 16px;
 }
+.request-form-modal-body {
+  padding: 24px;
+  background: var(--paper-dim);
+}
+.request-form-modal-body .print-page {
+  width: min(210mm, 100%);
+  min-height: auto;
+}
+.request-form-sheet .request-view-summary {
+  margin-top: 14px;
+}
 .request-view-summary {
   display: grid;
   grid-template-columns: auto repeat(3, minmax(0, 1fr));

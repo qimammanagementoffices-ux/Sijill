@@ -255,7 +255,9 @@ export default function AssetRequestList({
               <h3 id="asset-request-view-title">{dict.cardTitle} — {viewRequest.assetNameAr}</h3>
               <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body request-form-modal-body">
+              <div className="print-pages"><article className="print-page request-form-sheet">
+              <PrintReportHeader title={`${dict.cardTitle} — ${viewRequest.assetNameAr}`} dict={commonDict} />
               <div className="request-view-summary">
                 <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}><span className="dot" />{statusLabel(viewRequest.status)}</span>
                 <div><b>{dict.columnRequester}</b><span>{viewRequest.requesterName}</span></div>
@@ -264,8 +266,9 @@ export default function AssetRequestList({
               </div>
               {viewRequest.reason && <p className="request-view-notes">{viewRequest.reason}</p>}
               <RequestCardActivity actions={viewRequest.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+              </article></div>
             </div>
-            <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button></div>
+            <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button><button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>{commonDict.print}</button></div>
           </div>
         </div>
       )}
