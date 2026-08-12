@@ -32,11 +32,13 @@ export default function FaultTypeAdmin({
   const [newNameEn, setNewNameEn] = useState("");
   const [newNameHi, setNewNameHi] = useState("");
   const [newCategoryId, setNewCategoryId] = useState("");
-  const [editing, setEditing] = useState<Record<string, Edited>>({});
+  const [editingItem, setEditingItem] = useState<FaultTypeDto | null>(null);
+  const [editDraft, setEditDraft] = useState<Edited | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   function load() {
     Promise.all([
@@ -88,25 +90,41 @@ export default function FaultTypeAdmin({
     }
   }
 
-  async function handleUpdate(faultType: FaultTypeDto) {
-    const edited = editing[faultType.id];
-    if (!edited) return;
+  function openEdit(faultType: FaultTypeDto) {
+    setEditingItem(faultType);
+    setEditDraft({
+      nameAr: faultType.nameAr,
+      nameEn: faultType.nameEn,
+      nameHi: faultType.nameHi ?? "",
+      suggestedCategoryId: faultType.suggestedCategory?.id ?? "",
+    });
     setError(null);
+  }
+
+  async function handleUpdate(e: FormEvent) {
+    e.preventDefault();
+    if (!editingItem || !editDraft) return;
+    setError(null);
+    setEditSubmitting(true);
     try {
-      await apiFetch(`/maintenance/fault-types/${faultType.id}`, {
+      await apiFetch(`/maintenance/fault-types/${editingItem.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          nameAr: edited.nameAr,
-          nameEn: edited.nameEn,
-          nameHi: edited.nameHi || null,
-          suggestedCategoryId: edited.suggestedCategoryId || null,
-          version: faultType.version,
+          nameAr: editDraft.nameAr,
+          nameEn: editDraft.nameEn,
+          nameHi: editDraft.nameHi || null,
+          suggestedCategoryId: editDraft.suggestedCategoryId || null,
+          version: editingItem.version,
         }),
       });
+      setEditingItem(null);
+      setEditDraft(null);
       load();
       setToast(commonDict.actionSuccess);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setEditSubmitting(false);
     }
   }
 
@@ -142,77 +160,17 @@ export default function FaultTypeAdmin({
                   <th>{dict.nameHiLabel}</th>
                   <th>{dict.nameEnLabel}</th>
                   <th>{dict.suggestedCategoryLabel}</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {faultTypes.map((faultType) => {
-                  const edited = editing[faultType.id] ?? {
-                    nameAr: faultType.nameAr,
-                    nameEn: faultType.nameEn,
-                    nameHi: faultType.nameHi ?? "",
-                    suggestedCategoryId: faultType.suggestedCategory?.id ?? "",
-                  };
-                  return (
-                    <tr key={faultType.id}>
-                      <td>
-                        <input
-                          type="text"
-                          value={edited.nameAr}
-                          onChange={(e) =>
-                            setEditing({ ...editing, [faultType.id]: { ...edited, nameAr: e.target.value } })
-                          }
-                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                          dir="rtl"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={edited.nameHi}
-                          onChange={(e) =>
-                            setEditing({ ...editing, [faultType.id]: { ...edited, nameHi: e.target.value } })
-                          }
-                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                          dir="rtl"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={edited.nameEn}
-                          onChange={(e) =>
-                            setEditing({ ...editing, [faultType.id]: { ...edited, nameEn: e.target.value } })
-                          }
-                          style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          value={edited.suggestedCategoryId}
-                          onChange={(e) =>
-                            setEditing({
-                              ...editing,
-                              [faultType.id]: { ...edited, suggestedCategoryId: e.target.value },
-                            })
-                          }
-                        >
-                          <option value="">—</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {entityName(c, entityLocale)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button type="button" className="btn btn-outline btn-sm" onClick={() => handleUpdate(faultType)}>
-                          {dict.save}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {faultTypes.map((faultType) => (
+                  <tr key={faultType.id} className="clickable" onClick={() => openEdit(faultType)}>
+                    <td>{faultType.nameAr}</td>
+                    <td>{faultType.nameHi || "—"}</td>
+                    <td dir="ltr">{faultType.nameEn}</td>
+                    <td>{faultType.suggestedCategory ? (entityLocale === "en" ? faultType.suggestedCategory.en : faultType.suggestedCategory.ar) : "—"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -268,6 +226,42 @@ export default function FaultTypeAdmin({
                 {addSubmitting && <span className="spinner" />}
                 {dict.addNew}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingItem && editDraft && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-head">
+              <h3>{dict.save}</h3>
+              <button type="button" className="modal-close" onClick={() => { setEditingItem(null); setEditDraft(null); }} aria-label="close" disabled={editSubmitting}>×</button>
+            </div>
+            <div className="modal-body">
+              <form id="fault-type-edit-form" onSubmit={handleUpdate} className="form-grid">
+                <TrilingualNameFields
+                  nameAr={editDraft.nameAr}
+                  setNameAr={(value) => setEditDraft({ ...editDraft, nameAr: value })}
+                  nameEn={editDraft.nameEn}
+                  setNameEn={(value) => setEditDraft({ ...editDraft, nameEn: value })}
+                  nameHi={editDraft.nameHi}
+                  setNameHi={(value) => setEditDraft({ ...editDraft, nameHi: value })}
+                  dict={categoriesModalDict}
+                  errorsDict={errorsDict}
+                />
+                <div className="field span2">
+                  <label>{dict.suggestedCategoryLabel}</label>
+                  <select value={editDraft.suggestedCategoryId} onChange={(e) => setEditDraft({ ...editDraft, suggestedCategoryId: e.target.value })}>
+                    <option value="">—</option>
+                    {categories.map((category) => <option key={category.id} value={category.id}>{entityName(category, entityLocale)}</option>)}
+                  </select>
+                </div>
+              </form>
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => { setEditingItem(null); setEditDraft(null); }} disabled={editSubmitting}>{commonDict.cancel}</button>
+              <button type="submit" form="fault-type-edit-form" className="btn btn-primary btn-sm" disabled={editSubmitting}>{editSubmitting && <span className="spinner" />}{dict.save}</button>
             </div>
           </div>
         </div>
