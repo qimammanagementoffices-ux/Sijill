@@ -19,8 +19,8 @@ public interface PurchaseInvoiceRepository extends JpaRepository<PurchaseInvoice
     @Query("""
             select i from PurchaseInvoice i
             where i.domain = :domain
-              and (:dateFrom is null or i.invoiceDate >= :dateFrom)
-              and (:dateTo is null or i.invoiceDate <= :dateTo)
+              and i.invoiceDate >= coalesce(:dateFrom, i.invoiceDate)
+              and i.invoiceDate <= coalesce(:dateTo, i.invoiceDate)
             """)
     Page<PurchaseInvoice> search(
             @Param("domain") Domain domain,

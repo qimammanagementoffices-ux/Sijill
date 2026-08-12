@@ -20,8 +20,8 @@ public interface AssetAcquisitionRepository extends JpaRepository<AssetAcquisiti
               or lower(asset.nameAr) like lower(concat('%', :q, '%'))
               or lower(asset.nameEn) like lower(concat('%', :q, '%')))
               and (:assetId is null or asset.id = :assetId)
-              and (:dateFrom is null or a.documentDate >= :dateFrom)
-              and (:dateTo is null or a.documentDate <= :dateTo)
+              and a.documentDate >= coalesce(:dateFrom, a.documentDate)
+              and a.documentDate <= coalesce(:dateTo, a.documentDate)
             """)
     Page<AssetAcquisition> search(@Param("q") String q, @Param("assetId") UUID assetId,
             @Param("dateFrom") LocalDate dateFrom, @Param("dateTo") LocalDate dateTo, Pageable pageable);

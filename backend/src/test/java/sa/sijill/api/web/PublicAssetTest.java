@@ -77,7 +77,6 @@ class PublicAssetTest extends AbstractIntegrationTest {
                 objectMapper.readTree(createBody).get("publicToken").asText();
 
         String publicBody = mockMvc.perform(get("/api/v1/public/assets/" + publicToken))
-                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()

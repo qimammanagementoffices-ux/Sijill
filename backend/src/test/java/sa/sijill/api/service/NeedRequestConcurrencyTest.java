@@ -183,7 +183,6 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
             createdAssetIds.add(created.getId());
             return created.getAssetNumber();
         } catch (ApiException | DataIntegrityViolationException e) {
-            e.printStackTrace();
             return null;
         }
     }

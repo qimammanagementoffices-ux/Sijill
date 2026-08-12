@@ -154,7 +154,6 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .param("dateFrom", LocalDate.now().toString())
                         .param("dateTo", LocalDate.now().toString())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(itemId));
 

@@ -23,8 +23,8 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
                 or lower(i.code) like lower(concat('%', :q, '%')))
               and (:lowStockOnly = false or i.quantity <= i.minQuantity)
               and (:categoryId is null or i.category.id = :categoryId)
-              and (:dateFrom is null or i.dateAdded >= :dateFrom)
-              and (:dateTo is null or i.dateAdded <= :dateTo)
+              and i.dateAdded >= coalesce(:dateFrom, i.dateAdded)
+              and i.dateAdded <= coalesce(:dateTo, i.dateAdded)
             """)
     Page<InventoryItem> search(
             @Param("domain") Domain domain,
