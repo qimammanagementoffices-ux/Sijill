@@ -142,6 +142,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/assets/" + assetId + "/transfers")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].toEmployeeName").value("Requester"));
