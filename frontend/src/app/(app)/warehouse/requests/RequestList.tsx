@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
@@ -48,6 +47,7 @@ export default function RequestList({
   const [permissions, setPermissions] = useState<string[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [viewRequest, setViewRequest] = useState<NeedRequestListItem | null>(null);
   const [reason, setReason] = useState("");
 
   function load(statusFilter = status, query = appliedQuery, mineOnly = mine) {
@@ -283,9 +283,13 @@ export default function RequestList({
                         {dict.postpone}
                       </button>
                     )}
-                  <Link className="btn btn-outline btn-sm" href={`/warehouse/requests/${request.id}`}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setViewRequest(request)}
+                  >
                     {dict.cardOpen}
-                  </Link>
+                  </button>
                 </div>
               </article>
             ))}
@@ -330,6 +334,67 @@ export default function RequestList({
             setReason("");
           }}
         />
+      )}
+
+      {viewRequest && (
+        <div className="overlay no-print" role="dialog" aria-modal="true" aria-labelledby="request-view-title">
+          <div className="modal wide request-view-modal">
+            <div className="modal-head">
+              <h3 id="request-view-title">
+                {dict.cardTitle} — {viewRequest.category?.ar ?? "—"}
+              </h3>
+              <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="request-view-summary">
+                <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}>
+                  <span className="dot" />
+                  {statusLabel(viewRequest.status)}
+                </span>
+                <div>
+                  <b>{dict.columnRequester}</b>
+                  <span>{viewRequest.requesterName}</span>
+                </div>
+                <div>
+                  <b>{dict.columnDepartment}</b>
+                  <span>{viewRequest.department?.ar ?? "—"}</span>
+                </div>
+                <div>
+                  <b>{dict.columnSuggestedStart}</b>
+                  <span className="mono">{viewRequest.suggestedStartDate ?? "—"}</span>
+                </div>
+              </div>
+
+              {(viewRequest.lines?.length ?? 0) > 0 && (
+                <div className="request-view-lines">
+                  {(viewRequest.lines ?? []).map((line) => (
+                    <div key={line.id}>
+                      <span>{line.itemNameAr}</span>
+                      <b className="qty-num">× {line.quantityRequested}</b>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {viewRequest.notes && <p className="request-view-notes">{viewRequest.notes}</p>}
+
+              <RequestCardActivity
+                actions={viewRequest.actions}
+                attachments={viewRequest.attachments}
+                actionLabel={actionLabel}
+                activityTitle={dict.activityTitle}
+                attachmentsDict={attachmentsDict}
+              />
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>
+                {commonDict.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
