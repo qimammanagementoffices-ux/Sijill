@@ -53,6 +53,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
     @Autowired private MaintenanceRequestRepository maintenanceRequestRepository;
     @Autowired private AssetTransferRepository assetTransferRepository;
     @Autowired private AssetRequestRepository assetRequestRepository;
+    @Autowired private AssetAcquisitionRepository assetAcquisitionRepository;
     @Autowired private AssetRepository assetRepository;
     @Autowired private PurchaseInvoiceRepository purchaseInvoiceRepository;
     @Autowired private InventoryItemRepository inventoryItemRepository;
@@ -70,6 +71,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         maintenanceRequestRepository.deleteAll();
         assetTransferRepository.deleteAll();
         assetRequestRepository.deleteAll();
+        assetAcquisitionRepository.deleteAll();
         assetRepository.deleteAll();
         purchaseInvoiceRepository.deleteAll();
         inventoryItemRepository.deleteAll();
