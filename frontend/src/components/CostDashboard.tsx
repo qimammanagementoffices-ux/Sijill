@@ -75,14 +75,19 @@ export default function CostDashboard({ domain, dict, commonDict }: {
     <div className="no-print"><div className="eyebrow">{dict.title}</div><h1 className="section-title disp">{dict.title}</h1></div>
     <div className="print-only"><PrintReportHeader title={dict.reportTitle} dict={commonDict} /></div>
     <div className="panel">
-      <div className="panel-head no-print">
-        <form className="filter-row" onSubmit={submit}>
-          <label>{dict.from}<input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} /></label>
-          <label>{dict.to}<input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></label>
+      <div className="panel-head table-toolbar no-print">
+        <form className="filter-row cost-filter-row" onSubmit={submit}>
+          <div className="date-range-filter">
+            <label><span>{dict.from}</span><input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} /></label>
+            <label><span>{dict.to}</span><input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></label>
+          </div>
           <button className="btn btn-outline btn-sm" type="submit">{dict.apply}</button>
           {loading && <span className="spinner" />}
         </form>
-        <div style={{ display: "flex", gap: 8 }}><button className="btn btn-outline btn-sm" type="button" onClick={() => void exportRows()}>{commonDict.exportXlsx}</button><button className="btn btn-outline btn-sm" type="button" onClick={() => window.print()}>{commonDict.print}</button></div>
+        <div className="table-toolbar-actions">
+          <button className="btn btn-outline btn-sm" type="button" onClick={() => void exportRows()}><svg className="action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13l3 4m0-4-3 4m5-4h3m-3 4h3"/></svg>{commonDict.exportXlsx}</button>
+          <button className="btn btn-outline btn-sm" type="button" onClick={() => window.print()}><svg className="action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6Z"/></svg>{commonDict.print}</button>
+        </div>
       </div>
       <div className="panel-body">
         <div className="cards-row" style={{ gridTemplateColumns: "1fr", marginBottom: 16 }}><div className="stat-card"><div className="bar" style={{ background: "var(--seal)" }} /><div className="num mono">{data.total.toFixed(2)} {commonDict.currency}</div><div className="lbl">{dict.total}</div></div></div>

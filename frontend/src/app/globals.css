@@ -1115,34 +1115,40 @@ img[data-viewable] {
   --timeline-line: #e8d39a;
   position: relative;
   display: grid;
-  grid-template-columns: 17px minmax(0, 1fr);
-  gap: 9px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 11px;
   min-width: 0;
 }
 .request-card-timeline li:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 16px;
-  bottom: -11px;
-  inset-inline-start: 7px;
-  border-inline-start: 1px dashed var(--timeline-line);
+  top: 25px;
+  bottom: -12px;
+  inset-inline-start: 12px;
+  border-inline-start: 2px solid var(--timeline-line);
 }
 .request-timeline-marker {
-  width: 15px;
-  height: 15px;
-  margin-top: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 8px;
   border: 3px solid var(--card);
   border-radius: 50%;
   background: var(--timeline-tone);
   box-shadow: 0 0 0 1px var(--timeline-line);
   z-index: 1;
+  color: #fff;
+  font: 700 10px/1 "IBM Plex Mono", monospace;
 }
 .request-timeline-content {
   min-width: 0;
-  padding: 6px 9px 7px;
+  padding: 10px 12px;
   border: 1px solid var(--timeline-line);
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--timeline-bg), var(--card) 74%);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--timeline-bg), var(--card) 82%);
+  box-shadow: 0 4px 12px rgb(30 42 65 / 5%);
 }
 .request-timeline-head {
   display: flex;
@@ -1158,6 +1164,10 @@ img[data-viewable] {
   color: var(--ink-soft);
   font-size: 11px;
   white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 72%);
+  border: 1px solid var(--timeline-line);
 }
 .request-timeline-actor { display: block; margin-top: 3px; color: var(--slate); font-size: 11px; }
 .request-card-timeline p {
@@ -2054,6 +2064,29 @@ body.lang-en .modal-head h3 {
   border: 1.5px solid var(--line);
   border-radius: 9px;
   padding: 7px 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  color-scheme: light;
+}
+.cost-filter-row { align-items: flex-end; }
+.cost-filter-row .date-range-filter { align-items: flex-end; }
+.cost-filter-row .date-range-filter label {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.action-icon {
+  width: 18px;
+  height: 18px;
+  margin-inline-end: 5px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 @media (max-width: 1180px) {
   .table-toolbar { grid-template-columns: 1fr; }

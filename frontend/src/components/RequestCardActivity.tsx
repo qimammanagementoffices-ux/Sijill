@@ -21,7 +21,13 @@ function formatActionDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(date);
+    : new Intl.DateTimeFormat("ar-EG", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(date);
 }
 
 export default function RequestCardActivity({
@@ -64,7 +70,7 @@ export default function RequestCardActivity({
           <ol className="request-card-timeline">
             {actions.map((entry, index) => (
               <li key={`${entry.createdAt}-${entry.action}-${index}`} className={`request-timeline-${ACTION_TONE[entry.action] ?? "default"}`}>
-                <span className="request-timeline-marker" aria-hidden="true" />
+                <span className="request-timeline-marker" aria-hidden="true">{index + 1}</span>
                 <div className="request-timeline-content">
                   <div className="request-timeline-head">
                     <b className="request-timeline-status">{actionLabel(entry.action)}</b>
