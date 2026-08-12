@@ -134,7 +134,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String categoryId = objectMapper.readTree(categoryBody).get("id").asText();
 
         var item = new CreateInventoryItemRequest(
-                "قلم", "Pen", UUID.fromString(categoryId), "box", null, null, 5, 0, null);
+                "عنصر اختبار التاريخ", "Date Filter Smoke Item", UUID.fromString(categoryId), "box", null, null, 5, 0, null);
         String itemBody = mockMvc.perform(post("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -151,6 +151,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         // Entry-date filtering must constrain the server-side result set; the
         // frontend exports and pagination use this same paged endpoint.
         mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("q", "Date Filter Smoke Item")
                         .param("dateFrom", LocalDate.now().toString())
                         .param("dateTo", LocalDate.now().toString())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -158,12 +159,14 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content[0].id").value(itemId));
 
         mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("q", "Date Filter Smoke Item")
                         .param("dateFrom", LocalDate.now().plusDays(1).toString())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
 
         mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("q", "Date Filter Smoke Item")
                         .param("dateTo", LocalDate.now().minusDays(1).toString())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
