@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
@@ -387,9 +388,11 @@ export default function ItemDirectory({
                         // stopPropagation: the row itself opens the item
                         // card, and a thumbnail click means "show me this
                         // image", not "open the card behind it".
-                        <img
+                        <Image
                           src={item.imageUrl}
                           alt=""
+                          width={38}
+                          height={38}
                           className="row-thumb"
                           onClick={(e) => {
                             e.stopPropagation();
