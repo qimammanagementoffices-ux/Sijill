@@ -1,6 +1,7 @@
-INSERT INTO translation (translation_key, locale, value)
-VALUES
-  ('common.search', 'ar', 'بحث'),
-  ('common.search', 'en', 'Search'),
-  ('common.search', 'hi', 'खोजें')
-ON CONFLICT (translation_key, locale) DO UPDATE SET value = EXCLUDED.value;
+insert into translation (key, value_ar, value_en, value_hi) values
+  ('common.search', 'بحث', 'Search', 'खोजें')
+on conflict (key) do update set
+  value_ar = excluded.value_ar,
+  value_en = excluded.value_en,
+  value_hi = excluded.value_hi,
+  version = translation.version + 1;
