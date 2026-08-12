@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
@@ -370,19 +371,25 @@ export default function MaintenanceRequestList({
               <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
             </div>
             <div className="modal-body request-form-modal-body">
-              <div className="print-pages"><article className="print-page request-form-sheet">
-              <PrintReportHeader title={`${dict.cardTitle} — ${viewRequest.faultType?.ar ?? "—"}`} dict={commonDict} />
-              <div className="request-view-summary">
-                <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}><span className="dot" />{statusLabel(viewRequest.status)}</span>
-                <div><b>{dict.columnRequester}</b><span>{viewRequest.requesterName}</span></div>
-                <div><b>{dict.columnDepartment}</b><span>{viewRequest.department?.ar ?? "—"}</span></div>
-                <div><b>{dict.columnSuggestedStart}</b><span className="mono">{viewRequest.suggestedStartDate ?? "—"}</span></div>
-                <div><b>{dict.locationLabel}</b><span>{viewRequest.location ?? "—"}</span></div>
-                <div><b>{dict.priorityLabel}</b><span>{priorityLabel(viewRequest.priority)}</span></div>
-              </div>
-              {viewRequest.description && <p className="request-view-notes">{viewRequest.description}</p>}
-              <RequestCardActivity actions={viewRequest.actions} attachments={viewRequest.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
-              </article></div>
+              <div className="print-pages"><LegacyRequestForm
+                title={["نموذج بلاغ صيانة", "Maintenance Ticket Form", "रखरखाव शिकायत फ़ॉर्म"]}
+                subtitle={[viewRequest.faultType?.ar ?? "—", viewRequest.faultType?.en ?? "—", "—"]}
+                documentNumber={`MT-${viewRequest.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`}
+                status={statusLabel(viewRequest.status) ?? viewRequest.status}
+                statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
+                actions={viewRequest.actions}
+                cells={[
+                  { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
+                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
+                  { label: ["نوع العطل", "Fault Type", "खराबी का प्रकार"], value: viewRequest.faultType?.ar ?? "—" },
+                  { label: ["الموقع", "Location", "स्थान"], value: viewRequest.location ?? "—" },
+                  { label: ["الأولوية", "Priority", "प्राथमिकता"], value: priorityLabel(viewRequest.priority) },
+                  { label: ["تاريخ التقديم", "Submission Date", "प्रस्तुत करने की तिथि"], value: viewRequest.actions.find((a) => a.action === "SUBMIT")?.createdAt?.slice(0, 10) ?? "—" },
+                  { label: ["تاريخ بدء العمل المتوقع", "Expected Start Date", "अपेक्षित प्रारंभ तिथि"], value: viewRequest.suggestedStartDate ?? "—" },
+                ]}
+                sectionTitle={["وصف العطل", "Fault Description", "खराबी का विवरण"]}
+              ><div className="legacy-form-notes">{viewRequest.description || "—"}</div></LegacyRequestForm></div>
             </div>
             <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button><button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>{commonDict.print}</button></div>
           </div>

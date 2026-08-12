@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
@@ -256,17 +257,23 @@ export default function AssetRequestList({
               <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
             </div>
             <div className="modal-body request-form-modal-body">
-              <div className="print-pages"><article className="print-page request-form-sheet">
-              <PrintReportHeader title={`${dict.cardTitle} — ${viewRequest.assetNameAr}`} dict={commonDict} />
-              <div className="request-view-summary">
-                <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}><span className="dot" />{statusLabel(viewRequest.status)}</span>
-                <div><b>{dict.columnRequester}</b><span>{viewRequest.requesterName}</span></div>
-                <div><b>{dict.columnAsset}</b><span>{viewRequest.assetNumber} — {viewRequest.assetNameAr}</span></div>
-                <div><b>{dict.columnSuggestedStart}</b><span className="mono">{viewRequest.suggestedStartDate ?? "—"}</span></div>
-              </div>
-              {viewRequest.reason && <p className="request-view-notes">{viewRequest.reason}</p>}
-              <RequestCardActivity actions={viewRequest.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
-              </article></div>
+              <div className="print-pages"><LegacyRequestForm
+                title={["نموذج طلب أصل", "Asset Request Form", "संपत्ति अनुरोध फ़ॉर्म"]}
+                subtitle={[viewRequest.assetNameAr, viewRequest.assetNameEn, "—"]}
+                documentNumber={`AS-${viewRequest.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`}
+                status={statusLabel(viewRequest.status) ?? viewRequest.status}
+                statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
+                actions={viewRequest.actions}
+                cells={[
+                  { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
+                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["الأصل المطلوب", "Requested Asset", "अनुरोधित संपत्ति"], value: viewRequest.assetNameAr },
+                  { label: ["رقم الأصل", "Asset Number", "संपत्ति संख्या"], value: viewRequest.assetNumber },
+                  { label: ["تاريخ التقديم", "Submission Date", "प्रस्तुत करने की तिथि"], value: viewRequest.actions.find((a) => a.action === "SUBMIT")?.createdAt?.slice(0, 10) ?? "—" },
+                  { label: ["تاريخ بدء العمل المتوقع", "Expected Start Date", "अपेक्षित प्रारंभ तिथि"], value: viewRequest.suggestedStartDate ?? "—" },
+                ]}
+                sectionTitle={["وصف الحاجة", "Need Description", "आवश्यकता विवरण"]}
+              ><div className="legacy-form-notes">{viewRequest.reason || "—"}</div></LegacyRequestForm></div>
             </div>
             <div className="modal-foot"><button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>{commonDict.cancel}</button><button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>{commonDict.print}</button></div>
           </div>

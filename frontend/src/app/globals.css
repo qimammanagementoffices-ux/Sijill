@@ -1111,7 +1111,7 @@ img[data-viewable] {
   gap: 16px;
 }
 .request-form-modal-body {
-  padding: 24px;
+  padding: 0 24px 24px;
   background: var(--paper-dim);
 }
 .request-form-modal-body .print-page {
@@ -1121,6 +1121,44 @@ img[data-viewable] {
 .request-form-sheet .request-view-summary {
   margin-top: 14px;
 }
+.request-view-modal { max-width: 920px; }
+.request-view-modal .modal-head { position: sticky; top: 0; z-index: 2; background: #fff; }
+.legacy-request-form { direction: rtl; padding: 16mm 16mm 14mm; color: #1a1a1a; }
+.legacy-form-header { display:flex; align-items:center; justify-content:space-between; gap:14px; border-bottom:2.5px solid var(--ink); padding-bottom:8px; margin-bottom:9px; }
+.legacy-form-brand { display:flex; align-items:center; gap:12px; }
+.legacy-form-brand img { width:48px; height:48px; object-fit:contain; }
+.legacy-form-brand h2 { margin:0; font-size:19px; color:var(--ink); }
+.legacy-form-brand p { margin:1px 0 0; font-size:11px; color:var(--slate); }
+.legacy-form-meta { direction:rtl; display:grid; grid-template-columns:auto auto; align-items:end; gap:1px 8px; font-size:11px; color:var(--slate); }
+.legacy-form-meta strong { color:var(--ink); font-size:12px; }
+.legacy-tri-label { display:flex; flex-direction:column; line-height:1.25; }
+.legacy-tri-label b { color:#435780; font-size:11px; }
+.legacy-tri-label small { color:var(--slate); font-size:8px; font-weight:500; }
+.legacy-form-title { display:grid; justify-items:center; text-align:center; margin:4px 0 10px; }
+.legacy-form-title > .legacy-tri-label:first-child b { font-size:23px; color:var(--ink); }
+.legacy-form-title > .legacy-tri-label:first-child small { font-size:11px; }
+.legacy-form-title > .legacy-tri-label:last-child { margin-top:4px; }
+.legacy-form-title > .legacy-tri-label:last-child b { font-size:18px; color:var(--ink); }
+.legacy-form-grid { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-bottom:8px; }
+.legacy-form-cell { min-height:70px; padding:6px 12px; border-bottom:1px solid var(--line-soft); border-inline-start:1px solid var(--line-soft); display:flex; flex-direction:column; gap:3px; }
+.legacy-form-cell:nth-child(odd) { border-inline-start:0; }
+.legacy-form-value { font-size:14.5px; font-weight:600; color:#151515; }
+.legacy-form-status { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:9px 0; }
+.legacy-form-section { margin:8px 0 5px; padding-bottom:3px; border-bottom:1.5px solid var(--line); }
+.legacy-form-section .legacy-tri-label { flex-direction:row; align-items:baseline; gap:8px; }
+.legacy-form-section .legacy-tri-label b { font-size:14px; color:var(--ink); }
+.legacy-form-table { width:100%; border-collapse:collapse; font-size:13px; }
+.legacy-form-table th { background:var(--paper-dim); color:var(--ink-soft); font-size:10.5px; }
+.legacy-form-table th,.legacy-form-table td { padding:5px 10px; border:1px solid var(--line-soft); text-align:start; }
+.legacy-form-notes { border:1px solid var(--line-soft); border-radius:8px; padding:7px 12px; min-height:42px; font-size:13px; white-space:pre-wrap; }
+.legacy-form-actions { display:grid; gap:6px; }
+.legacy-form-actions > div { border:1px solid var(--line-soft); border-radius:8px; padding:7px 10px; font-size:11px; }
+.legacy-form-actions time { float:left; color:var(--slate); }
+.legacy-form-actions p { margin:5px 0 0; }
+.legacy-form-signatures { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:28px; text-align:center; color:var(--slate); font-size:11px; }
+.legacy-form-signatures > div { border-top:1.3px solid #999; padding-top:6px; }
+.legacy-form-footer { margin-top:14px; padding-top:7px; border-top:1px solid var(--line-soft); text-align:center; color:var(--slate); font-size:9.5px; }
+@media (max-width:700px) { .legacy-form-grid { grid-template-columns:1fr; } .legacy-form-cell { border-inline-start:0; } .legacy-form-header { align-items:flex-start; } .legacy-form-brand h2 { font-size:15px; } }
 .request-view-summary {
   display: grid;
   grid-template-columns: auto repeat(3, minmax(0, 1fr));

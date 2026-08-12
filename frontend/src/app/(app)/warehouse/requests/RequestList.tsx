@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
+import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import NewRequestView from "@/components/NewRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
@@ -355,48 +356,26 @@ export default function RequestList({
               </button>
             </div>
             <div className="modal-body request-form-modal-body">
-              <div className="print-pages"><article className="print-page request-form-sheet">
-              <PrintReportHeader title={`${dict.cardTitle} — ${viewRequest.category?.ar ?? "—"}`} dict={commonDict} />
-              <div className="request-view-summary">
-                <span className={`stamp ${STATUS_STAMP_CLASS[viewRequest.status]}`}>
-                  <span className="dot" />
-                  {statusLabel(viewRequest.status)}
-                </span>
-                <div>
-                  <b>{dict.columnRequester}</b>
-                  <span>{viewRequest.requesterName}</span>
-                </div>
-                <div>
-                  <b>{dict.columnDepartment}</b>
-                  <span>{viewRequest.department?.ar ?? "—"}</span>
-                </div>
-                <div>
-                  <b>{dict.columnSuggestedStart}</b>
-                  <span className="mono">{viewRequest.suggestedStartDate ?? "—"}</span>
-                </div>
-              </div>
-
-              {(viewRequest.lines?.length ?? 0) > 0 && (
-                <div className="request-view-lines">
-                  {(viewRequest.lines ?? []).map((line) => (
-                    <div key={line.id}>
-                      <span>{line.itemNameAr}</span>
-                      <b className="qty-num">× {line.quantityRequested}</b>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {viewRequest.notes && <p className="request-view-notes">{viewRequest.notes}</p>}
-
-              <RequestCardActivity
+              <div className="print-pages"><LegacyRequestForm
+                title={["نموذج طلب احتياج", "Need Request Form", "आवश्यकता अनुरोध फ़ॉर्म"]}
+                subtitle={[viewRequest.category?.ar ?? "—", viewRequest.category?.en ?? "—", "—"]}
+                documentNumber={`NR-${viewRequest.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`}
+                status={statusLabel(viewRequest.status) ?? viewRequest.status}
+                statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
-                attachments={viewRequest.attachments}
-                actionLabel={actionLabel}
-                activityTitle={dict.activityTitle}
-                attachmentsDict={attachmentsDict}
-              />
-              </article></div>
+                cells={[
+                  { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
+                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
+                  { label: ["نوع الاحتياج", "Need Type", "आवश्यकता प्रकार"], value: viewRequest.category?.ar ?? "—" },
+                  { label: ["تاريخ التقديم", "Submission Date", "प्रस्तुत करने की तिथि"], value: viewRequest.actions.find((a) => a.action === "SUBMIT")?.createdAt?.slice(0, 10) ?? "—" },
+                  { label: ["تاريخ بدء العمل المتوقع", "Expected Start Date", "अपेक्षित प्रारंभ तिथि"], value: viewRequest.suggestedStartDate ?? "—" },
+                ]}
+                sectionTitle={["الأصناف المطلوبة", "Requested Items", "अनुरोधित वस्तुएँ"]}
+              >
+                <table className="legacy-form-table"><thead><tr><th>الصنف<br/><small>Item</small></th><th>الكمية<br/><small>Quantity</small></th><th>الوحدة<br/><small>Unit</small></th></tr></thead><tbody>{(viewRequest.lines ?? []).map((line) => <tr key={line.id}><td>{line.itemNameAr}<br/><small>{line.itemNameEn}</small></td><td>{line.quantityRequested}</td><td>—</td></tr>)}</tbody></table>
+                {viewRequest.notes && <><div className="legacy-form-section">ملاحظات <small>Notes</small></div><div className="legacy-form-notes">{viewRequest.notes}</div></>}
+              </LegacyRequestForm></div>
             </div>
             <div className="modal-foot">
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(null)}>
