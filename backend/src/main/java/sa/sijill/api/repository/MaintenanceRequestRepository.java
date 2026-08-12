@@ -14,14 +14,15 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
 
     @Query("""
             select r from MaintenanceRequest r
+            left join r.faultType ft
             where (:status is null or r.status = :status)
               and (:requesterId is null or r.requester.id = :requesterId)
               and (:q is null or :q = ''
                 or lower(r.requester.name) like lower(concat('%', :q, '%'))
                 or lower(coalesce(r.location, '')) like lower(concat('%', :q, '%'))
                 or lower(coalesce(r.description, '')) like lower(concat('%', :q, '%'))
-                or lower(r.faultType.nameAr) like lower(concat('%', :q, '%'))
-                or lower(r.faultType.nameEn) like lower(concat('%', :q, '%')))
+                or lower(ft.nameAr) like lower(concat('%', :q, '%'))
+                or lower(ft.nameEn) like lower(concat('%', :q, '%')))
             order by r.createdAt desc
             """)
     Page<MaintenanceRequest> search(
