@@ -299,7 +299,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", "Main", "1", null, null, null, null))))
+                                new UpsertRoomRequest("SMOKE-101", "قاعة سموك", "Smoke Room", null, null, null, null))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -312,7 +312,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new UpsertRoomRequest("SMOKE-202", "قاعة ثانية", "Second Room", "Annex", "2", null, null, null, null))))
+                                new UpsertRoomRequest("SMOKE-202", "قاعة ثانية", "Second Room", null, null, null, null))))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         String secondRoomId = objectMapper.readTree(secondRoomBody).get("id").asText();

@@ -30,12 +30,6 @@ public class Room {
     @Column(name = "name_hi")
     private String nameHi;
 
-    @Column(name = "building")
-    private String building;
-
-    @Column(name = "floor")
-    private String floor;
-
     // EAGER for the same open-in-view-off reason as elsewhere (e.g.
     // Employee.jobTitle/photoAttachment) -- the DTO mapping happens in the
     // controller after the request's transaction closes.

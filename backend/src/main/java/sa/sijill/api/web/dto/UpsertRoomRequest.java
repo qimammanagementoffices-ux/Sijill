@@ -6,8 +6,6 @@ public record UpsertRoomRequest(
         String roomNumber,
         String nameAr,
         String nameEn,
-        String building,
-        String floor,
         Integer version,
         UUID departmentId,
         UUID custodianId,

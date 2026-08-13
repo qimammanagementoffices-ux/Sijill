@@ -10,7 +10,7 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
-import RequestCardActivity from "@/components/RequestCardActivity";
+import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import type { MaintenanceRequestDetail, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
@@ -229,10 +229,7 @@ export default function MaintenanceRequestList({
                   <h3 className="request-card-title">
                     {dict.cardTitle} — {request.faultType ? request.faultType.ar : "—"}
                   </h3>
-                  <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}>
-                    <span className="dot" />
-                    {statusLabel(request.status)}
-                  </span>
+                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
                 </header>
 
                 <div className="request-card-meta">

@@ -22,8 +22,6 @@ type Edited = {
   nameAr: string;
   nameEn: string;
   nameHi: string;
-  building: string;
-  floor: string;
   departmentId: string;
   custodianId: string;
 };
@@ -59,8 +57,6 @@ export default function RoomAdmin({
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
   const [newNameHi, setNewNameHi] = useState("");
-  const [newBuilding, setNewBuilding] = useState("");
-  const [newFloor, setNewFloor] = useState("");
   const [newDepartmentId, setNewDepartmentId] = useState("");
   const [newCustodianId, setNewCustodianId] = useState("");
   const [editingRoom, setEditingRoom] = useState<RoomDto | null>(null);
@@ -168,8 +164,6 @@ export default function RoomAdmin({
           nameAr: newNameAr,
           nameEn: newNameEn,
           nameHi: newNameHi || null,
-          building: newBuilding || null,
-          floor: newFloor || null,
           departmentId: newDepartmentId || null,
           custodianId: newCustodianId || null,
           version: null,
@@ -179,8 +173,6 @@ export default function RoomAdmin({
       setNewNameAr("");
       setNewNameEn("");
       setNewNameHi("");
-      setNewBuilding("");
-      setNewFloor("");
       setNewDepartmentId("");
       setNewCustodianId("");
       setShowAddModal(false);
@@ -200,8 +192,6 @@ export default function RoomAdmin({
       nameAr: room.nameAr,
       nameEn: room.nameEn,
       nameHi: room.nameHi ?? "",
-      building: room.building ?? "",
-      floor: room.floor ?? "",
       departmentId: room.departmentId ?? "",
       custodianId: room.custodianId ?? "",
     });
@@ -221,8 +211,6 @@ export default function RoomAdmin({
           nameAr: editDraft.nameAr,
           nameEn: editDraft.nameEn,
           nameHi: editDraft.nameHi || null,
-          building: editDraft.building || null,
-          floor: editDraft.floor || null,
           departmentId: editDraft.departmentId || null,
           custodianId: editDraft.custodianId || null,
           version: editingRoom.version,
@@ -266,8 +254,6 @@ export default function RoomAdmin({
       [
         { header: dict.roomNumberLabel, value: (r: RoomDto) => r.roomNumber },
         { header: dict.nameArLabel, value: (r: RoomDto) => r.nameAr },
-        { header: dict.buildingLabel, value: (r: RoomDto) => r.building ?? "" },
-        { header: dict.floorLabel, value: (r: RoomDto) => r.floor ?? "" },
         { header: dict.departmentLabel, value: (r: RoomDto) => r.departmentNameAr ?? "" },
         { header: dict.custodianLabel, value: (r: RoomDto) => r.custodianName ?? "" },
         { header: dict.assetCountLabel, value: (r: RoomDto) => r.assetCount },
@@ -356,8 +342,6 @@ export default function RoomAdmin({
                     ["nameAr", dict.nameArLabel],
                     ["nameHi", dict.nameHiLabel],
                     ["nameEn", dict.nameEnLabel],
-                    ["building", dict.buildingLabel],
-                    ["floor", dict.floorLabel],
                     ["department.nameAr", dict.departmentLabel],
                     ["custodian.name", dict.custodianLabel],
                   ] as const).map(([field, label]) => (
@@ -378,8 +362,6 @@ export default function RoomAdmin({
                     <td>{room.nameAr}</td>
                     <td>{room.nameHi || "—"}</td>
                     <td dir="ltr">{room.nameEn}</td>
-                    <td>{room.building || "—"}</td>
-                    <td>{room.floor || "—"}</td>
                     <td>{entityLocale === "en" ? room.departmentNameEn : room.departmentNameAr || "—"}</td>
                     <td>{room.custodianName || "—"}</td>
                     <td><span className="count-badge">{room.assetCount}</span></td>
@@ -436,14 +418,6 @@ export default function RoomAdmin({
                   dict={categoriesModalDict}
                   errorsDict={errorsDict}
                 />
-                <div className="field">
-                  <label>{dict.buildingLabel}</label>
-                  <input type="text" value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>{dict.floorLabel}</label>
-                  <input type="text" value={newFloor} onChange={(e) => setNewFloor(e.target.value)} />
-                </div>
                 <div className="field">
                   <label>{dict.departmentLabel}</label>
                   <select value={newDepartmentId} onChange={(e) => setNewDepartmentId(e.target.value)}>

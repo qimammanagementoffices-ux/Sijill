@@ -1039,10 +1039,10 @@ img[data-viewable] {
 }
 .request-card {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--card);
-  padding: 14px 16px;
-  box-shadow: 0 8px 22px rgb(30 42 65 / 8%);
+  padding: 14px 13px 10px;
+  box-shadow: none;
 }
 .request-card-head {
   display: flex;
@@ -1053,10 +1053,12 @@ img[data-viewable] {
 }
 .request-card-title {
   margin: 0;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--ink);
 }
+.request-card-state { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.request-card-state time { color:var(--slate); font-size:10.5px; }
 .request-card-meta {
   display: flex;
   gap: 14px;
@@ -1091,7 +1093,7 @@ img[data-viewable] {
   justify-content: flex-end;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed var(--line-soft);
+  border-top: 1px dashed var(--line);
 }
 .request-decision {
   min-height: 36px;
@@ -1106,6 +1108,13 @@ img[data-viewable] {
 .request-decision-approve::after { content: "✓"; font-size: 12px; }
 .request-decision-reject::after { content: "⊘"; font-size: 13px; font-weight: 500; }
 .request-decision:hover { filter: saturate(1.08) brightness(.97); }
+.acquisition-modal { max-width:760px; }
+.acquisition-form { gap:14px; }
+.acquisition-form .field { padding:12px; border-radius:10px; background:var(--paper-dim); }
+.acquisition-form input,.acquisition-form select,.acquisition-form textarea { background:#fff; }
+.acquisition-filebox { min-height:92px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:16px; border:1.5px dashed var(--gold); border-radius:10px; background:#fff; color:var(--ink); cursor:pointer; text-align:center; }
+.acquisition-filebox small { color:var(--slate); font-weight:400; }
+.acquisition-filebox input { position:absolute; width:1px; height:1px; opacity:0; }
 .request-view-modal .modal-body {
   display: grid;
   gap: 16px;

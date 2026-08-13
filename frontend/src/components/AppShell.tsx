@@ -76,6 +76,18 @@ export default function AppShell({
     setOpenGroup(null);
   }, [pathname]);
 
+  useEffect(() => {
+    function dismissFromBackdrop(event: MouseEvent) {
+      const backdrop = event.target instanceof Element ? event.target.closest(".overlay") : null;
+      if (!backdrop || event.target !== backdrop) return;
+      const directClose = backdrop.querySelector<HTMLElement>(".modal-close, [data-close], [data-modal-close]");
+      const footerCancels = backdrop.querySelectorAll<HTMLElement>(".modal-foot .btn-outline");
+      (directClose ?? footerCancels.item(footerCancels.length - 1))?.click();
+    }
+    document.addEventListener("click", dismissFromBackdrop);
+    return () => document.removeEventListener("click", dismissFromBackdrop);
+  }, []);
+
   function handleLogout() {
     clearToken();
     router.push("/login");

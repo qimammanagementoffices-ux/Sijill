@@ -17,7 +17,7 @@ const ACTION_TONE: Record<string, string> = {
   FINISH: "finished",
 };
 
-function formatActionDate(value: string) {
+export function formatActionDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
@@ -28,6 +28,10 @@ function formatActionDate(value: string) {
         hour: "numeric",
         minute: "2-digit",
       }).format(date);
+}
+
+export function latestPostponeDate(actions: RequestAction[]) {
+  return [...actions].reverse().find((entry) => entry.action === "POSTPONE")?.createdAt ?? null;
 }
 
 export default function RequestCardActivity({

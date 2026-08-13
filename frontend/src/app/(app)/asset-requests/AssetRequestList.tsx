@@ -10,7 +10,7 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
-import RequestCardActivity from "@/components/RequestCardActivity";
+import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import type { AssetRequestDetail, AssetRequestListItem, PagedResponse } from "@/lib/types";
@@ -198,7 +198,7 @@ export default function AssetRequestList({
               <article key={request.id} className="request-card">
                 <header className="request-card-head">
                   <h3 className="request-card-title">{dict.cardTitle} — {request.assetNameAr}</h3>
-                  <span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>
+                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
                 </header>
                 <div className="request-card-meta"><span>{request.requesterName}</span><span className="chip chip-sm">{request.assetNumber}</span></div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}

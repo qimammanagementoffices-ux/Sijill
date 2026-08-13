@@ -23,8 +23,6 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
               or lower(r.nameAr) like lower(concat('%', :q, '%'))
               or lower(r.nameEn) like lower(concat('%', :q, '%'))
               or lower(coalesce(r.nameHi, '')) like lower(concat('%', :q, '%'))
-              or lower(coalesce(r.building, '')) like lower(concat('%', :q, '%'))
-              or lower(coalesce(r.floor, '')) like lower(concat('%', :q, '%'))
               or lower(coalesce(d.nameAr, '')) like lower(concat('%', :q, '%'))
               or lower(coalesce(c.name, '')) like lower(concat('%', :q, '%')))
               and (:departmentId is null or d.id = :departmentId)

@@ -280,8 +280,6 @@ export type RoomDto = {
   nameAr: string;
   nameEn: string;
   nameHi: string | null;
-  building: string | null;
-  floor: string | null;
   departmentId: string | null;
   departmentNameAr: string | null;
   departmentNameEn: string | null;

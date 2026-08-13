@@ -60,8 +60,6 @@ public class RoomService {
         room.setNameAr(request.nameAr());
         room.setNameEn(request.nameEn());
         room.setNameHi(request.nameHi());
-        room.setBuilding(request.building());
-        room.setFloor(request.floor());
         room.setDepartment(resolveDepartment(request.departmentId()));
         room.setCustodian(resolveEmployee(request.custodianId()));
         return roomRepository.save(room);
@@ -78,8 +76,6 @@ public class RoomService {
         room.setNameAr(request.nameAr());
         room.setNameEn(request.nameEn());
         room.setNameHi(request.nameHi());
-        room.setBuilding(request.building());
-        room.setFloor(request.floor());
         room.setDepartment(resolveDepartment(request.departmentId()));
         room.setCustodian(resolveEmployee(request.custodianId()));
         return roomRepository.save(room);
