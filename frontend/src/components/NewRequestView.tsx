@@ -17,7 +17,7 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 
-type MeData = { name: string; departments: LocalizedRef[] };
+type MeData = { departments: LocalizedRef[] };
 type LineDraft = { inventoryItemId: string; quantityRequested: string };
 
 export default function NewRequestView({
@@ -184,34 +184,27 @@ export default function NewRequestView({
       {/* Step 1: Department + Room + Category */}
       {step === 1 && (
         <div>
-          {/* Department choices come only from the signed-in employee. A
-              single assignment is shown as a locked legacy-style fact;
-              multiple assignments become a select in the same card. */}
-          <div className="readonly-pair">
-            <div className={departmentOptions.length === 1 ? "readonly-box" : "field request-department-picker-field"}>
-              <label className={departmentOptions.length === 1 ? "readonly-box-label" : undefined}>
-                {dict.columnDepartment}
-              </label>
-              {departmentOptions.length > 1 ? (
-                <DepartmentHierarchyPicker
-                  departments={departments}
-                  selectedIds={departmentId ? new Set([departmentId]) : new Set()}
-                  onChange={(ids) => { setDepartmentId(ids.values().next().value ?? ""); setRoomId(""); }}
-                  locale={entityLocale}
-                  multiple={false}
-                  excludedIds={excludedDepartmentIds}
-                />
-              ) : (
-                <span className="readonly-box-value">{departmentName}</span>
-              )}
-            </div>
-            <div className="readonly-box">
-              <span className="readonly-box-label">{dict.columnRequester}</span>
-              <span className="readonly-box-value">{me.name}</span>
-            </div>
+          {/* Requester identity is derived from the authenticated session and
+              deliberately not repeated in the entry form. */}
+          <div className={departmentOptions.length === 1 ? "readonly-box request-department-section" : "field request-department-section"}>
+            <label className={departmentOptions.length === 1 ? "readonly-box-label" : undefined}>
+              {dict.columnDepartment}
+            </label>
+            {departmentOptions.length > 1 ? (
+              <DepartmentHierarchyPicker
+                departments={departments}
+                selectedIds={departmentId ? new Set([departmentId]) : new Set()}
+                onChange={(ids) => { setDepartmentId(ids.values().next().value ?? ""); setRoomId(""); }}
+                locale={entityLocale}
+                multiple={false}
+                excludedIds={excludedDepartmentIds}
+              />
+            ) : (
+              <span className="readonly-box-value">{departmentName}</span>
+            )}
           </div>
 
-          <div className="field" style={{ marginBottom: 22 }}>
+          <div className="field request-room-field">
             <label htmlFor="wizard-room">{dict.roomLabel}</label>
             <select id="wizard-room" value={roomId} onChange={(e) => setRoomId(e.target.value)}>
               <option value="">—</option>

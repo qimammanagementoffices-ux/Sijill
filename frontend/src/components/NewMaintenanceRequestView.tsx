@@ -128,7 +128,7 @@ export default function NewMaintenanceRequestView({
   return (
     <form id={formId} onSubmit={handleSubmit} className="maintenance-request-form">
       <div className="form-grid">
-        <div className={assignedDepartments.length === 1 ? "readonly-box" : "field"}>
+        <div className={assignedDepartments.length === 1 ? "readonly-box request-department-section span2" : "field request-department-section span2"}>
           <label className={assignedDepartments.length === 1 ? "readonly-box-label" : undefined}>{dict.departmentLabel}</label>
           {assignedDepartments.length === 1 ? (
             <span className="readonly-box-value">{assignedDepartments[0]!.path}</span>

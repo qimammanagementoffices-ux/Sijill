@@ -2962,14 +2962,9 @@ body.lang-en .modal-head h3 {
 .category-radio-icon { font-size: 20px; order: 0; }
 .category-radio-name { order: 0; flex: 1; }
 
-/* ── Wizard read-only pair (department / requester) ────── */
-/* Values come from the signed-in employee. A single department reads as a
-   locked fact; multiple assignments use the standard form select. */
-.readonly-pair {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-}
+/* ── Request department selection ─────────────────────── */
+/* Requester identity stays implicit. Department assignment is the only
+   session-derived fact displayed in entry forms. */
 .readonly-box {
   flex: 1 1 0;
   min-width: 0;
@@ -2991,9 +2986,32 @@ body.lang-en .modal-head h3 {
   color: var(--ink);
   overflow-wrap: anywhere;
 }
-.request-department-picker-field {
-  flex: 1 1 0;
-  min-width: 0;
+.request-department-section {
+  width: 100%;
+  margin-bottom: 22px;
+}
+.request-department-section.readonly-box {
+  min-height: 78px;
+  justify-content: center;
+  border: 1px solid rgba(219, 204, 170, 0.65);
+  box-shadow: 0 6px 18px rgba(28, 50, 42, 0.05);
+}
+.request-department-section.field {
+  gap: 8px;
+}
+.request-department-section .department-picker {
+  border-color: #d9caa8;
+  box-shadow: 0 8px 22px rgba(28, 50, 42, 0.06);
+}
+.request-department-section .department-picker-search {
+  background: #fff;
+}
+.maintenance-request-form .request-department-section {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+}
+.request-room-field {
+  margin-bottom: 22px;
 }
 /* ── Wizard step actions ───────────────────────────────── */
 /* Back/cancel sits at the start of the row, the forward action at the end;
@@ -3010,7 +3028,6 @@ body.lang-en .modal-head h3 {
 }
 
 @media (max-width: 640px) {
-  .readonly-pair { flex-direction: column; gap: 10px; }
   /* Two cards per row on phones -- flex-basis alone lets a fourth card
      stretch full-width on its own line. */
   .category-radio-card { flex: 1 1 calc(50% - 6px); min-width: 0; }
