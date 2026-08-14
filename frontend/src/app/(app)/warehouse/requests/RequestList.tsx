@@ -8,6 +8,7 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
+import ExportButton from "@/components/ExportButton";
 import NewRequestView from "@/components/NewRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
 import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
@@ -187,12 +188,8 @@ export default function RequestList({
             {filtering && <span className="spinner" />}
           </div>
           <div className="table-toolbar-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-              {commonDict.exportXlsx}
-            </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
-              {commonDict.print}
-            </button>
+            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
+            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
             {permissions.includes("wh.request") && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}

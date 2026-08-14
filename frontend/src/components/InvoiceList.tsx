@@ -12,7 +12,7 @@ import NewInvoiceView from "@/components/NewInvoiceView";
 import Toast from "@/components/Toast";
 import TableFooter from "@/components/TableFooter";
 import type { InvoiceDetail, PagedResponse } from "@/lib/types";
-import { IconSheet, IconFilePdf } from "@/components/NavIcons";
+import ExportButton from "@/components/ExportButton";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Sort = { field: string; dir: "asc" | "desc" };
@@ -203,15 +203,9 @@ export default function InvoiceList({
             )}
           </div>
           <div className="table-toolbar-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-              <IconSheet className="ic-sm" />
-              {commonDict.exportXlsx}
-            </button>
+            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
             {/* Same print path as the item list: "PDF" is the A4 print view. */}
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
-              <IconFilePdf className="ic-sm" />
-              {commonDict.exportPdf}
-            </button>
+            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={handlePrint} />
             {canPost && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}

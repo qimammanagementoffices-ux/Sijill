@@ -8,6 +8,7 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
+import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import RequestActionDialog from "@/components/RequestActionDialog";
 import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
@@ -173,15 +174,13 @@ export default function AssetRequestList({
             <form className="filter-row" onSubmit={handleSearch}>
               <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
             </form>
-            {filtering && <span className="spinner" />}
+            <span className="request-filter-spinner-slot" aria-hidden="true">
+              {filtering && <span className="spinner" />}
+            </span>
           </div>
           <div className="table-toolbar-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-              {commonDict.exportXlsx}
-            </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
-              {commonDict.print}
-            </button>
+            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
+            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
             <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
               {dict.addNew}
             </button>

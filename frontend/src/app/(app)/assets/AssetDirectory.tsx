@@ -9,6 +9,7 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
+import ExportButton from "@/components/ExportButton";
 import NewAssetView from "@/components/NewAssetView";
 import Toast from "@/components/Toast";
 import CategoriesModal from "@/components/CategoriesModal";
@@ -217,12 +218,8 @@ export default function AssetDirectory({
             {filtersActive && <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters} aria-label="clear">×</button>}
           </form>
           <div className="table-toolbar-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-              {commonDict.exportXlsx}
-            </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
-              {commonDict.print}
-            </button>
+            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
+            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={handlePrint} />
             <Link href="/assets/custody-report" className="btn btn-outline btn-sm">
               {dict.custodyReportTitle}
             </Link>

@@ -8,6 +8,7 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import { useEntityLocale } from "@/i18n/entityName";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
+import ExportButton from "@/components/ExportButton";
 import type { CostBreakdownRow, CostDashboardDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -85,8 +86,8 @@ export default function CostDashboard({ domain, dict, commonDict }: {
           {loading && <span className="spinner" />}
         </form>
         <div className="table-toolbar-actions">
-          <button className="btn btn-outline btn-sm" type="button" onClick={() => void exportRows()}><svg className="action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13l3 4m0-4-3 4m5-4h3m-3 4h3"/></svg>{commonDict.exportXlsx}</button>
-          <button className="btn btn-outline btn-sm" type="button" onClick={() => window.print()}><svg className="action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6Z"/></svg>{commonDict.print}</button>
+          <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={exportRows} />
+          <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
         </div>
       </div>
       <div className="panel-body">

@@ -1031,6 +1031,14 @@ img[data-viewable] {
   flex: 1;
   justify-content: space-between;
 }
+.request-filter-spinner-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
 .request-toolbar .filter-row > input {
   min-width: 230px;
   border: 1.5px solid var(--line);
@@ -2330,6 +2338,14 @@ body.lang-en .modal-head h3 {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.export-button {
+  min-width: 112px;
+  justify-content: center;
+  gap: 7px;
+}
+.export-button .ic-sm {
+  flex: 0 0 auto;
 }
 @media (max-width: 1180px) {
   .table-toolbar { grid-template-columns: 1fr; }

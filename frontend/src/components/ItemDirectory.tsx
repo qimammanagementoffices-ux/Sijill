@@ -16,7 +16,8 @@ import TableFooter from "@/components/TableFooter";
 import TableSearch from "@/components/TableSearch";
 import ItemViewModal from "@/components/ItemViewModal";
 import Lightbox from "@/components/Lightbox";
-import { IconSheet, IconFilePdf, IconTag } from "@/components/NavIcons";
+import { IconTag } from "@/components/NavIcons";
+import ExportButton from "@/components/ExportButton";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
@@ -310,17 +311,11 @@ export default function ItemDirectory({
             )}
           </form>
           <div className="table-toolbar-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-              <IconSheet className="ic-sm" />
-              {commonDict.exportXlsx}
-            </button>
+            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
             {/* Same window.print() as the print button: "PDF" here means the
                 A4 print view saved as PDF, which is what the legacy app's
                 export-pdf action did too. */}
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
-              <IconFilePdf className="ic-sm" />
-              {commonDict.exportPdf}
-            </button>
+            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={handlePrint} />
             {canManage && (
               <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowCategoriesModal(true)}>
                 <IconTag className="ic-sm" />

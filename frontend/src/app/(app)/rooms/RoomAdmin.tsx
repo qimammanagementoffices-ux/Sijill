@@ -13,7 +13,8 @@ import Toast from "@/components/Toast";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 import TableFooter from "@/components/TableFooter";
 import TableSearch from "@/components/TableSearch";
-import { IconFilePdf, IconSheet, IconTrash } from "@/components/NavIcons";
+import { IconTrash } from "@/components/NavIcons";
+import ExportButton from "@/components/ExportButton";
 import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -313,14 +314,8 @@ export default function RoomAdmin({
             )}
           </form>
           <div className="table-toolbar-actions">
-            <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-              <IconSheet className="ic-sm" />
-              {commonDict.exportXlsx}
-            </button>
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => void handlePrint()}>
-              <IconFilePdf className="ic-sm" />
-              {commonDict.exportPdf}
-            </button>
+            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
+            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={handlePrint} />
             {canManage && <button type="button" className="btn btn-primary btn-sm" onClick={openAddModal}>{dict.addNew}</button>}
           </div>
         </div>

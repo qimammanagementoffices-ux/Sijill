@@ -7,6 +7,7 @@ import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
+import ExportButton from "@/components/ExportButton";
 import type { AssetListItem, EmployeeListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -85,12 +86,8 @@ export default function CustodyReportView({
               <span className="scale-badge">
                 {dict.custodyReportTotalCount}: {assets.length}
               </span>
-              <button type="button" className="btn btn-outline btn-sm" onClick={handleExport}>
-                {commonDict.exportXlsx}
-              </button>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => setPreviewing(true)}>
-                {dict.custodyReportPrint}
-              </button>
+              <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
+              <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => setPreviewing(true)} />
             </div>
           )}
         </div>
