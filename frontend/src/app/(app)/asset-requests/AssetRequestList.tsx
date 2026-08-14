@@ -106,7 +106,12 @@ export default function AssetRequestList({
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
+          return;
         }
+        // Anything else used to be swallowed: the list never arrived and the
+        // page sat on its loading state with nothing to explain it.
+        setToast(requestErrorMessage(err, requestErrorsDict, errorsDict.generic));
+        setPage((current) => current ?? { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0 });
       })
       .finally(() => setFiltering(false));
   }
@@ -296,6 +301,14 @@ export default function AssetRequestList({
           </div>
         </div>
 
+        {/* Veil over the cards rather than a spinner on the tab that was
+            clicked, so a refetch reads as "the whole list is being replaced". */}
+        <div className="table-loading-wrap">
+        {filtering && (
+          <div className="table-loading-veil">
+            <span className="spinner" />
+          </div>
+        )}
         {page.content.length === 0 ? (
           <div className="empty">
             <b>{dict.noResults}</b>
@@ -346,6 +359,7 @@ export default function AssetRequestList({
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {showAddModal && (

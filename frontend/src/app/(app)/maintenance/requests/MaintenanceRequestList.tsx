@@ -113,7 +113,12 @@ export default function MaintenanceRequestList({
       .catch((err) => {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.replace("/dashboard");
+          return;
         }
+        // Anything else used to be swallowed: the list never arrived and the
+        // page sat on its loading state with nothing to explain it.
+        setToast(requestErrorMessage(err, requestErrorsDict, errorsDict.generic));
+        setPage((current) => current ?? { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0 });
       })
       .finally(() => setFiltering(false));
   }
@@ -309,7 +314,11 @@ export default function MaintenanceRequestList({
             <form className="filter-row" onSubmit={handleSearch}>
               <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
             </form>
-            {filtering && <span className="spinner" />}
+            {/* Fixed-width slot: a spinner that comes and goes inside the flex
+                row shifts the search box sideways on every refetch. */}
+            <span className="request-filter-spinner-slot" aria-hidden="true">
+              {filtering && <span className="spinner" />}
+            </span>
           </div>
           <div className="table-toolbar-actions">
             <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
@@ -322,6 +331,14 @@ export default function MaintenanceRequestList({
           </div>
         </div>
 
+        {/* Veil over the cards rather than a spinner on the tab that was
+            clicked, so a refetch reads as "the whole list is being replaced". */}
+        <div className="table-loading-wrap">
+        {filtering && (
+          <div className="table-loading-veil">
+            <span className="spinner" />
+          </div>
+        )}
         {page.content.length === 0 ? (
           <div className="empty">
             <b>{dict.noResults}</b>
@@ -449,6 +466,7 @@ export default function MaintenanceRequestList({
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {showAddModal && (
