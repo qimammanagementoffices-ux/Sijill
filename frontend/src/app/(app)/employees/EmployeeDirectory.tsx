@@ -159,7 +159,15 @@ export default function EmployeeDirectory({
                     <td>{employee.name}</td>
                     <td className="mono">{employee.phone}</td>
                     <td>{employee.jobTitle ? employee.jobTitle.ar : ""}</td>
-                    <td>{employee.departments.map((d) => departmentPathById.get(d.id) ?? (locale === "ar" ? d.ar : d.en)).join(", ")}</td>
+                    <td>
+                      <div className="employee-department-chips">
+                        {employee.departments.map((department) => {
+                          const path = departmentPathById.get(department.id) ?? (locale === "ar" ? department.ar : department.en);
+                          const label = locale === "ar" ? department.ar : department.en;
+                          return <span key={department.id} className="employee-department-chip" title={path}>{label}</span>;
+                        })}
+                      </div>
+                    </td>
                     <td>
                       <span className={`chip ${employee.active ? "s-approved" : "s-postponed"}`}>
                         <span className="chip-dot" />
