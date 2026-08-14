@@ -39,7 +39,6 @@ public class NeedRequestService {
     private static final int EDIT_WINDOW_MINUTES = 60;
 
     private final NeedRequestRepository needRequestRepository;
-    private final NeedRequestActionRepository needRequestActionRepository;
     private final DepartmentRepository departmentRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryItemRepository inventoryItemRepository;
@@ -49,7 +48,6 @@ public class NeedRequestService {
 
     public NeedRequestService(
             NeedRequestRepository needRequestRepository,
-            NeedRequestActionRepository needRequestActionRepository,
             DepartmentRepository departmentRepository,
             CategoryRepository categoryRepository,
             InventoryItemRepository inventoryItemRepository,
@@ -57,7 +55,6 @@ public class NeedRequestService {
             SuggestedStartDateCalculator suggestedStartDateCalculator,
             AuditService auditService) {
         this.needRequestRepository = needRequestRepository;
-        this.needRequestActionRepository = needRequestActionRepository;
         this.departmentRepository = departmentRepository;
         this.categoryRepository = categoryRepository;
         this.inventoryItemRepository = inventoryItemRepository;
@@ -465,23 +462,6 @@ public class NeedRequestService {
         request.setArchivedBy(actor);
         addAction(request, actor, "ARCHIVE", null);
         return save(request, actor, "NEED_REQUEST_ARCHIVED");
-    }
-
-    @Transactional
-    public void restore(UUID id, Employee actor) {
-        // Do not hydrate the request's two EAGER collections here. Historical
-        // requests can have many lines and actions, making a simple restore
-        // produce a large Cartesian result and time out at the proxy.
-        if (needRequestRepository.restoreArchived(id) == 0) {
-            throw RequestWorkflowErrors.notArchived();
-        }
-
-        NeedRequestAction action = new NeedRequestAction();
-        action.setNeedRequest(needRequestRepository.getReferenceById(id));
-        action.setActor(actor);
-        action.setAction("RESTORE");
-        needRequestActionRepository.save(action);
-        auditService.record(actor, "NEED_REQUEST_RESTORED", "NeedRequest", id);
     }
 
     // --- Internals -------------------------------------------------------

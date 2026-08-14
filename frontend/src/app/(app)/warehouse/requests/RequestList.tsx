@@ -357,7 +357,7 @@ export default function RequestList({
     }
   }
 
-  // Simple no-body actions: receive, archive, restore.
+  // Simple no-body actions: receive and archive.
   async function post(id: string, path: string, body?: unknown) {
     const key = `${id}:${path}`;
     setBusyAction(key);
@@ -619,10 +619,10 @@ export default function RequestList({
                     </>
                   )}
 
-                  {permissions.includes("emp.manage") && (
-                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
-                      {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
-                      {request.archivedAt ? actionsDict.restore : actionsDict.archive}
+                  {permissions.includes("emp.manage") && !request.archivedAt && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, "archive")}>
+                      {busyAction === `${request.id}:archive` && <span className="spinner" />}
+                      {actionsDict.archive}
                     </button>
                   )}
 

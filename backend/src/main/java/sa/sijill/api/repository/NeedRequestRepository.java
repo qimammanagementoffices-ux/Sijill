@@ -5,24 +5,12 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sa.sijill.api.domain.NeedRequest;
 import sa.sijill.api.domain.NeedRequestStatus;
 
 public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> {
-
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update NeedRequest r
-               set r.archivedAt = null,
-                   r.archivedBy = null,
-                   r.updatedAt = current_timestamp,
-                   r.version = r.version + 1
-             where r.id = :id and r.archivedAt is not null
-            """)
-    int restoreArchived(@Param("id") UUID id);
 
     /**
      * Asking for PENDING also returns postponed requests whose date has
