@@ -102,6 +102,7 @@ export default function EmployeeDirectory({
   if (!page) return <SectionLoading />;
 
   const departmentOptions = flattenDepartmentHierarchy(departments ?? [], locale);
+  const departmentPathById = new Map(departmentOptions.map(({ item, path }) => [item.id, path.replaceAll(" / ", "/")]));
 
   return (
     <>
@@ -158,7 +159,7 @@ export default function EmployeeDirectory({
                     <td>{employee.name}</td>
                     <td className="mono">{employee.phone}</td>
                     <td>{employee.jobTitle ? employee.jobTitle.ar : ""}</td>
-                    <td>{employee.departments.map((d) => d.ar).join(", ")}</td>
+                    <td>{employee.departments.map((d) => departmentPathById.get(d.id) ?? (locale === "ar" ? d.ar : d.en)).join(", ")}</td>
                     <td>
                       <span className={`chip ${employee.active ? "s-approved" : "s-postponed"}`}>
                         <span className="chip-dot" />

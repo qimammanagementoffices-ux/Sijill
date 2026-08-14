@@ -147,10 +147,10 @@ export default function EmployeeForm({
     setError(null);
     if (!isValidEmployeeDepartmentSelection(departments, departmentIds)) {
       setError(locale === "ar"
-        ? "يجب اختيار إدارة واحدة فقط، ويمكن اختيار أي عدد من المراحل والأقسام التابعة لها."
+        ? "يجب اختيار إدارة واحدة على الأقل، ويمكن اختيار عدة إدارات وما يتبعها من مراحل وأقسام."
         : locale === "hi"
-          ? "एक प्रशासन चुनना आवश्यक है; उसके अंतर्गत चरण और विभाग वैकल्पिक हैं।"
-          : "Choose exactly one administration; its stages and departments are optional.");
+          ? "कम से कम एक प्रशासन चुनें; आप कई प्रशासन और उनके चरण व विभाग चुन सकते हैं।"
+          : "Choose at least one administration; multiple administrations and their stages and departments are allowed.");
       return;
     }
     setSubmitting(true);

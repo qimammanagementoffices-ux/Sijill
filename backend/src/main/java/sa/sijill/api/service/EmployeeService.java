@@ -209,28 +209,28 @@ public class EmployeeService {
                     "One or more departments not found", Map.of("departmentIds", "contains an unknown id"));
         }
         List<Department> roots = found.stream().filter(department -> department.getParent() == null).toList();
-        if (roots.size() != 1) {
+        if (roots.isEmpty()) {
             throw ApiException.validation(
-                    "Exactly one administration is required",
-                    Map.of("departmentIds", "must contain exactly one top-level department"));
+                    "At least one administration is required",
+                    Map.of("departmentIds", "must contain at least one top-level department"));
         }
-        UUID rootId = roots.getFirst().getId();
-        if (found.stream().anyMatch(department -> !belongsToRoot(department, rootId))) {
+        Set<UUID> rootIds = roots.stream().map(Department::getId).collect(java.util.stream.Collectors.toSet());
+        if (found.stream().anyMatch(department -> !belongsToSelectedRoot(department, rootIds))) {
             throw ApiException.validation(
-                    "All selected departments must belong to the chosen administration",
-                    Map.of("departmentIds", "contains a department outside the selected administration"));
+                    "All selected departments must belong to a selected administration",
+                    Map.of("departmentIds", "contains a department whose administration is not selected"));
         }
         return new HashSet<>(found);
     }
 
-    private boolean belongsToRoot(Department department, UUID rootId) {
+    private boolean belongsToSelectedRoot(Department department, Set<UUID> rootIds) {
         Department current = department;
         Set<UUID> visited = new HashSet<>();
         while (current.getParent() != null) {
             if (!visited.add(current.getId())) return false;
             current = current.getParent();
         }
-        return current.getId().equals(rootId);
+        return rootIds.contains(current.getId());
     }
 
     private String toJsonArray(List<String> keys) {

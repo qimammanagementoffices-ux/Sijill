@@ -118,4 +118,41 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Assigned Employee"));
     }
+
+    @Test
+    void assignsEmployeeToMultipleAdministrationsAndTheirDepartments() throws Exception {
+        String token = createAdminAndGetToken("0567777777");
+
+        Department education = new Department();
+        education.setNameAr("الشؤون التعليمية");
+        education.setNameEn("Education Affairs");
+        education = departmentRepository.save(education);
+        Department administration = new Department();
+        administration.setNameAr("الشؤون الإدارية");
+        administration.setNameEn("Administration Affairs");
+        administration = departmentRepository.save(administration);
+
+        Department primary = new Department();
+        primary.setNameAr("المرحلة الابتدائية");
+        primary.setNameEn("Primary Stage");
+        primary.setParent(education);
+        primary = departmentRepository.save(primary);
+        Department humanResources = new Department();
+        humanResources.setNameAr("الموارد البشرية");
+        humanResources.setNameEn("Human Resources");
+        humanResources.setParent(administration);
+        humanResources = departmentRepository.save(humanResources);
+
+        var employee = new CreateEmployeeRequest(
+                "Multi Administration Employee", "0568888888", "1234", "1234", null, null, null, null,
+                List.of(education.getId(), primary.getId(), administration.getId(), humanResources.getId()),
+                Set.of(), null);
+
+        mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(employee)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.departments.length()").value(4));
+    }
 }

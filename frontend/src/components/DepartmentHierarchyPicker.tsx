@@ -62,10 +62,10 @@ export function departmentDescendantIds(items: LocalizedEntityDto[], departmentI
 export function isValidEmployeeDepartmentSelection(items: LocalizedEntityDto[], selectedIds: Set<string>) {
   const selected = items.filter((item) => selectedIds.has(item.id));
   const roots = selected.filter((item) => !item.parentId);
-  if (roots.length !== 1 || selected.length !== selectedIds.size) return false;
+  if (roots.length === 0 || selected.length !== selectedIds.size) return false;
 
   const byId = new Map(items.map((item) => [item.id, item]));
-  const rootId = roots[0]!.id;
+  const rootIds = new Set(roots.map((root) => root.id));
   return selected.every((item) => {
     let current: LocalizedEntityDto | undefined = item;
     const visited = new Set<string>();
@@ -74,7 +74,7 @@ export function isValidEmployeeDepartmentSelection(items: LocalizedEntityDto[], 
       visited.add(current.id);
       current = byId.get(current.parentId);
     }
-    return current?.id === rootId;
+    return current != null && rootIds.has(current.id);
   });
 }
 
@@ -107,14 +107,15 @@ export default function DepartmentHierarchyPicker({
   const selectedRows = rows.filter(({ item }) => selectedIds.has(item.id));
   const rootRows = availableRows.filter(({ depth }) => depth === 0);
   const selectedRootRows = rootRows.filter(({ item }) => selectedIds.has(item.id));
-  const selectedRootId = selectedRootRows.length === 1 ? selectedRootRows[0]!.item.id : null;
-  const selectedRootIndex = selectedRootId ? availableRows.findIndex(({ item }) => item.id === selectedRootId) : -1;
-  const descendantRows = selectedRootIndex < 0
-    ? []
-    : availableRows.slice(selectedRootIndex + 1).filter(({ depth }, index, following) => {
-        const firstNextRoot = following.findIndex(({ depth: nextDepth }) => nextDepth === 0);
-        return depth > 0 && (firstNextRoot < 0 || index < firstNextRoot);
-      });
+  const descendantGroups = selectedRootRows.map((rootRow) => {
+    const rootIndex = availableRows.findIndex(({ item }) => item.id === rootRow.item.id);
+    const following = availableRows.slice(rootIndex + 1);
+    const nextRootIndex = following.findIndex(({ depth }) => depth === 0);
+    return {
+      root: rootRow,
+      descendants: (nextRootIndex < 0 ? following : following.slice(0, nextRootIndex)).filter(({ depth }) => depth > 0),
+    };
+  });
 
   function toggle(id: string) {
     if (!multiple) {
@@ -128,13 +129,19 @@ export default function DepartmentHierarchyPicker({
   }
 
   function chooseRoot(id: string) {
-    onChange(new Set([id]));
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      for (const descendantId of departmentDescendantIds(departments, id)) next.delete(descendantId);
+    } else {
+      next.add(id);
+    }
+    onChange(next);
   }
 
   function removeSelected(id: string) {
     const row = rows.find(({ item }) => item.id === id);
     if (employeeAssignment && row?.depth === 0) {
-      onChange(new Set());
+      chooseRoot(id);
       return;
     }
     toggle(id);
@@ -142,9 +149,9 @@ export default function DepartmentHierarchyPicker({
 
   const placeholder = locale === "ar" ? "ابحث بالاسم أو المسار…" : locale === "hi" ? "नाम या पथ से खोजें…" : "Search by name or path…";
   const noResults = locale === "ar" ? "لا توجد أقسام مطابقة" : locale === "hi" ? "कोई मेल खाता विभाग नहीं" : "No matching departments";
-  const administrationLabel = locale === "ar" ? "الإدارة (مطلوب — اختيار واحد)" : locale === "hi" ? "प्रशासन (आवश्यक — एक विकल्प)" : "Administration (required — choose one)";
+  const administrationLabel = locale === "ar" ? "الإدارات (مطلوب — يمكن اختيار أكثر من إدارة)" : locale === "hi" ? "प्रशासन (आवश्यक — एकाधिक विकल्प)" : "Administrations (required — multiple choices)";
   const subdivisionsLabel = locale === "ar" ? "المراحل والأقسام (اختياري — يمكن اختيار أكثر من واحد)" : locale === "hi" ? "चरण और विभाग (वैकल्पिक — एकाधिक विकल्प)" : "Stages and departments (optional — multiple choices)";
-  const chooseAdministration = locale === "ar" ? "اختر الإدارة أولاً لإظهار المراحل والأقسام التابعة لها" : locale === "hi" ? "उसके चरण और विभाग देखने के लिए पहले प्रशासन चुनें" : "Choose an administration first to show its stages and departments";
+  const chooseAdministration = locale === "ar" ? "اختر إدارة واحدة أو أكثر لإظهار المراحل والأقسام التابعة لها" : locale === "hi" ? "चरण और विभाग देखने के लिए एक या अधिक प्रशासन चुनें" : "Choose one or more administrations to show their stages and departments";
 
   const matchesQuery = ({ item, path }: DepartmentTreeRow) =>
     !normalizedQuery || `${path} ${item.nameAr} ${item.nameEn} ${item.nameHi ?? ""}`.toLocaleLowerCase(locale).includes(normalizedQuery);
@@ -167,27 +174,32 @@ export default function DepartmentHierarchyPicker({
       {employeeAssignment ? (
         <div className="department-assignment-options">
           <div className="department-picker-group-title">{administrationLabel}</div>
-          <div className="department-picker-options" role="radiogroup" aria-required="true">
+          <div className="department-picker-options" role="group">
             {rootRows.filter(matchesQuery).length === 0 ? <div className="department-picker-empty">{noResults}</div> : rootRows.filter(matchesQuery).map(({ item }) => (
               <label key={item.id} className={`department-picker-row${selectedIds.has(item.id) ? " selected" : ""}`}>
-                <input type="radio" name="employee-administration" checked={selectedIds.has(item.id)} onChange={() => chooseRoot(item.id)} />
+                <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => chooseRoot(item.id)} />
                 <span className="department-picker-name">{entityName(item, locale)}</span>
               </label>
             ))}
           </div>
           <div className="department-picker-group-title optional">{subdivisionsLabel}</div>
           <div className="department-picker-options" role="group">
-            {!selectedRootId ? (
+            {descendantGroups.length === 0 ? (
               <div className="department-picker-empty">{chooseAdministration}</div>
-            ) : descendantRows.filter(matchesQuery).length === 0 ? (
-              <div className="department-picker-empty">{noResults}</div>
-            ) : descendantRows.filter(matchesQuery).map(({ item, depth, path }) => (
-              <label key={item.id} className={`department-picker-row${selectedIds.has(item.id) ? " selected" : ""}`} title={path}>
-                <span className="department-tree-indent" style={{ width: Math.max(0, depth - 1) * 18 }} aria-hidden="true" />
-                <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggle(item.id)} />
-                <span className="department-picker-name">{entityName(item, locale)}</span>
-                {depth > 1 && <small>{path}</small>}
-              </label>
+            ) : descendantGroups.map(({ root, descendants }) => (
+              <div className="department-picker-subgroup" key={root.item.id}>
+                <div className="department-picker-subgroup-title">{root.path}</div>
+                {descendants.filter(matchesQuery).length === 0 ? (
+                  <div className="department-picker-empty">{noResults}</div>
+                ) : descendants.filter(matchesQuery).map(({ item, depth, path }) => (
+                  <label key={item.id} className={`department-picker-row${selectedIds.has(item.id) ? " selected" : ""}`} title={path}>
+                    <span className="department-tree-indent" style={{ width: Math.max(0, depth - 1) * 18 }} aria-hidden="true" />
+                    <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggle(item.id)} />
+                    <span className="department-picker-name">{entityName(item, locale)}</span>
+                    {depth > 1 && <small>{path}</small>}
+                  </label>
+                ))}
+              </div>
             ))}
           </div>
         </div>
