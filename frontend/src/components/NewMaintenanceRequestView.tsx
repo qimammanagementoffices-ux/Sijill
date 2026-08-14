@@ -6,7 +6,7 @@ import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import type { AttachmentDto, FaultTypeDto, LocalizedEntityDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
-import { flattenDepartmentHierarchy, type DepartmentTreeRow } from "@/components/DepartmentHierarchyPicker";
+import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 
 const PRIORITIES: MaintenancePriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 type MeData = { departments: LocalizedRef[] };
@@ -30,7 +30,8 @@ export default function NewMaintenanceRequestView({
   onSubmittingChange?: (submitting: boolean) => void;
 }) {
   const entityLocale = useEntityLocale();
-  const [departments, setDepartments] = useState<DepartmentTreeRow[] | null>(null);
+  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [departmentId, setDepartmentId] = useState("");
@@ -60,12 +61,11 @@ export default function NewMaintenanceRequestView({
       apiFetch<FaultTypeDto[]>("/maintenance/fault-types"),
     ]).then(([me, departmentRows, roomRows, faultTypeRows]) => {
       const assignedIds = new Set(me.departments.map((department) => department.id));
-      const assignedDepartments = flattenDepartmentHierarchy(departmentRows, entityLocale)
-        .filter(({ item }) => assignedIds.has(item.id));
-      setDepartments(assignedDepartments);
+      setDepartments(departmentRows);
+      setAssignedDepartmentIds(assignedIds);
       setRooms(roomRows.filter((room) => room.active));
       setFaultTypes(faultTypeRows);
-      setDepartmentId(assignedDepartments.length === 1 ? assignedDepartments[0]!.item.id : "");
+      setDepartmentId(assignedIds.size === 1 ? assignedIds.values().next().value ?? "" : "");
       setFaultTypeId(faultTypeRows[0]?.id ?? "");
     });
   }, [entityLocale]);
@@ -110,9 +110,14 @@ export default function NewMaintenanceRequestView({
     }
   }
 
-  if (!departments || !rooms || !faultTypes) return <SectionLoading />;
+  if (!departments || !assignedDepartmentIds || !rooms || !faultTypes) return <SectionLoading />;
 
   const visibleRooms = rooms.filter((room) => !departmentId || room.departmentId === departmentId);
+  const assignedDepartments = flattenDepartmentHierarchy(departments, entityLocale)
+    .filter(({ item }) => assignedDepartmentIds.has(item.id));
+  const excludedDepartmentIds = new Set(
+    departments.filter((department) => !assignedDepartmentIds.has(department.id)).map((department) => department.id)
+  );
 
   function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
@@ -123,17 +128,19 @@ export default function NewMaintenanceRequestView({
   return (
     <form id={formId} onSubmit={handleSubmit} className="maintenance-request-form">
       <div className="form-grid">
-        <div className="field">
-          <label>{dict.departmentLabel}</label>
-          {departments.length === 1 ? (
-            <input value={departments[0]!.path} readOnly aria-readonly="true" />
+        <div className={assignedDepartments.length === 1 ? "readonly-box" : "field"}>
+          <label className={assignedDepartments.length === 1 ? "readonly-box-label" : undefined}>{dict.departmentLabel}</label>
+          {assignedDepartments.length === 1 ? (
+            <span className="readonly-box-value">{assignedDepartments[0]!.path}</span>
           ) : (
-            <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setRoomId(""); }}>
-              <option value="">—</option>
-              {departments.map(({ item, path }) => (
-                <option key={item.id} value={item.id}>{path}</option>
-              ))}
-            </select>
+            <DepartmentHierarchyPicker
+              departments={departments}
+              selectedIds={departmentId ? new Set([departmentId]) : new Set()}
+              onChange={(ids) => { setDepartmentId(ids.values().next().value ?? ""); setRoomId(""); }}
+              locale={entityLocale}
+              multiple={false}
+              excludedIds={excludedDepartmentIds}
+            />
           )}
         </div>
         <div className="field">

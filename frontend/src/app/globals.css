@@ -2991,6 +2991,10 @@ body.lang-en .modal-head h3 {
   color: var(--ink);
   overflow-wrap: anywhere;
 }
+.request-department-picker-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
 /* ── Wizard step actions ───────────────────────────────── */
 /* Back/cancel sits at the start of the row, the forward action at the end;
    space-between resolves correctly under both dir=rtl and dir=ltr. */

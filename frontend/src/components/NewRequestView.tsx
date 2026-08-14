@@ -15,7 +15,7 @@ import type {
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
-import { flattenDepartmentHierarchy, type DepartmentTreeRow } from "@/components/DepartmentHierarchyPicker";
+import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 
 type MeData = { name: string; departments: LocalizedRef[] };
 type LineDraft = { inventoryItemId: string; quantityRequested: string };
@@ -40,7 +40,8 @@ export default function NewRequestView({
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
-  const [departmentOptions, setDepartmentOptions] = useState<DepartmentTreeRow[] | null>(null);
+  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
 
   const [step, setStep] = useState(1);
   const [departmentId, setDepartmentId] = useState("");
@@ -67,11 +68,10 @@ export default function NewRequestView({
       apiFetch<RoomDto[]>("/rooms"),
     ]).then(([m, departmentRows, c, i, r]) => {
       const assignedIds = new Set(m.departments.map((department) => department.id));
-      const assignedDepartments = flattenDepartmentHierarchy(departmentRows, entityLocale)
-        .filter(({ item }) => assignedIds.has(item.id));
       setMe(m);
-      setDepartmentOptions(assignedDepartments);
-      setDepartmentId(assignedDepartments.length === 1 ? assignedDepartments[0]!.item.id : "");
+      setDepartments(departmentRows);
+      setAssignedDepartmentIds(assignedIds);
+      setDepartmentId(assignedIds.size === 1 ? assignedIds.values().next().value ?? "" : "");
       setCategories(c);
       setItems(i.content);
       setRooms(r);
@@ -102,7 +102,6 @@ export default function NewRequestView({
 
   const filteredItems = items?.filter((item) => !categoryId || item.category?.id === categoryId) ?? [];
 
-  const departmentName = departmentOptions?.find(({ item }) => item.id === departmentId)?.path ?? "—";
   const filledLines = lines.filter((l) => l.inventoryItemId);
   const hasContent = customMode ? customText.trim().length > 0 : filledLines.length > 0;
 
@@ -151,7 +150,14 @@ export default function NewRequestView({
     }
   }
 
-  if (!me || !departmentOptions || !categories || !items || !rooms) return <SectionLoading />;
+  if (!me || !departments || !assignedDepartmentIds || !categories || !items || !rooms) return <SectionLoading />;
+
+  const departmentOptions = flattenDepartmentHierarchy(departments, entityLocale)
+    .filter(({ item }) => assignedDepartmentIds.has(item.id));
+  const departmentName = departmentOptions.find(({ item }) => item.id === departmentId)?.path ?? "—";
+  const excludedDepartmentIds = new Set(
+    departments.filter((department) => !assignedDepartmentIds.has(department.id)).map((department) => department.id)
+  );
 
   const stepLabels = [dict.stepDeptType, dict.stepItems, dict.stepAttachments];
 
@@ -182,23 +188,19 @@ export default function NewRequestView({
               single assignment is shown as a locked legacy-style fact;
               multiple assignments become a select in the same card. */}
           <div className="readonly-pair">
-            <div className="readonly-box">
-              <label className="readonly-box-label" htmlFor={departmentOptions.length > 1 ? "wizard-department" : undefined}>
+            <div className={departmentOptions.length === 1 ? "readonly-box" : "field request-department-picker-field"}>
+              <label className={departmentOptions.length === 1 ? "readonly-box-label" : undefined}>
                 {dict.columnDepartment}
               </label>
               {departmentOptions.length > 1 ? (
-                <select
-                  id="wizard-department"
-                  value={departmentId}
-                  onChange={(e) => { setDepartmentId(e.target.value); setRoomId(""); }}
-                >
-                  <option value="">—</option>
-                  {departmentOptions.map(({ item, path }) => (
-                    <option key={item.id} value={item.id}>
-                      {path}
-                    </option>
-                  ))}
-                </select>
+                <DepartmentHierarchyPicker
+                  departments={departments}
+                  selectedIds={departmentId ? new Set([departmentId]) : new Set()}
+                  onChange={(ids) => { setDepartmentId(ids.values().next().value ?? ""); setRoomId(""); }}
+                  locale={entityLocale}
+                  multiple={false}
+                  excludedIds={excludedDepartmentIds}
+                />
               ) : (
                 <span className="readonly-box-value">{departmentName}</span>
               )}
