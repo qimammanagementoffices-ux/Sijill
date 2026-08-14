@@ -116,6 +116,28 @@ class StructureCrudTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.parentId").value(parent.get("id").asText()))
                 .andReturn().getResponse().getContentAsString());
 
+        var validAssignment = new sa.sijill.api.web.dto.CreateEmployeeRequest(
+                "Hierarchy Employee", "0585555555", "1234", "1234", null, null, null, null,
+                java.util.List.of(
+                        java.util.UUID.fromString(parent.get("id").asText()),
+                        java.util.UUID.fromString(child.get("id").asText())),
+                java.util.Set.of("emp.view"), null);
+        mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validAssignment)))
+                .andExpect(status().isOk());
+
+        var missingAdministration = new sa.sijill.api.web.dto.CreateEmployeeRequest(
+                "Invalid Hierarchy Employee", "0586666666", "1234", "1234", null, null, null, null,
+                java.util.List.of(java.util.UUID.fromString(child.get("id").asText())),
+                java.util.Set.of("emp.view"), null);
+        mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(missingAdministration)))
+                .andExpect(status().isBadRequest());
+
         mockMvc.perform(put("/api/v1/departments/" + parent.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

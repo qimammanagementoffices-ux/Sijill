@@ -1575,6 +1575,19 @@ img[data-viewable] {
   overflow: auto;
   padding: 0 8px 8px;
 }
+.department-picker-group-title {
+  padding: 9px 12px 5px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+.department-picker-group-title.optional {
+  color: var(--slate);
+}
+.department-assignment-options .department-picker-options {
+  max-height: 190px;
+}
 .department-picker-row {
   display: flex;
   align-items: center;

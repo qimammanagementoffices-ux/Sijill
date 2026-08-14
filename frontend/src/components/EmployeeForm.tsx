@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import PermissionGrid from "@/components/PermissionGrid";
-import DepartmentHierarchyPicker from "@/components/DepartmentHierarchyPicker";
+import DepartmentHierarchyPicker, { isValidEmployeeDepartmentSelection } from "@/components/DepartmentHierarchyPicker";
 import type {
   AttachmentDto,
   EmployeeDetail,
@@ -145,6 +145,14 @@ export default function EmployeeForm({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isValidEmployeeDepartmentSelection(departments, departmentIds)) {
+      setError(locale === "ar"
+        ? "يجب اختيار إدارة واحدة فقط، ويمكن اختيار أي عدد من المراحل والأقسام التابعة لها."
+        : locale === "hi"
+          ? "एक प्रशासन चुनना आवश्यक है; उसके अंतर्गत चरण और विभाग वैकल्पिक हैं।"
+          : "Choose exactly one administration; its stages and departments are optional.");
+      return;
+    }
     setSubmitting(true);
     try {
       if (mode === "create") {
@@ -356,6 +364,7 @@ export default function EmployeeForm({
               selectedIds={departmentIds}
               onChange={setDepartmentIds}
               locale={locale}
+              employeeAssignment
             />
           </div>
         </div>

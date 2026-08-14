@@ -208,7 +208,29 @@ public class EmployeeService {
             throw ApiException.validation(
                     "One or more departments not found", Map.of("departmentIds", "contains an unknown id"));
         }
+        List<Department> roots = found.stream().filter(department -> department.getParent() == null).toList();
+        if (roots.size() != 1) {
+            throw ApiException.validation(
+                    "Exactly one administration is required",
+                    Map.of("departmentIds", "must contain exactly one top-level department"));
+        }
+        UUID rootId = roots.getFirst().getId();
+        if (found.stream().anyMatch(department -> !belongsToRoot(department, rootId))) {
+            throw ApiException.validation(
+                    "All selected departments must belong to the chosen administration",
+                    Map.of("departmentIds", "contains a department outside the selected administration"));
+        }
         return new HashSet<>(found);
+    }
+
+    private boolean belongsToRoot(Department department, UUID rootId) {
+        Department current = department;
+        Set<UUID> visited = new HashSet<>();
+        while (current.getParent() != null) {
+            if (!visited.add(current.getId())) return false;
+            current = current.getParent();
+        }
+        return current.getId().equals(rootId);
     }
 
     private String toJsonArray(List<String> keys) {
