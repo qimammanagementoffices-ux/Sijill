@@ -120,7 +120,9 @@ export default function NewMaintenanceRequestView({
 
   if (!departments || !assignedDepartmentIds || !rooms || !faultTypes) return <SectionLoading />;
 
-  const visibleRooms = rooms.filter((room) => !departmentId || room.departmentId === departmentId);
+  const visibleRooms = departmentId
+    ? rooms.filter((room) => room.departmentId === departmentId)
+    : [];
   const assignedDepartments = flattenDepartmentHierarchy(departments, entityLocale)
     .filter(({ item }) => assignedDepartmentIds.has(item.id));
   const excludedDepartmentIds = new Set(
@@ -155,7 +157,7 @@ export default function NewMaintenanceRequestView({
         </div>
         <div className="field">
           <label>{dict.roomLabel}</label>
-          <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+          <select value={roomId} onChange={(e) => setRoomId(e.target.value)} disabled={!departmentId}>
             <option value="">—</option>
             {visibleRooms.map((room) => (
               <option key={room.id} value={room.id}>{entityName(room, entityLocale)}</option>

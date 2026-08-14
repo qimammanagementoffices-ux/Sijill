@@ -158,6 +158,9 @@ export default function NewRequestView({
   const excludedDepartmentIds = new Set(
     departments.filter((department) => !assignedDepartmentIds.has(department.id)).map((department) => department.id)
   );
+  const visibleRooms = departmentId
+    ? rooms.filter((room) => room.departmentId === departmentId)
+    : [];
 
   const stepLabels = [dict.stepDeptType, dict.stepItems, dict.stepAttachments];
 
@@ -206,9 +209,9 @@ export default function NewRequestView({
 
           <div className="field request-room-field">
             <label htmlFor="wizard-room">{dict.roomLabel}</label>
-            <select id="wizard-room" value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+            <select id="wizard-room" value={roomId} onChange={(e) => setRoomId(e.target.value)} disabled={!departmentId}>
               <option value="">—</option>
-              {rooms.map((r) => (
+              {visibleRooms.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.roomNumber} — {r.nameAr}
                 </option>
