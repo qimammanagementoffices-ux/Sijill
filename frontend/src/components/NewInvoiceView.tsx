@@ -5,6 +5,7 @@ import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import type { AttachmentOwnerType, InventoryItemListItem, InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
 const MAX_ATTACHMENT_SIZE_BYTES = 2 * 1024 * 1024;
@@ -248,23 +249,15 @@ export default function NewInvoiceView({
             <div className="panel-body">
               <div className="field">
                 <label>{attachmentsDict.title}</label>
-                <label className="acquisition-filebox">
-                  <b>{attachmentsDict.upload}</b>
-                  <small>{dict.attachmentsHint}</small>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    onChange={(e) => setPendingFiles(Array.from(e.target.files ?? []))}
-                  />
-                </label>
-                {pendingFiles.length > 0 && (
-                  <div className="request-card-chips">
-                    {pendingFiles.map((file) => (
-                      <span className="chip chip-sm" key={`${file.name}-${file.size}`}>{file.name}</span>
-                    ))}
-                  </div>
-                )}
+                <PendingAttachmentPicker
+                  files={pendingFiles}
+                  uploadLabel={attachmentsDict.upload}
+                  emptyLabel={attachmentsDict.noAttachments}
+                  hint={dict.attachmentsHint}
+                  onSelect={(selected) => setPendingFiles((current) => [...current, ...selected])}
+                  onRemove={(index) => setPendingFiles((current) => current.filter((_, i) => i !== index))}
+                  removeLabel={attachmentsDict.delete}
+                />
               </div>
             </div>
           </div>

@@ -107,6 +107,14 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content[?(@.id == '%s')].quantityRequested".formatted(itemId))
                         .value(org.hamcrest.Matchers.contains(5)));
 
+        mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("requestedOnly", "true")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(itemId))
+                .andExpect(jsonPath("$.content[0].quantityRequested").value(5));
+
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
@@ -126,6 +134,12 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[?(@.id == '%s')].quantityRequested".formatted(itemId))
                         .value(org.hamcrest.Matchers.contains(0)));
+
+        mockMvc.perform(get("/api/v1/warehouse/items")
+                        .param("requestedOnly", "true")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
 
         String itemBody = mockMvc.perform(get("/api/v1/warehouse/items/" + itemId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))

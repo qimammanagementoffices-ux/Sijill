@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
@@ -16,6 +16,7 @@ import type {
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 
 type MeData = { departments: LocalizedRef[] };
 type LineDraft = { inventoryItemId: string; quantityRequested: string };
@@ -55,7 +56,6 @@ export default function NewRequestView({
   // endpoint needs an ownerId), so step 3 queues Files in memory and posts
   // them right after the create call returns an id.
   const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -94,10 +94,8 @@ export default function NewRequestView({
     setLines(lines.filter((_, i) => i !== index));
   }
 
-  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []);
+  function handleFilesSelected(picked: File[]) {
     if (picked.length) setFiles((current) => [...current, ...picked]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   const filteredItems = items?.filter((item) => !categoryId || item.category?.id === categoryId) ?? [];
@@ -350,41 +348,14 @@ export default function NewRequestView({
         <form onSubmit={handleSubmit}>
           <p style={{ fontSize: 12.5, color: "var(--slate)", margin: "0 0 12px" }}>{dict.attachmentsHint}</p>
 
-          {files.length === 0 && (
-            <p style={{ fontSize: 12.5, color: "var(--slate)" }}>{dict.noAttachments}</p>
-          )}
-
-          <ul style={{ listStyle: "none", padding: 0, margin: "0 0 12px" }}>
-            {files.map((file, index) => (
-              <li
-                key={`${file.name}-${index}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, padding: "4px 0" }}
-              >
-                <span style={{ flex: 1 }}>{file.name}</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setFiles(files.filter((_, i) => i !== index))}
-                >
-                  {dict.removeAttachment}
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          <div className="filebox">
-            <label className="upl">
-              {dict.addAttachment}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                onChange={handleFilesSelected}
-                style={{ display: "none" }}
-              />
-            </label>
-          </div>
+          <PendingAttachmentPicker
+            files={files}
+            uploadLabel={dict.addAttachment}
+            emptyLabel={dict.noAttachments}
+            onSelect={handleFilesSelected}
+            onRemove={(index) => setFiles((current) => current.filter((_, i) => i !== index))}
+            removeLabel={dict.removeAttachment}
+          />
 
           {error && (
             <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, margin: "12px 0 0" }}>

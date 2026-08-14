@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import TrilingualNameFields from "@/components/TrilingualNameFields";
 import AttachmentUploader from "@/components/AttachmentUploader";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 import type {
   CategoryDto,
   InventoryItemDetail,
@@ -219,73 +220,26 @@ export default function ItemForm({
               <>
                 <div className="field span2">
                   <label>{dict.imagesLabel}</label>
-                  <div className="filebox">
-                    <label className="upl">
-                      {dict.uploadImages}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        // Appends rather than replaces: picking a second
-                        // time is how you add another image, not how you
-                        // start over -- removal has its own button.
-                        onChange={(e) => {
-                          // Read the FileList before clearing the input:
-                          // the updater below runs after this handler, by
-                          // which point e.target.files is empty.
-                          const picked = Array.from(e.target.files ?? []);
-                          setImages((prev) => [...prev, ...picked]);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                    {images.length === 0 && <span>{dict.noImagesChosen}</span>}
-                    {images.map((file, i) => (
-                      <span key={`${file.name}-${i}`} className="chip" style={{ gap: 8 }}>
-                        {file.name}
-                        <button
-                          type="button"
-                          aria-label="remove"
-                          onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                          style={{ border: "none", background: "none", cursor: "pointer", color: "var(--seal)", fontWeight: 700 }}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
+                  <PendingAttachmentPicker
+                    files={images}
+                    uploadLabel={dict.uploadImages}
+                    emptyLabel={dict.noImagesChosen}
+                    accept="image/jpeg,image/png,image/webp"
+                    onSelect={(selected) => setImages((current) => [...current, ...selected])}
+                    onRemove={(index) => setImages((current) => current.filter((_, i) => i !== index))}
+                  />
                 </div>
                 <div className="field span2">
                   <label>{dict.pdfLabel}</label>
-                  <div className="filebox">
-                    <label className="upl">
-                      {dict.uploadPdf}
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        onChange={(e) => {
-                          const picked = e.target.files?.[0] ?? null;
-                          setPdf(picked);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                    {pdf ? (
-                      <span className="chip" style={{ gap: 8 }}>
-                        {pdf.name}
-                        <button
-                          type="button"
-                          aria-label="remove"
-                          onClick={() => setPdf(null)}
-                          style={{ border: "none", background: "none", cursor: "pointer", color: "var(--seal)", fontWeight: 700 }}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ) : (
-                      <span>{dict.noPdfChosen}</span>
-                    )}
-                  </div>
+                  <PendingAttachmentPicker
+                    files={pdf ? [pdf] : []}
+                    uploadLabel={dict.uploadPdf}
+                    emptyLabel={dict.noPdfChosen}
+                    accept="application/pdf"
+                    multiple={false}
+                    onSelect={(selected) => setPdf(selected[0] ?? null)}
+                    onRemove={() => setPdf(null)}
+                  />
                 </div>
               </>
             )}

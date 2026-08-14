@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
@@ -17,6 +17,7 @@ import type {
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 
 type MeData = { departments: LocalizedRef[] };
 
@@ -50,7 +51,6 @@ export default function NewAssetRequestView({
   const [assetSearchOpen, setAssetSearchOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -130,10 +130,8 @@ export default function NewAssetRequestView({
     });
   }
 
-  function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(event.target.files ?? []);
+  function handleFilesSelected(picked: File[]) {
     if (picked.length) setFiles((current) => [...current, ...picked]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -330,29 +328,15 @@ export default function NewAssetRequestView({
 
       <div className="field asset-request-attachments">
         <label>{dict.attachmentsHint}</label>
-        <div className="filebox">
-          <label className="upl">
-            {dict.addAttachment}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={handleFilesSelected}
-            />
-          </label>
-          <span>{files.length ? `${files.length}` : dict.noAttachments}</span>
-        </div>
-        {files.length > 0 && (
-          <div className="asset-request-file-list">
-            {files.map((file, index) => (
-              <span key={`${file.name}-${index}`} className="chip chip-sm">
-                {file.name}
-                <button type="button" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))} aria-label={dict.removeAttachment}>×</button>
-              </span>
-            ))}
-          </div>
-        )}
+        <PendingAttachmentPicker
+          files={files}
+          uploadLabel={dict.addAttachment}
+          emptyLabel={dict.noAttachments}
+          hint={dict.attachmentsHint}
+          onSelect={handleFilesSelected}
+          onRemove={(index) => setFiles((current) => current.filter((_, i) => i !== index))}
+          removeLabel={dict.removeAttachment}
+        />
       </div>
 
       {error && <p className="form-error" role="alert">{error}</p>}

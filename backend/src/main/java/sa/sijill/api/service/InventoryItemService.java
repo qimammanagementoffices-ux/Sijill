@@ -2,6 +2,7 @@ package sa.sijill.api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,7 @@ import sa.sijill.api.domain.Category;
 import sa.sijill.api.domain.Domain;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.InventoryItem;
+import sa.sijill.api.domain.NeedRequestStatus;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.error.StaleVersionException;
 import sa.sijill.api.repository.CategoryRepository;
@@ -41,7 +43,7 @@ public class InventoryItemService {
     }
 
     public Page<InventoryItem> search(Domain domain, String q, boolean lowStockOnly, Pageable pageable) {
-        return search(domain, q, lowStockOnly, null, null, null, pageable);
+        return search(domain, q, lowStockOnly, false, null, null, null, pageable);
     }
 
     // Null filter = "no filter", so the query's `:x is null or ...` guards
@@ -50,11 +52,21 @@ public class InventoryItemService {
             Domain domain,
             String q,
             boolean lowStockOnly,
+            boolean requestedOnly,
             UUID categoryId,
             LocalDate dateFrom,
             LocalDate dateTo,
             Pageable pageable) {
-        return inventoryItemRepository.search(domain, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
+        return inventoryItemRepository.search(
+                domain,
+                q,
+                lowStockOnly,
+                requestedOnly,
+                EnumSet.of(NeedRequestStatus.PENDING, NeedRequestStatus.APPROVED, NeedRequestStatus.POSTPONED),
+                categoryId,
+                dateFrom,
+                dateTo,
+                pageable);
     }
 
     public InventoryItem get(UUID id) {

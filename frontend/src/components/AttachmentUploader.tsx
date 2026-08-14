@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import type { AttachmentDto, AttachmentOwnerType } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import Lightbox from "./Lightbox";
+import PendingAttachmentPicker from "./PendingAttachmentPicker";
 
 // Reused across item/room/asset screens (master spec §7: "Use it in
 // management screens and item/asset selection screens inside requests").
@@ -33,7 +34,6 @@ export default function AttachmentUploader({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<AttachmentDto | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function load() {
     apiFetch<AttachmentDto[]>(`/attachments?ownerType=${ownerType}&ownerId=${ownerId}`)
@@ -46,8 +46,7 @@ export default function AttachmentUploader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerType, ownerId]);
 
-  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleFileSelected(file: File) {
     if (!file) return;
     setError(null);
     setUploading(true);
@@ -63,7 +62,6 @@ export default function AttachmentUploader({
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -110,18 +108,16 @@ export default function AttachmentUploader({
       </div>
 
       {canManage && showUpload && (
-        <div className="filebox" style={{ marginTop: 10 }}>
-          <label className="upl">
-            {dict.title}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={handleFileSelected}
-              style={{ display: "none" }}
-            />
-          </label>
-          {uploading && <span className="spinner" />}
+        <div style={{ marginTop: 10 }}>
+          <PendingAttachmentPicker
+            files={[]}
+            uploadLabel={uploading ? dict.uploading : dict.upload}
+            emptyLabel={attachments.length === 0 ? dict.noAttachments : ""}
+            multiple={false}
+            disabled={uploading}
+            onSelect={(selected) => selected[0] && void handleFileSelected(selected[0])}
+            onRemove={() => {}}
+          />
         </div>
       )}
 

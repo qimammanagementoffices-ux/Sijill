@@ -995,6 +995,100 @@ img[data-viewable] {
 .filebox input[type="file"] {
   display: none;
 }
+.attachment-picker {
+  border: 1.5px dashed var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+.attachment-picker-dropzone {
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper-dim);
+  color: var(--ink);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.attachment-picker-dropzone:hover {
+  border-color: var(--ink-soft);
+  background: #fff;
+}
+.attachment-picker-dropzone.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.attachment-picker-dropzone input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.attachment-picker-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 16px;
+}
+.attachment-picker-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12.5px;
+}
+.attachment-picker-copy small,
+.attachment-picker-empty {
+  color: var(--slate);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.attachment-picker-empty {
+  padding-inline: 4px;
+}
+.attachment-picker-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.attachment-picker-file {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  padding: 5px 9px;
+  font-size: 11.5px;
+}
+.attachment-picker-file > span {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachment-picker-file button {
+  border: 0;
+  background: transparent;
+  color: var(--seal);
+  padding: 0;
+  line-height: 1;
+  font-size: 16px;
+  cursor: pointer;
+}
 /* Need/maintenance request cards -- the legacy list is a stack of cards, one
    per request, rather than a table. */
 .request-cards {
@@ -1189,9 +1283,6 @@ img[data-viewable] {
 .acquisition-form { gap:14px; }
 .acquisition-form .field { padding:12px; border-radius:10px; background:var(--paper-dim); }
 .acquisition-form input,.acquisition-form select,.acquisition-form textarea { background:#fff; }
-.acquisition-filebox { min-height:92px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:16px; border:1.5px dashed var(--gold); border-radius:10px; background:#fff; color:var(--ink); cursor:pointer; text-align:center; }
-.acquisition-filebox small { color:var(--slate); font-weight:400; }
-.acquisition-filebox input { position:absolute; width:1px; height:1px; opacity:0; }
 .request-view-modal .modal-body {
   display: grid;
   gap: 16px;
@@ -1785,8 +1876,6 @@ img[data-viewable] {
 .asset-autocomplete-options button span { color: var(--slate); font-size: 11.5px; }
 .asset-autocomplete-empty { padding: 12px; color: var(--slate); font-size: 12px; text-align: center; }
 .asset-request-description textarea { min-height: 92px; }
-.asset-request-file-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.asset-request-file-list button { border: 0; background: transparent; color: inherit; cursor: pointer; }
 .legacy-asset-request-form .form-error { margin: 0; color: var(--seal); font-size: 12.5px; }
 
 .step-track {
@@ -2159,18 +2248,6 @@ body.lang-en .modal-head h3 {
 }
 .maintenance-request-form .field textarea {
   min-height: 70px;
-}
-.maintenance-request-upload {
-  min-height: 60px;
-  justify-content: flex-start;
-  padding: 11px 12px;
-  overflow: hidden;
-}
-.maintenance-request-upload > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .maintenance-request-modal .modal-foot {
   min-height: 74px;

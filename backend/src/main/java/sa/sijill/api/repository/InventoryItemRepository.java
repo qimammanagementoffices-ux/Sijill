@@ -1,6 +1,7 @@
 package sa.sijill.api.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sa.sijill.api.domain.Domain;
 import sa.sijill.api.domain.InventoryItem;
+import sa.sijill.api.domain.NeedRequestStatus;
 
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, UUID> {
 
@@ -22,6 +24,10 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
                 or lower(i.nameEn) like lower(concat('%', :q, '%'))
                 or lower(i.code) like lower(concat('%', :q, '%')))
               and (:lowStockOnly = false or i.quantity <= i.minQuantity)
+              and (:requestedOnly = false or exists (
+                select l.id from NeedRequestLine l
+                where l.inventoryItem = i and l.needRequest.status in :requestedStatuses
+              ))
               and (:categoryId is null or i.category.id = :categoryId)
               and i.dateAdded >= coalesce(:dateFrom, i.dateAdded)
               and i.dateAdded <= coalesce(:dateTo, i.dateAdded)
@@ -30,6 +36,8 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
             @Param("domain") Domain domain,
             @Param("q") String q,
             @Param("lowStockOnly") boolean lowStockOnly,
+            @Param("requestedOnly") boolean requestedOnly,
+            @Param("requestedStatuses") Collection<NeedRequestStatus> requestedStatuses,
             @Param("categoryId") UUID categoryId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

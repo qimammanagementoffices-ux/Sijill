@@ -47,7 +47,7 @@ public class MaintenancePartController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
         Page<InventoryItem> page = inventoryItemService.search(
-                Domain.MAINTENANCE, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
+                Domain.MAINTENANCE, q, lowStockOnly, false, categoryId, dateFrom, dateTo, pageable);
         Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
         return PagedResponse.from(page, item -> InventoryItemListItem.from(item, images.get(item.getId()), 0));
     }

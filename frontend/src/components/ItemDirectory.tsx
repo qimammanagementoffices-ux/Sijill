@@ -133,10 +133,10 @@ export default function ItemDirectory({
   ) {
     const params = new URLSearchParams({
       q: query,
-      lowStockOnly: String(lowStock),
       page: String(pageNumber),
       size: String(perPage),
     });
+    params.set(showRequestedQuantity ? "requestedOnly" : "lowStockOnly", String(lowStock));
     params.append("sort", `${sortBy.field},${sortBy.dir}`);
     params.append("sort", "id,asc");
     if (filterBy.categoryId) params.set("categoryId", filterBy.categoryId);

@@ -1,12 +1,13 @@
 "use client";
 
 import { entityName, useEntityLocale } from "@/i18n/entityName";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import type { AttachmentDto, FaultTypeDto, LocalizedEntityDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 
 const PRIORITIES: MaintenancePriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 type MeData = { departments: LocalizedRef[] };
@@ -40,7 +41,6 @@ export default function NewMaintenanceRequestView({
   const [priority, setPriority] = useState<MaintenancePriority>("MEDIUM");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -129,10 +129,8 @@ export default function NewMaintenanceRequestView({
     departments.filter((department) => !assignedDepartmentIds.has(department.id)).map((department) => department.id)
   );
 
-  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []);
+  function handleFilesSelected(picked: File[]) {
     if (picked.length) setFiles((current) => [...current, ...picked]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   return (
@@ -185,14 +183,14 @@ export default function NewMaintenanceRequestView({
         </div>
         <div className="field span2">
           <label>{dict.attachmentsHint}</label>
-          <div className="maintenance-request-upload filebox">
-            <label className="upl">
-              <span aria-hidden="true">📎</span>
-              {dict.addAttachment}
-              <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFilesSelected} />
-            </label>
-            <span>{files.length === 0 ? attachmentsDict.noAttachments : files.map((file) => file.name).join("، ")}</span>
-          </div>
+          <PendingAttachmentPicker
+            files={files}
+            uploadLabel={dict.addAttachment}
+            emptyLabel={attachmentsDict.noAttachments}
+            hint={dict.attachmentsHint}
+            onSelect={handleFilesSelected}
+            onRemove={(index) => setFiles((current) => current.filter((_, i) => i !== index))}
+          />
         </div>
       </div>
 

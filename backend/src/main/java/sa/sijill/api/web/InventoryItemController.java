@@ -45,12 +45,14 @@ public class InventoryItemController {
     public PagedResponse<InventoryItemListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "false") boolean lowStockOnly,
+            @RequestParam(required = false, defaultValue = "false") boolean requestedOnly,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
         Page<InventoryItem> page =
-                inventoryItemService.search(Domain.WAREHOUSE, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
+                inventoryItemService.search(
+                        Domain.WAREHOUSE, q, lowStockOnly, requestedOnly, categoryId, dateFrom, dateTo, pageable);
         Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
         List<UUID> itemIds = page.getContent().stream().map(InventoryItem::getId).toList();
         Map<UUID, Long> requestedQuantities = itemIds.isEmpty()
