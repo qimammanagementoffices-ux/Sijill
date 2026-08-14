@@ -77,6 +77,7 @@ export type Dictionary = {
     brandingNav: string;
     backupsNav: string;
     siteMaintenanceNav: string;
+    officialHolidaysNav: string;
     languagesNav: string;
     permissionsOverviewNav: string;
     quickActionsTitle: string;

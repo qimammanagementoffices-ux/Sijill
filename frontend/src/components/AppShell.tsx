@@ -121,6 +121,8 @@ export default function AppShell({
   const canManageBranding = employee.permissions.includes("sys.branding");
   const canManageBackups = employee.permissions.includes("sys.backup");
   const canManageSiteMaintenance = employee.permissions.includes("sys.maintenance");
+  const officialHolidaysLabel = dict.officialHolidaysNav
+    || (currentLocale === "ar" ? "الإجازات الرسمية" : currentLocale === "hi" ? "आधिकारिक छुट्टियां" : "Official holidays");
 
   const canManagePermissions = employee.permissions.includes("emp.manage");
   const platformName = currentLocale === "en" ? branding.platformNameEn || branding.platformName : currentLocale === "hi" ? branding.platformNameHi || branding.platformName : branding.platformName;
@@ -192,6 +194,7 @@ export default function AppShell({
     ...(canManageTranslations ? [{ href: "/admin/languages", label: dict.languagesNav }] : []),
     ...(canManageBranding ? [{ href: "/admin/branding", label: dict.brandingNav }] : []),
     ...(canManageBackups ? [{ href: "/admin/backups", label: dict.backupsNav }] : []),
+    ...(canManageSiteMaintenance ? [{ href: "/admin/official-holidays", label: officialHolidaysLabel }] : []),
     ...(canManageSiteMaintenance ? [{ href: "/admin/site-maintenance", label: dict.siteMaintenanceNav }] : []),
   ];
 
