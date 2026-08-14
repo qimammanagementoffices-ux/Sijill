@@ -107,7 +107,13 @@ export default function OfficialHolidayCalendar({
             </div>
             <div className="field holiday-name-field">
               <label>{dict.holidayNameLabel}</label>
-              <input value={holidayName} onChange={(event) => setHolidayName(event.target.value)} placeholder={dict.holidayNamePlaceholder} />
+              <input
+                className="holiday-name-input"
+                type="text"
+                value={holidayName}
+                onChange={(event) => setHolidayName(event.target.value)}
+                placeholder={dict.holidayNamePlaceholder}
+              />
             </div>
             <button type="button" className="btn btn-primary" onClick={() => void addHoliday()} disabled={!holidayDate || busy}>
               {busy ? <span className="spinner" /> : dict.addHoliday}

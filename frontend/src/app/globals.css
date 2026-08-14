@@ -1004,6 +1004,7 @@ img[data-viewable] {
   gap: 10px;
 }
 .attachment-picker-dropzone {
+  width: 100%;
   min-height: 58px;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -1014,6 +1015,9 @@ img[data-viewable] {
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  appearance: none;
+  font: inherit;
+  text-align: start;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .attachment-picker-dropzone:hover {
@@ -1024,7 +1028,7 @@ img[data-viewable] {
   opacity: 0.55;
   cursor: not-allowed;
 }
-.attachment-picker-dropzone input[type="file"] {
+.attachment-picker-input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1208,6 +1212,23 @@ img[data-viewable] {
 
 .holiday-calendar-form .btn {
   min-height: 44px;
+}
+
+.holiday-name-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.holiday-name-input:focus {
+  border-color: var(--ink-soft);
+  outline: 2px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  outline-offset: 1px;
 }
 
 .holiday-list {

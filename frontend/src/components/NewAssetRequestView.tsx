@@ -53,6 +53,7 @@ export default function NewAssetRequestView({
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -70,7 +71,15 @@ export default function NewAssetRequestView({
         setAssets(assetPage.content);
         if (meData.departments.length === 1) setDepartmentId(meData.departments[0]!.id);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : errorsDict.generic));
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : errorsDict.generic);
+        setMe((current) => current ?? { departments: [] });
+        setDepartments((current) => current ?? []);
+        setRooms((current) => current ?? []);
+        setCategories((current) => current ?? []);
+        setAssets((current) => current ?? []);
+      })
+      .finally(() => setLoading(false));
   }, [errorsDict.generic]);
 
   useEffect(() => {
@@ -174,7 +183,10 @@ export default function NewAssetRequestView({
     }
   }
 
-  if (!me || !departments || !rooms || !categories || !assets) return <SectionLoading />;
+  if (loading) return <SectionLoading />;
+  if (!me || !departments || !rooms || !categories || !assets) {
+    return <p className="form-error" role="alert">{error ?? errorsDict.generic}</p>;
+  }
 
   return (
     <form id={formId} className="legacy-asset-request-form" onSubmit={handleSubmit}>

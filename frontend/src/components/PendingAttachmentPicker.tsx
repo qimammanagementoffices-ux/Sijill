@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 export default function PendingAttachmentPicker({
   files,
   uploadLabel,
@@ -23,26 +25,35 @@ export default function PendingAttachmentPicker({
   removeLabel?: string;
   disabled?: boolean;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="attachment-picker">
-      <label className={`attachment-picker-dropzone${disabled ? " disabled" : ""}`}>
+      <button
+        type="button"
+        className={`attachment-picker-dropzone${disabled ? " disabled" : ""}`}
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled}
+      >
         <span className="attachment-picker-icon" aria-hidden="true">📎</span>
         <span className="attachment-picker-copy">
           <b>{uploadLabel}</b>
           {hint && <small>{hint}</small>}
         </span>
-        <input
-          type="file"
-          accept={accept}
-          multiple={multiple}
-          disabled={disabled}
-          onChange={(event) => {
-            const selected = Array.from(event.target.files ?? []);
-            if (selected.length > 0) onSelect(selected);
-            event.target.value = "";
-          }}
-        />
-      </label>
+      </button>
+      <input
+        ref={inputRef}
+        className="attachment-picker-input"
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        disabled={disabled}
+        onChange={(event) => {
+          const selected = Array.from(event.currentTarget.files ?? []);
+          if (selected.length > 0) onSelect(selected);
+          event.currentTarget.value = "";
+        }}
+      />
 
       {files.length === 0 ? (
         emptyLabel && <span className="attachment-picker-empty">{emptyLabel}</span>
