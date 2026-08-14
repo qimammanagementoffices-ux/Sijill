@@ -62,6 +62,8 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     @Test
     void fullWorkflowSubmitApproveFinishTransfersCustodyAndRecordsHistory() throws Exception {
         String adminToken = createAdminAndGetToken("0599888111");
+        String countersignerToken = createEmployeeAndLogin(
+                adminToken, "0599888991", Set.of("as.act.countersign"));
         String requesterBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,6 +134,11 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/asset-requests/" + requestId + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED_UNDER_REVIEW"));
+
+        mockMvc.perform(post("/api/v1/asset-requests/" + requestId + "/countersign")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + countersignerToken))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"));
 
         mockMvc.perform(post("/api/v1/asset-requests/" + requestId + "/finish")
@@ -171,6 +178,8 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     @Test
     void legacyStyleTabsSubmitPurchaseAndMoveTransferAsset() throws Exception {
         String adminToken = createAdminAndGetToken("0599888333");
+        String countersignerToken = createEmployeeAndLogin(
+                adminToken, "0599888555", Set.of("as.act.countersign"));
 
         String departmentBody = mockMvc.perform(post("/api/v1/departments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -291,7 +300,12 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
 
         mockMvc.perform(post("/api/v1/asset-requests/" + requestId + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED_UNDER_REVIEW"));
+        mockMvc.perform(post("/api/v1/asset-requests/" + requestId + "/countersign")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + countersignerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"));
         mockMvc.perform(post("/api/v1/asset-requests/" + requestId + "/finish")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
