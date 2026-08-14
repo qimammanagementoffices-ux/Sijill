@@ -1,14 +1,23 @@
 package sa.sijill.api.domain;
 
-// PENDING -> APPROVED/POSTPONED/REJECTED -> IN_PROGRESS (via START) -> CLOSED
-// (via FINISH, straight to CLOSED per decision-record.md D3's collapsed
-// closure -- master spec §6's extra START step is the only difference
-// from NeedRequestStatus).
+// Same two-stage review as NeedRequestStatus, plus master spec §6's extra
+// START step -- after final approval the card offers "بدأ التنفيذ", and
+// "إنهاء العمل" only once work is under way.
+//
+//   PENDING/POSTPONED -> APPROVED_UNDER_REVIEW -> APPROVED
+//                     -> IN_PROGRESS -> DONE -> CLOSED
+//                     -> REJECTED_UNDER_REVIEW -> REJECTED
+//
+// DONE is the technician reporting the work; CLOSED is the requester
+// confirming they accept it.
 public enum MaintenanceRequestStatus {
     PENDING,
+    APPROVED_UNDER_REVIEW,
+    REJECTED_UNDER_REVIEW,
     APPROVED,
     POSTPONED,
     REJECTED,
     IN_PROGRESS,
+    DONE,
     CLOSED
 }

@@ -2,6 +2,8 @@ package sa.sijill.api.domain;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,6 +37,11 @@ public class NeedRequestAction {
 
     @Column(name = "reason")
     private String reason;
+
+    // Line trims and drops made as part of this decision. Empty for actions
+    // that only changed status.
+    @OneToMany(mappedBy = "action", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<NeedRequestActionLine> lineEdits = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

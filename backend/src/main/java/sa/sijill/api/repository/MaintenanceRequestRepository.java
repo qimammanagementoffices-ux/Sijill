@@ -1,5 +1,6 @@
 package sa.sijill.api.repository;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,10 +13,17 @@ import sa.sijill.api.domain.MaintenanceRequestStatus;
 
 public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceRequest, UUID> {
 
+    /** Asking for PENDING also returns postponed requests whose date has arrived. */
     @Query("""
             select r from MaintenanceRequest r
             left join r.faultType ft
-            where (:status is null or r.status = :status)
+            where (:archived = true and r.archivedAt is not null
+                or :archived = false and r.archivedAt is null)
+              and (:status is null
+                or r.status = :status
+                or (:status = sa.sijill.api.domain.MaintenanceRequestStatus.PENDING
+                    and r.status = sa.sijill.api.domain.MaintenanceRequestStatus.POSTPONED
+                    and r.postponedUntil is not null and r.postponedUntil <= :today))
               and (:requesterId is null or r.requester.id = :requesterId)
               and (:q is null or :q = ''
                 or lower(r.requester.name) like lower(concat('%', :q, '%'))
@@ -29,9 +37,19 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
             @Param("status") MaintenanceRequestStatus status,
             @Param("requesterId") UUID requesterId,
             @Param("q") String q,
+            @Param("archived") boolean archived,
+            @Param("today") LocalDate today,
             Pageable pageable);
 
-    long countByStatus(MaintenanceRequestStatus status);
+    @Query("""
+            select count(r) from MaintenanceRequest r
+            where r.archivedAt is null
+              and (r.status = :status
+                or (:status = sa.sijill.api.domain.MaintenanceRequestStatus.PENDING
+                    and r.status = sa.sijill.api.domain.MaintenanceRequestStatus.POSTPONED
+                    and r.postponedUntil is not null and r.postponedUntil <= :today))
+            """)
+    long countByStatus(@Param("status") MaintenanceRequestStatus status, @Param("today") LocalDate today);
 
     long countByPriorityAndStatusNot(MaintenancePriority priority, MaintenanceRequestStatus status);
 }

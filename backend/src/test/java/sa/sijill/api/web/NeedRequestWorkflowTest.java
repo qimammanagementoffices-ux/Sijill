@@ -115,19 +115,45 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content[0].id").value(itemId))
                 .andExpect(jsonPath("$.content[0].quantityRequested").value(5));
 
+        // First level parks the request under review -- it is not deliverable yet.
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED_UNDER_REVIEW"));
+
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isConflict());
+
+        // The same official cannot counter-sign their own approval.
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/countersign")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isForbidden());
+
+        String seniorToken = createEmployeeAndLogin(adminToken, "0596888888", Set.of("wh.act.countersign", "wh.view"));
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/countersign")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"));
 
-        var finish = new FinishNeedRequestRequest(List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 3)));
+        var finish = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 3)), null);
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(finish)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.status").value("DELIVERED"))
                 .andExpect(jsonPath("$.lines[0].quantityIssued").value(3));
+
+        // Only the requester closes the request by confirming receipt.
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/receive")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/receive")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
 
         mockMvc.perform(get("/api/v1/warehouse/items").param("size", "200")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
@@ -149,6 +175,56 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         org.assertj.core.api.Assertions.assertThat(
                         objectMapper.readTree(itemBody).get("quantity").asInt())
                 .isEqualTo(7); // 10 - 3 issued (not 5 requested)
+    }
+
+    /** A line trimmed during approval must not stay deliverable at the original quantity. */
+    @Test
+    void deliveryIsCappedAtTheApprovedQuantityNotTheRequestedOne() throws Exception {
+        String adminToken = createAdminAndGetToken("0596991111");
+        String requesterToken = createEmployeeAndLogin(adminToken, "0596992222", Set.of("wh.request"));
+        String seniorToken = createEmployeeAndLogin(adminToken, "0596993333", Set.of("wh.act.countersign", "wh.view"));
+        String itemId = createItemWithStock(adminToken, 10);
+
+        var submit = new CreateNeedRequestRequest(
+                null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
+        JsonNode created = objectMapper.readTree(mockMvc.perform(post("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submit)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString());
+        String requestId = created.get("id").asText();
+        UUID lineId = UUID.fromString(created.get("lines").get(0).get("id").asText());
+
+        var trim = new RequestDecisionRequest(
+                "نصف الكمية فقط", null, List.of(new RequestDecisionRequest.DecisionLine(lineId, 2, false)));
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/approve")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trim)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lines[0].quantityApproved").value(2))
+                .andExpect(jsonPath("$.actions[-1:].lineEdits[0].quantityBefore").value(org.hamcrest.Matchers.contains(5)));
+
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/countersign")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken))
+                .andExpect(status().isOk());
+
+        var overDeliver = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(lineId, 5)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(overDeliver)))
+                .andExpect(status().isBadRequest());
+
+        var empty = new FinishNeedRequestRequest(List.of(new FinishNeedRequestRequest.FinishLine(lineId, 0)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(empty)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

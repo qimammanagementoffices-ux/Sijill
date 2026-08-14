@@ -11,6 +11,11 @@ export default async function WarehouseRequestsPage() {
       errorsDict={dict.errors}
       commonDict={dict.common}
       attachmentsDict={dict.attachments}
+      statusDict={dict.requestStatus}
+      actionsDict={dict.requestActions}
+      modalsDict={dict.requestModals}
+      cardDict={dict.requestCard}
+      deliveryDict={dict.requestDelivery}
       locale={locale}
     />
   );

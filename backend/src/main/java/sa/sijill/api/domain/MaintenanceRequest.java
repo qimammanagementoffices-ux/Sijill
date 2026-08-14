@@ -50,7 +50,25 @@ public class MaintenanceRequest {
     @Column(name = "suggested_start_date")
     private LocalDate suggestedStartDate;
 
+    // See NeedRequest for why these four exist: resurfacing is a query
+    // condition, an overturn must not land back on the same official, and
+    // archive is a flag so it cannot erase the status it hides.
+    @Column(name = "postponed_until")
+    private LocalDate postponedUntil;
+
+    @Column(name = "returned_by_senior", nullable = false)
+    private boolean returnedBySenior;
+
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "archived_by_employee_id")
+    private Employee archivedBy;
+
+    // Without @OrderBy the timeline renders in whatever order Postgres returns.
     @OneToMany(mappedBy = "maintenanceRequest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("createdAt")
     private List<MaintenanceRequestAction> actions = new ArrayList<>();
 
     @OneToMany(mappedBy = "maintenanceRequest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)

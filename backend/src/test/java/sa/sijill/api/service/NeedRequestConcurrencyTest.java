@@ -111,12 +111,15 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         return saved;
     }
 
-    private NeedRequest submitAndApprove(UUID itemId, Employee actor) {
+    // Three distinct employees: the review refuses both the requester and the
+    // official who took the first-level decision as counter-signer.
+    private NeedRequest submitAndApprove(UUID itemId, Employee requester, Employee approver, Employee senior) {
         NeedRequest request = needRequestService.submit(
                 new CreateNeedRequestRequest(null, null, null, "concurrency test", List.of(new NeedRequestLineRequest(itemId, 1))),
-                actor);
+                requester);
         createdNeedRequestIds.add(request.getId());
-        return needRequestService.approve(request.getId(), actor);
+        needRequestService.approve(request.getId(), null, approver);
+        return needRequestService.countersign(request.getId(), null, senior);
     }
 
     // Returns true if this thread's finish() call succeeded, false if it hit
@@ -129,7 +132,7 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         try {
             needRequestService.finish(
                     requestId,
-                    new FinishNeedRequestRequest(List.of(new FinishNeedRequestRequest.FinishLine(lineId, 1))),
+                    new FinishNeedRequestRequest(List.of(new FinishNeedRequestRequest.FinishLine(lineId, 1)), null),
                     actor);
             return true;
         } catch (ApiException | ObjectOptimisticLockingFailureException e) {
@@ -140,10 +143,12 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
     @Test
     void concurrentFinishOnSharedStockLetsOnlyOneSucceed() throws Exception {
         Employee actor = createEmployee("0597700001");
+        Employee approver = createEmployee("0597700003");
+        Employee senior = createEmployee("0597700004");
         InventoryItem item = createItem("CONC-001", 1);
 
-        NeedRequest requestA = submitAndApprove(item.getId(), actor);
-        NeedRequest requestB = submitAndApprove(item.getId(), actor);
+        NeedRequest requestA = submitAndApprove(item.getId(), actor, approver, senior);
+        NeedRequest requestB = submitAndApprove(item.getId(), actor, approver, senior);
         UUID lineA = requestA.getLines().get(0).getId();
         UUID lineB = requestB.getLines().get(0).getId();
 

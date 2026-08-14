@@ -2,7 +2,8 @@ import type { AttachmentDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type RequestAction = {
-  actorName: string;
+  // Null when the system acted rather than an employee.
+  actorName: string | null;
   action: string;
   reason: string | null;
   createdAt: string;
@@ -11,10 +12,17 @@ type RequestAction = {
 const ACTION_TONE: Record<string, string> = {
   SUBMIT: "submitted",
   APPROVE: "approved",
+  COUNTERSIGN_APPROVE: "approved",
+  OVERTURN_APPROVE: "approved",
   REJECT: "rejected",
+  COUNTERSIGN_REJECT: "rejected",
+  OVERTURN_REJECT: "rejected",
+  REJECT_RECEIPT: "rejected",
   POSTPONE: "postponed",
+  OVERTURN_POSTPONE: "postponed",
   START: "started",
   FINISH: "finished",
+  RECEIVE: "finished",
 };
 
 export function formatActionDate(value: string) {
@@ -28,10 +36,6 @@ export function formatActionDate(value: string) {
         hour: "numeric",
         minute: "2-digit",
       }).format(date);
-}
-
-export function latestPostponeDate(actions: RequestAction[]) {
-  return [...actions].reverse().find((entry) => entry.action === "POSTPONE")?.createdAt ?? null;
 }
 
 export default function RequestCardActivity({

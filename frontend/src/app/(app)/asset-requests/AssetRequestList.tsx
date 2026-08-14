@@ -10,33 +10,62 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
-import RequestActionDialog from "@/components/RequestActionDialog";
-import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
+import RequestDecisionDialog from "@/components/RequestDecisionDialog";
+import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
-import type { AssetRequestDetail, AssetRequestListItem, PagedResponse } from "@/lib/types";
+import type {
+  AssetRequestDetail,
+  AssetRequestListItem,
+  AssetRequestStatusValue,
+  PagedResponse,
+  RequestDecisionBody,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
+  APPROVED_UNDER_REVIEW: "s-review",
+  REJECTED_UNDER_REVIEW: "s-review",
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
   CLOSED: "s-closed",
 };
 
+// No reject-receipt here: fulfilling an asset request performs a custody
+// transfer, which is its own audited record naming the receiving employee.
+type DecisionKind =
+  | "approve"
+  | "reject"
+  | "postpone"
+  | "countersign"
+  | "overturn-approve"
+  | "overturn-reject"
+  | "overturn-postpone";
+
+const REQUIRES_REASON: DecisionKind[] = ["reject", "postpone", "overturn-reject", "overturn-postpone"];
+
 export default function AssetRequestList({
   dict,
   errorsDict,
   commonDict,
   attachmentsDict,
+  statusDict,
+  actionsDict,
+  modalsDict,
+  cardDict,
   locale,
 }: {
   dict: Dictionary["assetRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  statusDict: Dictionary["requestStatus"];
+  actionsDict: Dictionary["requestActions"];
+  modalsDict: Dictionary["requestModals"];
+  cardDict: Dictionary["requestCard"];
   locale: string;
 }) {
   const router = useRouter();
@@ -51,9 +80,8 @@ export default function AssetRequestList({
   const [toast, setToast] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [decision, setDecision] = useState<{ request: AssetRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
-  const [reason, setReason] = useState("");
 
   function queryFor(nextView: "pending" | "all" | "mine", query: string) {
     const params = new URLSearchParams();
@@ -90,13 +118,7 @@ export default function AssetRequestList({
   }, [searchParams]);
 
   function statusLabel(s: string) {
-    return {
-      PENDING: dict.statusPending,
-      APPROVED: dict.statusApproved,
-      POSTPONED: dict.statusPostponed,
-      REJECTED: dict.statusRejected,
-      CLOSED: dict.statusClosed,
-    }[s];
+    return statusDict[s as AssetRequestStatusValue] ?? s;
   }
 
   function purposeLabel(purpose: AssetRequestListItem["purpose"]) {
@@ -110,7 +132,40 @@ export default function AssetRequestList({
   }
 
   function actionLabel(action: string) {
-    return { SUBMIT: dict.submit, APPROVE: dict.approve, REJECT: dict.reject, POSTPONE: dict.postpone, FINISH: dict.finish }[action] ?? action;
+    return (
+      {
+        SUBMIT: dict.submit,
+        APPROVE: actionsDict.approve,
+        REJECT: actionsDict.reject,
+        POSTPONE: actionsDict.postpone,
+        COUNTERSIGN_APPROVE: actionsDict.confirmApproval,
+        COUNTERSIGN_REJECT: actionsDict.confirmRejection,
+        OVERTURN_APPROVE: actionsDict.cancelRejection,
+        OVERTURN_REJECT: actionsDict.cancelApproval,
+        OVERTURN_POSTPONE: actionsDict.postpone,
+        FINISH: dict.finish,
+        ARCHIVE: actionsDict.archive,
+        RESTORE: actionsDict.restore,
+      }[action] ?? action
+    );
+  }
+
+  function decisionTitle(kind: DecisionKind, s: AssetRequestStatusValue) {
+    switch (kind) {
+      case "approve":
+        return modalsDict.approveTitle;
+      case "reject":
+        return modalsDict.rejectTitle;
+      case "postpone":
+      case "overturn-postpone":
+        return modalsDict.postponeTitle;
+      case "countersign":
+        return s === "APPROVED_UNDER_REVIEW" ? modalsDict.confirmApprovalTitle : modalsDict.confirmRejectionTitle;
+      case "overturn-reject":
+        return modalsDict.cancelApprovalTitle;
+      case "overturn-approve":
+        return modalsDict.cancelRejectionTitle;
+    }
   }
 
   function selectView(nextView: "pending" | "all" | "mine") {
@@ -124,15 +179,38 @@ export default function AssetRequestList({
     load(view, q);
   }
 
-  async function act(id: string, action: "approve" | "reject" | "postpone", actionReason?: string) {
-    setBusyAction(`${id}:${action}`);
+  const DECISION_PATH: Record<DecisionKind, string> = {
+    approve: "approve",
+    reject: "reject",
+    postpone: "postpone",
+    countersign: "countersign",
+    "overturn-approve": "overturn",
+    "overturn-reject": "overturn",
+    "overturn-postpone": "overturn",
+  };
+
+  async function post(id: string, path: string) {
+    setBusyAction(`${id}:${path}`);
     try {
-      await apiFetch(`/asset-requests/${id}/${action}`, {
+      await apiFetch(`/asset-requests/${id}/${path}`, { method: "POST" });
+      load();
+      setToast(commonDict.actionSuccess);
+    } catch (error) {
+      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function act(id: string, kind: DecisionKind, body: RequestDecisionBody) {
+    setBusyAction(`${id}:${kind}`);
+    try {
+      const outcome = kind.startsWith("overturn-") ? kind.slice("overturn-".length).toUpperCase() : null;
+      await apiFetch(`/asset-requests/${id}/${DECISION_PATH[kind]}`, {
         method: "POST",
-        body: action === "approve" ? undefined : JSON.stringify({ reason: actionReason || null }),
+        body: JSON.stringify(outcome ? { ...body, outcome } : body),
       });
-      setPendingAction(null);
-      setReason("");
+      setDecision(null);
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
@@ -210,16 +288,39 @@ export default function AssetRequestList({
               <article key={request.id} className="request-card">
                 <header className="request-card-head">
                   <h3 className="request-card-title">{purposeLabel(request.purpose)} — {request.assetNameAr}</h3>
-                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
+                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && request.postponedUntil && <time>{request.postponedUntil}</time>}</span>
                 </header>
                 <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}
                 {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
                 <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
                 <div className="request-card-actions">
-                  {(request.status === "PENDING" || request.status === "POSTPONED") && permissions.includes("as.act.approve") && <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => void act(request.id, "approve")}>{dict.approve}</button>}
-                  {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && permissions.includes("as.act.reject") && <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "reject" })}>{dict.reject}</button>}
-                  {(request.status === "PENDING" || request.status === "APPROVED") && permissions.includes("as.act.postpone") && <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "postpone" })}>{dict.postpone}</button>}
+                  {request.status === "PENDING" && !request.archivedAt && (
+                    <>
+                      {permissions.includes("as.act.approve") && <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "approve" })}>{actionsDict.approve}</button>}
+                      {permissions.includes("as.act.postpone") && <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "postpone" })}>{actionsDict.postpone}</button>}
+                      {permissions.includes("as.act.reject") && <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "reject" })}>{actionsDict.reject}</button>}
+                    </>
+                  )}
+                  {(request.status === "APPROVED_UNDER_REVIEW" || request.status === "REJECTED_UNDER_REVIEW") && !request.archivedAt && permissions.includes("as.act.countersign") && (
+                    <>
+                      <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "countersign" })}>{request.status === "APPROVED_UNDER_REVIEW" ? actionsDict.confirmApproval : actionsDict.confirmRejection}</button>
+                      <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: request.status === "APPROVED_UNDER_REVIEW" ? "overturn-reject" : "overturn-approve" })}>{request.status === "APPROVED_UNDER_REVIEW" ? actionsDict.cancelApproval : actionsDict.cancelRejection}</button>
+                      <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "overturn-postpone" })}>{actionsDict.postpone}</button>
+                    </>
+                  )}
+                  {request.status === "APPROVED" && !request.archivedAt && permissions.includes("as.act.finish") && (
+                    <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => void post(request.id, "finish")}>
+                      {busyAction === `${request.id}:finish` && <span className="spinner" />}
+                      {dict.finish}
+                    </button>
+                  )}
+                  {permissions.includes("emp.manage") && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
+                      {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
+                      {request.archivedAt ? actionsDict.restore : actionsDict.archive}
+                    </button>
+                  )}
                   <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(request)}>{dict.cardOpen}</button>
                 </div>
               </article>
@@ -259,7 +360,19 @@ export default function AssetRequestList({
         </div>
       )}
 
-      {pendingAction && <RequestActionDialog title={pendingAction.action === "reject" ? dict.reject : dict.postpone} reasonLabel={dict.reasonLabel} cancelLabel={commonDict.cancel} submitting={busyAction !== null} reason={reason} onReasonChange={setReason} onConfirm={() => void act(pendingAction.id, pendingAction.action, reason)} onCancel={() => { setPendingAction(null); setReason(""); }} />}
+      {decision && (
+        <RequestDecisionDialog
+          key={`${decision.request.id}:${decision.kind}`}
+          title={decisionTitle(decision.kind, decision.request.status)}
+          requireComment={REQUIRES_REASON.includes(decision.kind)}
+          needsDate={decision.kind === "postpone" || decision.kind === "overturn-postpone"}
+          submitting={busyAction !== null}
+          dict={modalsDict}
+          commonDict={commonDict}
+          onConfirm={(body) => void act(decision.request.id, decision.kind, body)}
+          onCancel={() => setDecision(null)}
+        />
+      )}
 
       {viewRequest && (
         <div className="overlay no-print" role="dialog" aria-modal="true" aria-labelledby="asset-request-view-title">

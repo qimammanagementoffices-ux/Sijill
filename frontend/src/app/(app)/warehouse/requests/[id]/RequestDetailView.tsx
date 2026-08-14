@@ -12,40 +12,38 @@ import Toast from "@/components/Toast";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
+  APPROVED_UNDER_REVIEW: "s-review",
+  REJECTED_UNDER_REVIEW: "s-review",
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
+  DELIVERED: "s-delivered",
   CLOSED: "s-closed",
 };
 
+// Read-only. Every decision in the workflow is taken on the request card, so
+// this page shows the request and its evidence rather than a second, divergent
+// copy of the action buttons.
 export default function RequestDetailView({
   id,
   dict,
   commonDict,
   attachmentsDict,
+  statusDict,
 }: {
   id: string;
   dict: Dictionary["warehouseRequests"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  statusDict: Dictionary["requestStatus"];
 }) {
   const router = useRouter();
   const [request, setRequest] = useState<NeedRequestDetail | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
-  const [issuedByLine, setIssuedByLine] = useState<Record<string, string>>({});
-  const [reason, setReason] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
   function load() {
     apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}`)
-      .then((r) => {
-        setRequest(r);
-        const defaults: Record<string, string> = {};
-        r.lines.forEach((line) => {
-          defaults[line.id] = String(line.quantityIssued ?? line.quantityRequested);
-        });
-        setIssuedByLine(defaults);
-      })
+      .then(setRequest)
       .catch(() => router.replace("/warehouse/requests"));
   }
 
@@ -55,44 +53,12 @@ export default function RequestDetailView({
       return;
     }
     load();
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setPermissions(me.permissions))
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, id]);
 
-  async function act(action: "approve" | "reject" | "postpone") {
-    await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/${action}`, {
-      method: "POST",
-      body: action === "approve" ? undefined : JSON.stringify({ reason: reason || null }),
-    });
-    load();
-    setToast(commonDict.actionSuccess);
-  }
-
-  async function finish() {
-    await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/finish`, {
-      method: "POST",
-      body: JSON.stringify({
-        lines: request!.lines.map((line) => ({
-          lineId: line.id,
-          quantityIssued: Number(issuedByLine[line.id] ?? line.quantityRequested),
-        })),
-      }),
-    });
-    load();
-    setToast(commonDict.actionSuccess);
-  }
-
   if (!request) return <SectionLoading />;
 
-  const statusLabel = {
-    PENDING: dict.statusPending,
-    APPROVED: dict.statusApproved,
-    POSTPONED: dict.statusPostponed,
-    REJECTED: dict.statusRejected,
-    CLOSED: dict.statusClosed,
-  }[request.status];
+  const statusLabel = statusDict[request.status] ?? request.status;
 
   return (
     <>
@@ -127,18 +93,7 @@ export default function RequestDetailView({
                     {line.itemNameAr} × <span className="qty-num">{line.quantityRequested}</span>
                   </td>
                   <td>
-                    {request.status === "APPROVED" ? (
-                      <input
-                        type="number"
-                        min={0}
-                        max={line.quantityRequested}
-                        value={issuedByLine[line.id] ?? ""}
-                        onChange={(e) => setIssuedByLine({ ...issuedByLine, [line.id]: e.target.value })}
-                        style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: 90 }}
-                      />
-                    ) : (
-                      <span className="qty-num">{line.quantityIssued ?? "—"}</span>
-                    )}
+                    <span className="qty-num">{line.quantityIssued ?? "—"}</span>
                   </td>
                 </tr>
               ))}
@@ -158,40 +113,6 @@ export default function RequestDetailView({
           />
         </div>
 
-        {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (
-          <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
-            <div className="field" style={{ maxWidth: 360 }}>
-              <label>{dict.reasonLabel}</label>
-              <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
-            </div>
-          </div>
-        )}
-
-        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8 }}>
-          {(request.status === "PENDING" || request.status === "POSTPONED") &&
-            permissions.includes("wh.act.approve") && (
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => act("approve")}>
-                {dict.approve}
-              </button>
-            )}
-          {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
-            permissions.includes("wh.act.reject") && (
-              <button type="button" className="btn btn-seal btn-sm" onClick={() => act("reject")}>
-                {dict.reject}
-              </button>
-            )}
-          {(request.status === "PENDING" || request.status === "APPROVED") &&
-            permissions.includes("wh.act.postpone") && (
-              <button type="button" className="btn btn-outline btn-sm" onClick={() => act("postpone")}>
-                {dict.postpone}
-              </button>
-            )}
-          {request.status === "APPROVED" && permissions.includes("wh.act.finish") && (
-            <button type="button" className="btn btn-primary btn-sm" onClick={finish}>
-              {dict.finish}
-            </button>
-          )}
-        </div>
       </div>
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

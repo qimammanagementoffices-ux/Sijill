@@ -1,14 +1,15 @@
 package sa.sijill.api.web.dto;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.Category;
+import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.NeedRequest;
-import sa.sijill.api.domain.NeedRequestAction;
+import sa.sijill.api.service.NeedRequestService;
 
 // Carries the request's lines because the list renders cards, not rows: each
 // card shows what was asked for ("مياه شرب × 2") without a detail fetch per
@@ -16,17 +17,23 @@ import sa.sijill.api.domain.NeedRequestAction;
 // no query.
 public record NeedRequestListItem(
         UUID id,
+        UUID requesterId,
         String requesterName,
         LocalizedRef department,
         LocalizedRef category,
         String status,
         LocalDate suggestedStartDate,
+        LocalDate postponedUntil,
+        Instant editableUntil,
+        boolean canEdit,
+        boolean returnedBySenior,
+        Instant archivedAt,
         String notes,
         List<NeedRequestLineDto> lines,
         List<NeedRequestActionDto> actions,
         List<AttachmentDto> attachments) {
 
-    public static NeedRequestListItem from(NeedRequest request, List<Attachment> attachments) {
+    public static NeedRequestListItem from(NeedRequest request, List<Attachment> attachments, Employee actor) {
         Category category = request.getCategory();
         if (category == null) {
             category = request.getLines().stream()
@@ -40,17 +47,22 @@ public record NeedRequestListItem(
 
         return new NeedRequestListItem(
                 request.getId(),
+                request.getRequester().getId(),
                 request.getRequester().getName(),
                 request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment()),
                 category == null ? null : LocalizedRef.from(category),
-                request.getStatus().name(),
+                // Effective, not stored: a postponed request whose date has
+                // arrived reads as pending everywhere.
+                NeedRequestService.effectiveStatus(request).name(),
                 request.getSuggestedStartDate(),
+                request.getPostponedUntil(),
+                NeedRequestService.editableUntil(request),
+                NeedRequestService.canEdit(request, actor),
+                request.isReturnedBySenior(),
+                request.getArchivedAt(),
                 request.getNotes(),
                 request.getLines().stream().map(NeedRequestLineDto::from).toList(),
-                request.getActions().stream()
-                        .sorted(Comparator.comparing(NeedRequestAction::getCreatedAt))
-                        .map(NeedRequestActionDto::from)
-                        .toList(),
+                request.getActions().stream().map(NeedRequestActionDto::from).toList(),
                 attachments.stream().map(AttachmentDto::from).toList());
     }
 }

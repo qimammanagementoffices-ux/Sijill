@@ -62,7 +62,11 @@ public class InventoryItemService {
                 q,
                 lowStockOnly,
                 requestedOnly,
-                EnumSet.of(NeedRequestStatus.PENDING, NeedRequestStatus.APPROVED, NeedRequestStatus.POSTPONED),
+                EnumSet.of(
+                        NeedRequestStatus.PENDING,
+                        NeedRequestStatus.POSTPONED,
+                        NeedRequestStatus.APPROVED_UNDER_REVIEW,
+                        NeedRequestStatus.APPROVED),
                 categoryId,
                 dateFrom,
                 dateTo,

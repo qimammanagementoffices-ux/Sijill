@@ -10,34 +10,69 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
-import RequestActionDialog from "@/components/RequestActionDialog";
-import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
+import RequestDecisionDialog from "@/components/RequestDecisionDialog";
+import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
-import type { MaintenanceRequestDetail, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
+import type {
+  MaintenanceRequestDetail,
+  MaintenanceRequestListItem,
+  MaintenanceRequestStatusValue,
+  PagedResponse,
+  RequestDecisionBody,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
+  APPROVED_UNDER_REVIEW: "s-review",
+  REJECTED_UNDER_REVIEW: "s-review",
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
   IN_PROGRESS: "s-progress",
+  DONE: "s-done",
   CLOSED: "s-closed",
 };
+
+type DecisionKind =
+  | "approve"
+  | "reject"
+  | "postpone"
+  | "countersign"
+  | "overturn-approve"
+  | "overturn-reject"
+  | "overturn-postpone"
+  | "reject-receipt";
+
+const REQUIRES_REASON: DecisionKind[] = [
+  "reject",
+  "postpone",
+  "overturn-reject",
+  "overturn-postpone",
+  "reject-receipt",
+];
 
 export default function MaintenanceRequestList({
   dict,
   errorsDict,
   commonDict,
   attachmentsDict,
+  statusDict,
+  actionsDict,
+  modalsDict,
+  cardDict,
   locale,
 }: {
   dict: Dictionary["maintenanceRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  statusDict: Dictionary["requestStatus"];
+  actionsDict: Dictionary["requestActions"];
+  modalsDict: Dictionary["requestModals"];
+  cardDict: Dictionary["requestCard"];
   locale: string;
 }) {
   const router = useRouter();
@@ -53,15 +88,17 @@ export default function MaintenanceRequestList({
   const [toast, setToast] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [decision, setDecision] = useState<{ request: MaintenanceRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<MaintenanceRequestListItem | null>(null);
-  const [reason, setReason] = useState("");
+  const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
+  const [archived, setArchived] = useState(false);
 
-  function load(statusFilter = status, query = appliedQuery, mineOnly = mine) {
+  function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (query) params.set("q", query);
     if (mineOnly) params.set("mine", "true");
+    if (showArchived) params.set("archived", "true");
     setFiltering(true);
     apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests?${params.toString()}`)
       .then(setPage)
@@ -79,8 +116,11 @@ export default function MaintenanceRequestList({
       return;
     }
     load("PENDING", "", false);
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setPermissions(me.permissions))
+    apiFetch<{ id: string; permissions: string[] }>("/auth/me")
+      .then((me) => {
+        setPermissions(me.permissions);
+        setCurrentEmployeeId(me.id);
+      })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -90,14 +130,7 @@ export default function MaintenanceRequestList({
   }, [searchParams, permissions]);
 
   function statusLabel(s: string) {
-    return {
-      PENDING: dict.statusPending,
-      APPROVED: dict.statusApproved,
-      POSTPONED: dict.statusPostponed,
-      REJECTED: dict.statusRejected,
-      IN_PROGRESS: dict.statusInProgress,
-      CLOSED: dict.statusClosed,
-    }[s];
+    return statusDict[s as MaintenanceRequestStatusValue] ?? s;
   }
 
   function priorityLabel(p: string) {
@@ -110,20 +143,52 @@ export default function MaintenanceRequestList({
   }
 
   function actionLabel(action: string) {
-    return {
-      SUBMIT: dict.submit,
-      APPROVE: dict.approve,
-      REJECT: dict.reject,
-      POSTPONE: dict.postpone,
-      START: dict.start,
-      FINISH: dict.finish,
-    }[action] ?? action;
+    return (
+      {
+        SUBMIT: dict.submit,
+        APPROVE: actionsDict.approve,
+        REJECT: actionsDict.reject,
+        POSTPONE: actionsDict.postpone,
+        COUNTERSIGN_APPROVE: actionsDict.confirmApproval,
+        COUNTERSIGN_REJECT: actionsDict.confirmRejection,
+        OVERTURN_APPROVE: actionsDict.cancelRejection,
+        OVERTURN_REJECT: actionsDict.cancelApproval,
+        OVERTURN_POSTPONE: actionsDict.postpone,
+        START: actionsDict.startWork,
+        FINISH: actionsDict.finishWork,
+        RECEIVE: actionsDict.confirmReceipt,
+        REJECT_RECEIPT: actionsDict.rejectReceipt,
+        ARCHIVE: actionsDict.archive,
+        RESTORE: actionsDict.restore,
+      }[action] ?? action
+    );
   }
 
-  function selectView(nextStatus: string, mineOnly: boolean) {
+  function decisionTitle(kind: DecisionKind, s: MaintenanceRequestStatusValue) {
+    switch (kind) {
+      case "approve":
+        return modalsDict.approveTitle;
+      case "reject":
+        return modalsDict.rejectTitle;
+      case "postpone":
+      case "overturn-postpone":
+        return modalsDict.postponeTitle;
+      case "countersign":
+        return s === "APPROVED_UNDER_REVIEW" ? modalsDict.confirmApprovalTitle : modalsDict.confirmRejectionTitle;
+      case "overturn-reject":
+        return modalsDict.cancelApprovalTitle;
+      case "overturn-approve":
+        return modalsDict.cancelRejectionTitle;
+      case "reject-receipt":
+        return modalsDict.rejectReceiptTitle;
+    }
+  }
+
+  function selectView(nextStatus: string, mineOnly: boolean, showArchived = false) {
     setStatus(nextStatus);
     setMine(mineOnly);
-    load(nextStatus, appliedQuery, mineOnly);
+    setArchived(showArchived);
+    load(nextStatus, appliedQuery, mineOnly, showArchived);
   }
 
   function handleSearch(e: FormEvent) {
@@ -132,19 +197,45 @@ export default function MaintenanceRequestList({
     load(status, q, mine);
   }
 
-  async function act(id: string, action: "approve" | "reject" | "postpone" | "start", actionReason?: string) {
-    const key = `${id}:${action}`;
+  const DECISION_PATH: Record<DecisionKind, string> = {
+    approve: "approve",
+    reject: "reject",
+    postpone: "postpone",
+    countersign: "countersign",
+    "overturn-approve": "overturn",
+    "overturn-reject": "overturn",
+    "overturn-postpone": "overturn",
+    "reject-receipt": "reject-receipt",
+  };
+
+  async function act(id: string, kind: DecisionKind, body: RequestDecisionBody) {
+    const key = `${id}:${kind}`;
     setBusyAction(key);
     try {
-      await apiFetch<MaintenanceRequestDetail>(`/maintenance/requests/${id}/${action}`, {
+      const outcome = kind.startsWith("overturn-") ? kind.slice("overturn-".length).toUpperCase() : null;
+      await apiFetch<MaintenanceRequestDetail>(`/maintenance/requests/${id}/${DECISION_PATH[kind]}`, {
         method: "POST",
-        body:
-          action === "approve" || action === "start"
-            ? undefined
-            : JSON.stringify({ reason: actionReason || null }),
+        body: JSON.stringify(outcome ? { ...body, outcome } : body),
       });
-      setPendingAction(null);
-      setReason("");
+      setDecision(null);
+      load();
+      setToast(commonDict.actionSuccess);
+    } catch (error) {
+      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  // Simple actions: start, finish, receive, archive, restore.
+  async function post(id: string, path: string, body?: unknown) {
+    const key = `${id}:${path}`;
+    setBusyAction(key);
+    try {
+      await apiFetch<MaintenanceRequestDetail>(`/maintenance/requests/${id}/${path}`, {
+        method: "POST",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
@@ -197,9 +288,15 @@ export default function MaintenanceRequestList({
         <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">
-              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{dict.pendingTab}</button>
-              <button type="button" className={`btn btn-sm ${status === "" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{status === "PENDING" && !mine && !archived && page ? ` (${page.totalElements})` : ""}</button>
+              {permissions.includes("mt.act.countersign") && (
+                <button type="button" className={`btn btn-sm ${status === "APPROVED_UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("APPROVED_UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
+              )}
+              <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
+              {permissions.includes("emp.manage") && (
+                <button type="button" className={`btn btn-sm ${archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false, true)}>{cardDict.archiveTab}</button>
+              )}
             </div>
             <form className="filter-row" onSubmit={handleSearch}>
               <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
@@ -229,7 +326,7 @@ export default function MaintenanceRequestList({
                   <h3 className="request-card-title">
                     {dict.cardTitle} — {request.faultType ? request.faultType.ar : "—"}
                   </h3>
-                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
+                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && request.postponedUntil && <time>{request.postponedUntil}</time>}</span>
                 </header>
 
                 <div className="request-card-meta">
@@ -241,7 +338,17 @@ export default function MaintenanceRequestList({
 
                 {request.description && <p className="request-card-notes">{request.description}</p>}
 
-                {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
+                {request.status === "POSTPONED" && request.postponedUntil && (
+                  <p className="request-card-notice">
+                    {cardDict.postponeResurfaceNote.replace("{date}", request.postponedUntil)}
+                  </p>
+                )}
+                {request.returnedBySenior && <p className="request-card-notice">{cardDict.returnedBySenior}</p>}
+                {request.archivedAt && <p className="request-card-notice">{cardDict.archivedNote}</p>}
+
+                {request.suggestedStartDate && request.status !== "POSTPONED" && (
+                  <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
+                )}
 
                 <RequestCardActivity
                   actions={request.actions}
@@ -252,51 +359,79 @@ export default function MaintenanceRequestList({
                 />
 
                 <div className="request-card-actions">
-                  {(request.status === "PENDING" || request.status === "POSTPONED") &&
-                    permissions.includes("mt.act.approve") && (
-                      <button
-                        type="button"
-                        className="btn btn-sm request-decision request-decision-approve"
-                        disabled={busyAction !== null}
-                        onClick={() => void act(request.id, "approve")}
-                      >
-                        {busyAction === `${request.id}:approve` && <span className="spinner" />}
-                        {dict.approve}
-                      </button>
+                  {request.status === "PENDING" && !request.archivedAt && (
+                    <>
+                      {permissions.includes("mt.act.approve") && (
+                        <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "approve" })}>
+                          {actionsDict.approve}
+                        </button>
+                      )}
+                      {permissions.includes("mt.act.postpone") && (
+                        <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "postpone" })}>
+                          {actionsDict.postpone}
+                        </button>
+                      )}
+                      {permissions.includes("mt.act.reject") && (
+                        <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "reject" })}>
+                          {actionsDict.reject}
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {(request.status === "APPROVED_UNDER_REVIEW" || request.status === "REJECTED_UNDER_REVIEW") &&
+                    !request.archivedAt &&
+                    permissions.includes("mt.act.countersign") && (
+                      <>
+                        <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "countersign" })}>
+                          {request.status === "APPROVED_UNDER_REVIEW" ? actionsDict.confirmApproval : actionsDict.confirmRejection}
+                        </button>
+                        <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: request.status === "APPROVED_UNDER_REVIEW" ? "overturn-reject" : "overturn-approve" })}>
+                          {request.status === "APPROVED_UNDER_REVIEW" ? actionsDict.cancelApproval : actionsDict.cancelRejection}
+                        </button>
+                        <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "overturn-postpone" })}>
+                          {actionsDict.postpone}
+                        </button>
+                      </>
                     )}
-                  {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
-                    permissions.includes("mt.act.reject") && (
-                      <button
-                        type="button"
-                        className="btn btn-sm request-decision request-decision-reject"
-                        disabled={busyAction !== null}
-                        onClick={() => setPendingAction({ id: request.id, action: "reject" })}
-                      >
-                        {dict.reject}
-                      </button>
-                    )}
-                  {(request.status === "PENDING" || request.status === "APPROVED") &&
-                    permissions.includes("mt.act.postpone") && (
-                      <button
-                        type="button"
-                        className="btn btn-sm request-decision request-decision-postpone"
-                        disabled={busyAction !== null}
-                        onClick={() => setPendingAction({ id: request.id, action: "postpone" })}
-                      >
-                        {dict.postpone}
-                      </button>
-                    )}
-                  {request.status === "APPROVED" && permissions.includes("mt.act.start") && (
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      disabled={busyAction !== null}
-                      onClick={() => void act(request.id, "start")}
-                    >
+
+                  {/* Maintenance starts work rather than delivering: after
+                      final approval the card offers بدأ التنفيذ, and إنهاء
+                      العمل only once work is under way. */}
+                  {request.status === "APPROVED" && !request.archivedAt && permissions.includes("mt.act.start") && (
+                    <button type="button" className="btn btn-primary btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, "start")}>
                       {busyAction === `${request.id}:start` && <span className="spinner" />}
-                      {dict.start}
+                      {actionsDict.startWork}
                     </button>
                   )}
+
+                  {/* Finishing records which parts were consumed, so it opens
+                      the request page rather than posting an empty report. */}
+                  {request.status === "IN_PROGRESS" && !request.archivedAt && permissions.includes("mt.act.finish") && (
+                    <a className="btn btn-sm request-decision request-decision-approve" href={`/maintenance/requests/${request.id}`}>
+                      {actionsDict.finishWork}
+                    </a>
+                  )}
+
+                  {request.status === "DONE" && !request.archivedAt && request.requesterId === currentEmployeeId && (
+                    <>
+                      <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => void post(request.id, "receive")}>
+                        {busyAction === `${request.id}:receive` && <span className="spinner" />}
+                        {actionsDict.confirmReceipt}
+                      </button>
+                      <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "reject-receipt" })}>
+                        {actionsDict.rejectReceipt}
+                      </button>
+                    </>
+                  )}
+
+                  {permissions.includes("emp.manage") && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
+                      {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
+                      {request.archivedAt ? actionsDict.restore : actionsDict.archive}
+                    </button>
+                  )}
+
                   <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(request)}>
                     {dict.cardOpen}
                   </button>
@@ -340,19 +475,18 @@ export default function MaintenanceRequestList({
         </div>
       )}
 
-      {pendingAction && (
-        <RequestActionDialog
-          title={pendingAction.action === "reject" ? dict.reject : dict.postpone}
-          reasonLabel={dict.reasonLabel}
-          cancelLabel={commonDict.cancel}
+      {decision && (
+        <RequestDecisionDialog
+          key={`${decision.request.id}:${decision.kind}`}
+          title={decisionTitle(decision.kind, decision.request.status)}
+          description={decision.kind === "reject-receipt" ? modalsDict.rejectReceiptDesc : undefined}
+          requireComment={REQUIRES_REASON.includes(decision.kind)}
+          needsDate={decision.kind === "postpone" || decision.kind === "overturn-postpone"}
           submitting={busyAction !== null}
-          reason={reason}
-          onReasonChange={setReason}
-          onConfirm={() => void act(pendingAction.id, pendingAction.action, reason)}
-          onCancel={() => {
-            setPendingAction(null);
-            setReason("");
-          }}
+          dict={modalsDict}
+          commonDict={commonDict}
+          onConfirm={(body) => void act(decision.request.id, decision.kind, body)}
+          onCancel={() => setDecision(null)}
         />
       )}
 

@@ -1,9 +1,11 @@
 package sa.sijill.api.web.dto;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import sa.sijill.api.domain.MaintenanceRequest;
+import sa.sijill.api.service.MaintenanceRequestService;
 
 public record MaintenanceRequestDetail(
         UUID id,
@@ -16,6 +18,9 @@ public record MaintenanceRequestDetail(
         String description,
         String status,
         LocalDate suggestedStartDate,
+        LocalDate postponedUntil,
+        boolean returnedBySenior,
+        Instant archivedAt,
         List<PartUsedDto> partsUsed,
         List<MaintenanceRequestActionDto> actions,
         int version) {
@@ -35,8 +40,11 @@ public record MaintenanceRequestDetail(
                 request.getLocation(),
                 request.getPriority().name(),
                 request.getDescription(),
-                request.getStatus().name(),
+                MaintenanceRequestService.effectiveStatus(request).name(),
                 request.getSuggestedStartDate(),
+                request.getPostponedUntil(),
+                request.isReturnedBySenior(),
+                request.getArchivedAt(),
                 request.getPartsUsed().stream().map(PartUsedDto::from).toList(),
                 request.getActions().stream().map(MaintenanceRequestActionDto::from).toList(),
                 request.getVersion());

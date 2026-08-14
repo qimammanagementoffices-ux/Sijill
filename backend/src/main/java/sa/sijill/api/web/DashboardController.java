@@ -52,17 +52,17 @@ public class DashboardController {
                 inventoryItemRepository.countByDomain(Domain.WAREHOUSE),
                 inventoryItemRepository.sumQuantityByDomain(Domain.WAREHOUSE),
                 inventoryItemRepository.countLowStockByDomain(Domain.WAREHOUSE),
-                needRequestRepository.countByStatus(NeedRequestStatus.PENDING));
+                needRequestRepository.countByStatus(NeedRequestStatus.PENDING, java.time.LocalDate.now()));
 
         var maintenance = new DashboardStatsDto.Maintenance(
-                maintenanceRequestRepository.countByStatus(MaintenanceRequestStatus.PENDING),
-                maintenanceRequestRepository.countByStatus(MaintenanceRequestStatus.IN_PROGRESS),
-                maintenanceRequestRepository.countByStatus(MaintenanceRequestStatus.CLOSED),
+                maintenanceRequestRepository.countByStatus(MaintenanceRequestStatus.PENDING, java.time.LocalDate.now()),
+                maintenanceRequestRepository.countByStatus(MaintenanceRequestStatus.IN_PROGRESS, java.time.LocalDate.now()),
+                maintenanceRequestRepository.countByStatus(MaintenanceRequestStatus.CLOSED, java.time.LocalDate.now()),
                 maintenanceRequestRepository.countByPriorityAndStatusNot(
                         MaintenancePriority.URGENT, MaintenanceRequestStatus.CLOSED));
 
         var assets = new DashboardStatsDto.Assets(
-                roomRepository.count(), assetRepository.count(), assetRequestRepository.countByStatus(AssetRequestStatus.PENDING));
+                roomRepository.count(), assetRepository.count(), assetRequestRepository.countByStatus(AssetRequestStatus.PENDING, java.time.LocalDate.now()));
 
         return new DashboardStatsDto(warehouse, maintenance, assets);
     }

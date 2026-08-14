@@ -10,6 +10,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
       dict={dict.warehouseRequests}
       commonDict={dict.common}
       attachmentsDict={dict.attachments}
+      statusDict={dict.requestStatus}
     />
   );
 }

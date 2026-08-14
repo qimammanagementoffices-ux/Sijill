@@ -11,6 +11,10 @@ export default async function MaintenanceRequestsPage() {
       errorsDict={dict.errors}
       commonDict={dict.common}
       attachmentsDict={dict.attachments}
+      statusDict={dict.requestStatus}
+      actionsDict={dict.requestActions}
+      modalsDict={dict.requestModals}
+      cardDict={dict.requestCard}
       locale={locale}
     />
   );

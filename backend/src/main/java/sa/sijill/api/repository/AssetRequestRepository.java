@@ -1,5 +1,6 @@
 package sa.sijill.api.repository;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +15,13 @@ public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID
     @Query("""
             select r from AssetRequest r
             left join r.asset legacyAsset
-            where (:status is null or r.status = :status)
+            where (:archived = true and r.archivedAt is not null
+                or :archived = false and r.archivedAt is null)
+              and (:status is null
+                or r.status = :status
+                or (:status = sa.sijill.api.domain.AssetRequestStatus.PENDING
+                    and r.status = sa.sijill.api.domain.AssetRequestStatus.POSTPONED
+                    and r.postponedUntil is not null and r.postponedUntil <= :today))
               and (:requesterId is null or r.requester.id = :requesterId)
               and (:q is null or :q = ''
                 or lower(r.requester.name) like lower(concat('%', :q, '%'))
@@ -37,7 +44,17 @@ public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID
             @Param("status") AssetRequestStatus status,
             @Param("requesterId") UUID requesterId,
             @Param("q") String q,
+            @Param("archived") boolean archived,
+            @Param("today") LocalDate today,
             Pageable pageable);
 
-    long countByStatus(AssetRequestStatus status);
+    @Query("""
+            select count(r) from AssetRequest r
+            where r.archivedAt is null
+              and (r.status = :status
+                or (:status = sa.sijill.api.domain.AssetRequestStatus.PENDING
+                    and r.status = sa.sijill.api.domain.AssetRequestStatus.POSTPONED
+                    and r.postponedUntil is not null and r.postponedUntil <= :today))
+            """)
+    long countByStatus(@Param("status") AssetRequestStatus status, @Param("today") LocalDate today);
 }

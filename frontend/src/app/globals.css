@@ -831,6 +831,17 @@ tbody tr.clickable:hover {
   color: var(--ink-light);
   background: #e7eaf4;
 }
+/* Both under-review stages share one neutral pill: the decision is taken but
+   not yet final, whichever way it went. */
+.s-review {
+  color: var(--slate);
+  background: var(--slate-soft);
+  border: 1px dashed currentColor;
+}
+.s-delivered {
+  color: #2c6b45;
+  background: var(--sage-soft);
+}
 .s-done {
   color: #2c6b45;
   background: var(--sage-soft);
@@ -3292,4 +3303,86 @@ body.lang-en .modal-head h3 {
   .wizard-step { min-width: 0; }
   .wizard-step-label { font-size: 11px; white-space: normal; }
   .wizard-step-line { width: 20px; }
+}
+
+/* --- Request workflow: notices, decision dialog, delivery dialog --- */
+
+.request-card-notice {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--slate-soft);
+  color: var(--slate);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.edit-note {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: 12px;
+}
+/* The expired notice stays on the card rather than vanishing: a control that
+   silently disappears reads as a bug. */
+.edit-note.expired {
+  background: var(--slate-soft);
+  color: var(--slate);
+}
+/* A line an approver dropped is struck through, not hidden -- the card has to
+   keep showing what was asked for. */
+.chip-removed {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.request-dialog-desc {
+  margin: 0 0 14px;
+  color: var(--slate);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.decision-lines,
+.delivery-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.decision-line,
+.delivery-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.decision-line.removed {
+  opacity: 0.55;
+}
+.decision-line.removed .decision-line-name {
+  text-decoration: line-through;
+}
+.decision-line-name,
+.delivery-line-text {
+  flex: 1;
+  min-width: 0;
+}
+.delivery-line-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.delivery-line-text small {
+  color: var(--slate);
+  font-size: 11px;
+}
+.decision-line input[type="number"],
+.delivery-line input[type="number"] {
+  width: 88px;
+  flex: none;
 }

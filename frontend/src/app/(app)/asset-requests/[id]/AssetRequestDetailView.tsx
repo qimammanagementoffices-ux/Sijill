@@ -11,25 +11,28 @@ import Toast from "@/components/Toast";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
+  APPROVED_UNDER_REVIEW: "s-review",
+  REJECTED_UNDER_REVIEW: "s-review",
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
   CLOSED: "s-closed",
 };
 
+// Read-only: decisions are taken on the request card, not here.
 export default function AssetRequestDetailView({
   id,
   dict,
   commonDict,
+  statusDict,
 }: {
   id: string;
   dict: Dictionary["assetRequests"];
   commonDict: Dictionary["common"];
+  statusDict: Dictionary["requestStatus"];
 }) {
   const router = useRouter();
   const [request, setRequest] = useState<AssetRequestDetail | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
-  const [reason, setReason] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
   function load() {
@@ -44,30 +47,12 @@ export default function AssetRequestDetailView({
       return;
     }
     load();
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setPermissions(me.permissions))
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, id]);
 
-  async function act(action: "approve" | "reject" | "postpone" | "finish") {
-    await apiFetch<AssetRequestDetail>(`/asset-requests/${id}/${action}`, {
-      method: "POST",
-      body: action === "approve" || action === "finish" ? undefined : JSON.stringify({ reason: reason || null }),
-    });
-    load();
-    setToast(commonDict.actionSuccess);
-  }
-
   if (!request) return <SectionLoading />;
 
-  const statusLabel = {
-    PENDING: dict.statusPending,
-    APPROVED: dict.statusApproved,
-    POSTPONED: dict.statusPostponed,
-    REJECTED: dict.statusRejected,
-    CLOSED: dict.statusClosed,
-  }[request.status];
+  const statusLabel = statusDict[request.status] ?? request.status;
   const purposeLabel = request.purpose === "PURCHASE"
     ? dict.purposePurchase
     : request.purpose === "MAINTENANCE"
@@ -103,40 +88,6 @@ export default function AssetRequestDetailView({
           </p>
         </div>
 
-        {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && (
-          <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
-            <div className="field" style={{ maxWidth: 360 }}>
-              <label>{dict.reasonLabel}</label>
-              <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
-            </div>
-          </div>
-        )}
-
-        <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8 }}>
-          {(request.status === "PENDING" || request.status === "POSTPONED") &&
-            permissions.includes("as.act.approve") && (
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => act("approve")}>
-                {dict.approve}
-              </button>
-            )}
-          {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
-            permissions.includes("as.act.reject") && (
-              <button type="button" className="btn btn-seal btn-sm" onClick={() => act("reject")}>
-                {dict.reject}
-              </button>
-            )}
-          {(request.status === "PENDING" || request.status === "APPROVED") &&
-            permissions.includes("as.act.postpone") && (
-              <button type="button" className="btn btn-outline btn-sm" onClick={() => act("postpone")}>
-                {dict.postpone}
-              </button>
-            )}
-          {request.status === "APPROVED" && permissions.includes("as.act.finish") && (
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => act("finish")}>
-              {dict.finish}
-            </button>
-          )}
-        </div>
       </div>
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

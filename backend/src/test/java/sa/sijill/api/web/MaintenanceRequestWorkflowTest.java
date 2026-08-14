@@ -106,6 +106,17 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/maintenance/requests/" + requestId + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED_UNDER_REVIEW"));
+
+        // Work cannot start before the second official counter-signs.
+        mockMvc.perform(post("/api/v1/maintenance/requests/" + requestId + "/start")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isConflict());
+
+        String seniorToken = createEmployeeAndLogin(adminToken, "0599888888", Set.of("mt.act.countersign", "mt.view"));
+        mockMvc.perform(post("/api/v1/maintenance/requests/" + requestId + "/countersign")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"));
 
         // Finish before START must fail.
@@ -118,14 +129,19 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
-        var finish = new FinishMaintenanceRequestRequest(List.of(new PartUsedRequest(UUID.fromString(partId), 4)));
+        var finish = new FinishMaintenanceRequestRequest(List.of(new PartUsedRequest(UUID.fromString(partId), 4)), null);
         mockMvc.perform(post("/api/v1/maintenance/requests/" + requestId + "/finish")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(finish)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.status").value("DONE"))
                 .andExpect(jsonPath("$.partsUsed[0].quantity").value(4));
+
+        mockMvc.perform(post("/api/v1/maintenance/requests/" + requestId + "/receive")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
 
         String partBody = mockMvc.perform(get("/api/v1/maintenance/parts/" + partId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))

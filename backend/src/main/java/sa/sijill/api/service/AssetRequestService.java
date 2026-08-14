@@ -1,5 +1,6 @@
 package sa.sijill.api.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -14,6 +15,8 @@ import sa.sijill.api.domain.*;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.AssetRequestLineRequest;
+import sa.sijill.api.web.dto.OverturnRequest;
+import sa.sijill.api.web.dto.RequestDecisionRequest;
 import sa.sijill.api.web.dto.SubmitAssetRequestRequest;
 
 /**
@@ -55,8 +58,19 @@ public class AssetRequestService {
         this.auditService = auditService;
     }
 
-    public Page<AssetRequest> search(AssetRequestStatus status, UUID restrictToRequesterId, String q, Pageable pageable) {
-        return assetRequestRepository.search(status, restrictToRequesterId, q, pageable);
+    public Page<AssetRequest> search(
+            AssetRequestStatus status, UUID restrictToRequesterId, String q, boolean archived, Pageable pageable) {
+        return assetRequestRepository.search(status, restrictToRequesterId, q, archived, LocalDate.now(), pageable);
+    }
+
+    /** A postponed request whose date has arrived counts as pending everywhere. */
+    public static AssetRequestStatus effectiveStatus(AssetRequest request) {
+        if (request.getStatus() == AssetRequestStatus.POSTPONED
+                && request.getPostponedUntil() != null
+                && !request.getPostponedUntil().isAfter(LocalDate.now())) {
+            return AssetRequestStatus.PENDING;
+        }
+        return request.getStatus();
     }
 
     public AssetRequest get(UUID id) {
@@ -170,41 +184,184 @@ public class AssetRequestService {
     }
 
     @Transactional
-    public AssetRequest approve(UUID id, Employee actor) {
-        AssetRequest request = get(id);
-        requireStatus(request, AssetRequestStatus.PENDING, AssetRequestStatus.POSTPONED);
-        request.setStatus(AssetRequestStatus.APPROVED);
-        addAction(request, actor, "APPROVE", null);
-        AssetRequest saved = assetRequestRepository.save(request);
-        auditService.record(actor, "ASSET_REQUEST_APPROVED", "AssetRequest", saved.getId());
-        return saved;
+    public AssetRequest approve(UUID id, RequestDecisionRequest decision, Employee actor) {
+        AssetRequest request = openRequest(id);
+        requireStatus(request, AssetRequestStatus.PENDING);
+        requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
+
+        addAction(request, actor, "APPROVE", comment(decision));
+        request.setStatus(AssetRequestStatus.APPROVED_UNDER_REVIEW);
+        request.setPostponedUntil(null);
+        request.setReturnedBySenior(false);
+        return save(request, actor, "ASSET_REQUEST_APPROVED");
     }
 
     @Transactional
-    public AssetRequest reject(UUID id, String reason, Employee actor) {
-        AssetRequest request = get(id);
-        requireStatus(request, AssetRequestStatus.PENDING, AssetRequestStatus.APPROVED, AssetRequestStatus.POSTPONED);
-        request.setStatus(AssetRequestStatus.REJECTED);
-        addAction(request, actor, "REJECT", reason);
-        AssetRequest saved = assetRequestRepository.save(request);
-        auditService.record(actor, "ASSET_REQUEST_REJECTED", "AssetRequest", saved.getId());
-        return saved;
+    public AssetRequest reject(UUID id, RequestDecisionRequest decision, Employee actor) {
+        AssetRequest request = openRequest(id);
+        requireStatus(request, AssetRequestStatus.PENDING);
+        requireNotRepeatingOverturnedDecision(request, actor, "REJECT");
+        requireReason(decision);
+
+        addAction(request, actor, "REJECT", comment(decision));
+        request.setStatus(AssetRequestStatus.REJECTED_UNDER_REVIEW);
+        request.setPostponedUntil(null);
+        request.setReturnedBySenior(false);
+        return save(request, actor, "ASSET_REQUEST_REJECTED");
     }
 
     @Transactional
-    public AssetRequest postpone(UUID id, String reason, Employee actor) {
+    public AssetRequest postpone(UUID id, RequestDecisionRequest decision, Employee actor) {
+        AssetRequest request = openRequest(id);
+        requireStatus(request, AssetRequestStatus.PENDING);
+        requireReason(decision);
+        applyPostponement(request, actor, "POSTPONE", decision);
+        return save(request, actor, "ASSET_REQUEST_POSTPONED");
+    }
+
+    @Transactional
+    public AssetRequest countersign(UUID id, RequestDecisionRequest decision, Employee actor) {
+        AssetRequest request = openRequest(id);
+        requireStatus(request, AssetRequestStatus.APPROVED_UNDER_REVIEW, AssetRequestStatus.REJECTED_UNDER_REVIEW);
+        requireDistinctFromFirstLevel(request, actor);
+
+        boolean approving = request.getStatus() == AssetRequestStatus.APPROVED_UNDER_REVIEW;
+        addAction(request, actor, approving ? "COUNTERSIGN_APPROVE" : "COUNTERSIGN_REJECT", comment(decision));
+        request.setStatus(approving ? AssetRequestStatus.APPROVED : AssetRequestStatus.REJECTED);
+        return save(request, actor, approving ? "ASSET_REQUEST_COUNTERSIGNED" : "ASSET_REQUEST_REJECTION_CONFIRMED");
+    }
+
+    @Transactional
+    public AssetRequest overturn(UUID id, OverturnRequest overturn, Employee actor) {
+        AssetRequest request = openRequest(id);
+        requireStatus(request, AssetRequestStatus.APPROVED_UNDER_REVIEW, AssetRequestStatus.REJECTED_UNDER_REVIEW);
+        requireDistinctFromFirstLevel(request, actor);
+
+        boolean wasApproval = request.getStatus() == AssetRequestStatus.APPROVED_UNDER_REVIEW;
+        OverturnRequest.Outcome outcome = overturn == null ? null : overturn.outcome();
+        if (outcome == null) {
+            throw ApiException.validation("An overturn needs an outcome", Map.of("outcome", "is required"));
+        }
+        if (wasApproval && outcome == OverturnRequest.Outcome.APPROVE) {
+            throw ApiException.conflict("This request is already approved at the first level");
+        }
+        if (!wasApproval && outcome == OverturnRequest.Outcome.REJECT) {
+            throw ApiException.conflict("This request is already rejected at the first level");
+        }
+
+        RequestDecisionRequest decision = overturn.asDecision();
+        switch (outcome) {
+            case POSTPONE -> {
+                requireReason(decision);
+                applyPostponement(request, actor, "OVERTURN_POSTPONE", decision);
+                request.setReturnedBySenior(true);
+            }
+            case APPROVE -> {
+                addAction(request, actor, "OVERTURN_APPROVE", comment(decision));
+                request.setStatus(AssetRequestStatus.APPROVED);
+                request.setPostponedUntil(null);
+            }
+            case REJECT -> {
+                requireReason(decision);
+                addAction(request, actor, "OVERTURN_REJECT", comment(decision));
+                request.setStatus(AssetRequestStatus.REJECTED);
+                request.setPostponedUntil(null);
+            }
+        }
+        return save(request, actor, "ASSET_REQUEST_OVERTURNED");
+    }
+
+    @Transactional
+    public AssetRequest archive(UUID id, Employee actor) {
         AssetRequest request = get(id);
-        requireStatus(request, AssetRequestStatus.PENDING, AssetRequestStatus.APPROVED);
+        if (request.getArchivedAt() != null) {
+            throw ApiException.conflict("Request is already archived");
+        }
+        request.setArchivedAt(Instant.now());
+        request.setArchivedBy(actor);
+        addAction(request, actor, "ARCHIVE", null);
+        return save(request, actor, "ASSET_REQUEST_ARCHIVED");
+    }
+
+    @Transactional
+    public AssetRequest restore(UUID id, Employee actor) {
+        AssetRequest request = get(id);
+        if (request.getArchivedAt() == null) {
+            throw ApiException.conflict("Request is not archived");
+        }
+        request.setArchivedAt(null);
+        request.setArchivedBy(null);
+        addAction(request, actor, "RESTORE", null);
+        return save(request, actor, "ASSET_REQUEST_RESTORED");
+    }
+
+    private AssetRequest openRequest(UUID id) {
+        AssetRequest request = get(id);
+        if (request.getArchivedAt() != null) {
+            throw ApiException.conflict("Request is archived");
+        }
+        return request;
+    }
+
+    private AssetRequest save(AssetRequest request, Employee actor, String auditAction) {
+        AssetRequest saved = assetRequestRepository.save(request);
+        auditService.record(actor, auditAction, "AssetRequest", saved.getId());
+        return saved;
+    }
+
+    private void applyPostponement(
+            AssetRequest request, Employee actor, String action, RequestDecisionRequest decision) {
+        LocalDate until = decision == null ? null : decision.postponedUntil();
+        if (until == null) {
+            throw ApiException.validation("A postponement needs a date", Map.of("postponedUntil", "is required"));
+        }
+        if (!until.isAfter(LocalDate.now())) {
+            throw ApiException.validation(
+                    "The postponement date must be in the future", Map.of("postponedUntil", "must be after today"));
+        }
         request.setStatus(AssetRequestStatus.POSTPONED);
-        addAction(request, actor, "POSTPONE", reason);
-        AssetRequest saved = assetRequestRepository.save(request);
-        auditService.record(actor, "ASSET_REQUEST_POSTPONED", "AssetRequest", saved.getId());
-        return saved;
+        request.setPostponedUntil(until);
+        addAction(request, actor, action, comment(decision));
+    }
+
+    private void requireDistinctFromFirstLevel(AssetRequest request, Employee actor) {
+        if (request.getRequester().getId().equals(actor.getId())) {
+            throw ApiException.forbidden("You cannot review your own request");
+        }
+        request.getActions().stream()
+                .filter(entry -> "APPROVE".equals(entry.getAction()) || "REJECT".equals(entry.getAction()))
+                .reduce((first, second) -> second)
+                .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
+                .ifPresent(entry -> {
+                    throw ApiException.forbidden("The first-level decision was yours — another official must review it");
+                });
+    }
+
+    private void requireNotRepeatingOverturnedDecision(AssetRequest request, Employee actor, String action) {
+        if (!request.isReturnedBySenior()) return;
+        request.getActions().stream()
+                .filter(entry -> action.equals(entry.getAction()))
+                .reduce((first, second) -> second)
+                .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
+                .ifPresent(entry -> {
+                    throw ApiException.forbidden("This decision was overturned — another official must take it");
+                });
+    }
+
+    private void requireReason(RequestDecisionRequest decision) {
+        if (decision == null || decision.comment() == null || decision.comment().isBlank()) {
+            throw ApiException.validation("A reason is required", Map.of("comment", "must not be blank"));
+        }
+    }
+
+    private String comment(RequestDecisionRequest decision) {
+        if (decision == null || decision.comment() == null || decision.comment().isBlank()) return null;
+        return decision.comment().trim();
     }
 
     @Transactional
     public AssetRequest finish(UUID id, Employee actor) {
-        AssetRequest request = get(id);
+        AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.APPROVED);
 
         if (request.getPurpose() == AssetRequestPurpose.TRANSFER) {
@@ -234,11 +391,11 @@ public class AssetRequestService {
     }
 
     private void requireStatus(AssetRequest request, AssetRequestStatus... allowed) {
+        AssetRequestStatus current = effectiveStatus(request);
         for (AssetRequestStatus status : allowed) {
-            if (request.getStatus() == status) return;
+            if (current == status) return;
         }
-        throw ApiException.conflict(
-                "Request is not in a state that allows this action (current: " + request.getStatus() + ")");
+        throw ApiException.conflict("Request is not in a state that allows this action (current: " + current + ")");
     }
 
     private void addAction(AssetRequest request, Employee actor, String action, String reason) {

@@ -1,0 +1,176 @@
+"use client";
+
+import { useState } from "react";
+import type { Dictionary } from "@/i18n/getDictionary";
+import type { NeedRequestLineDto, RequestDecisionBody } from "@/lib/types";
+
+// One dialog for every decision in the request workflow: approve, reject,
+// postpone, counter-sign, overturn, reject-receipt. They differ only in which
+// of the three inputs are shown, so they share one component rather than six
+// near-identical copies.
+export default function RequestDecisionDialog({
+  title,
+  description,
+  requireComment,
+  needsDate,
+  lines,
+  submitting,
+  dict,
+  commonDict,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  description?: string;
+  requireComment: boolean;
+  needsDate: boolean;
+  // Passing lines turns on the line editor. Approvers may trim quantities or
+  // drop lines, as long as one line with a positive quantity survives.
+  lines?: NeedRequestLineDto[];
+  submitting: boolean;
+  dict: Dictionary["requestModals"];
+  commonDict: Dictionary["common"];
+  onConfirm: (body: RequestDecisionBody) => void;
+  onCancel: () => void;
+}) {
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const editable = (lines ?? []).filter((line) => !line.removed);
+
+  const [comment, setComment] = useState("");
+  const [date, setDate] = useState(needsDate ? tomorrow : "");
+  const [edits, setEdits] = useState<Record<string, { quantity: number; removed: boolean }>>(() =>
+    Object.fromEntries(
+      editable.map((line) => [line.id, { quantity: line.quantityApproved ?? line.quantityRequested, removed: false }])
+    )
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  function setLine(id: string, patch: Partial<{ quantity: number; removed: boolean }>) {
+    setEdits((current) => ({ ...current, [id]: { ...current[id]!, ...patch } }));
+  }
+
+  function submit() {
+    if (requireComment && !comment.trim()) {
+      setError(dict.reasonRequired);
+      return;
+    }
+    if (needsDate) {
+      if (!date) {
+        setError(dict.dateRequired);
+        return;
+      }
+      if (date <= new Date().toISOString().slice(0, 10)) {
+        setError(dict.dateRequired);
+        return;
+      }
+    }
+
+    const changed = editable
+      .map((line) => ({ line, edit: edits[line.id]! }))
+      .filter(({ line, edit }) => edit.removed || edit.quantity !== (line.quantityApproved ?? line.quantityRequested));
+
+    if (editable.length > 0) {
+      const survivors = editable.filter((line) => {
+        const edit = edits[line.id]!;
+        return !edit.removed && edit.quantity > 0;
+      });
+      if (survivors.length === 0) {
+        setError(dict.keepOneLine);
+        return;
+      }
+    }
+
+    onConfirm({
+      comment: comment.trim() || null,
+      postponedUntil: needsDate ? date : null,
+      lines: changed.map(({ line, edit }) => ({
+        lineId: line.id,
+        quantity: edit.removed ? null : edit.quantity,
+        removed: edit.removed,
+      })),
+    });
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="modal">
+        <div className="modal-head">
+          <h3>{title}</h3>
+          <button type="button" className="modal-close" onClick={onCancel} aria-label="close" disabled={submitting}>
+            ×
+          </button>
+        </div>
+        <div className="modal-body">
+          {description && <p className="request-dialog-desc">{description}</p>}
+
+          {needsDate && (
+            <div className="field">
+              <label htmlFor="decision-date">{dict.postponeUntilLabel}</label>
+              <input
+                id="decision-date"
+                type="date"
+                value={date}
+                min={tomorrow}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </div>
+          )}
+
+          {editable.length > 0 && (
+            <div className="field">
+              <label>{dict.editLines}</label>
+              <ul className="decision-lines">
+                {editable.map((line) => {
+                  const edit = edits[line.id]!;
+                  return (
+                    <li key={line.id} className={edit.removed ? "decision-line removed" : "decision-line"}>
+                      <span className="decision-line-name">{line.itemNameAr}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={edit.quantity}
+                        disabled={edit.removed}
+                        onChange={(event) => setLine(line.id, { quantity: Number(event.target.value) })}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setLine(line.id, { removed: !edit.removed })}
+                      >
+                        {edit.removed ? dict.restoreLine : dict.removeLine}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          <div className="field">
+            <label htmlFor="decision-comment">
+              {dict.commentLabel} {!requireComment && <span className="hint">{dict.commentOptional}</span>}
+            </label>
+            <textarea
+              id="decision-comment"
+              value={comment}
+              placeholder={dict.commentPlaceholder}
+              onChange={(event) => setComment(event.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {error && <p className="form-error">{error}</p>}
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="btn btn-outline btn-sm" onClick={onCancel} disabled={submitting}>
+            {commonDict.cancel}
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={submitting}>
+            {submitting && <span className="spinner" />}
+            {title}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

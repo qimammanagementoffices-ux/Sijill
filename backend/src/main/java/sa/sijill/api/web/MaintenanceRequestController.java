@@ -42,10 +42,12 @@ public class MaintenanceRequestController {
             @RequestParam(required = false) MaintenanceRequestStatus status,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean mine,
+            @RequestParam(defaultValue = "false") boolean archived,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "mt.view") ? actor.getId() : null;
-        Page<MaintenanceRequest> page = maintenanceRequestService.search(status, restrictToRequesterId, q, pageable);
+        Page<MaintenanceRequest> page =
+                maintenanceRequestService.search(status, restrictToRequesterId, q, archived, pageable);
         Set<UUID> ids = page.getContent().stream().map(MaintenanceRequest::getId).collect(Collectors.toSet());
         Map<UUID, List<Attachment>> attachments = ids.isEmpty()
                 ? Map.of()
@@ -73,24 +75,75 @@ public class MaintenanceRequestController {
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAuthority('mt.act.approve')")
-    public MaintenanceRequestDetail approve(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
-        return MaintenanceRequestDetail.from(maintenanceRequestService.approve(id, actor));
+    public MaintenanceRequestDetail approve(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.approve(id, request, actor));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('mt.act.reject')")
     public MaintenanceRequestDetail reject(
-            @PathVariable UUID id, @RequestBody(required = false) ActionReasonRequest request, @AuthenticationPrincipal Employee actor) {
-        return MaintenanceRequestDetail.from(
-                maintenanceRequestService.reject(id, request != null ? request.reason() : null, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.reject(id, request, actor));
     }
 
     @PostMapping("/{id}/postpone")
     @PreAuthorize("hasAuthority('mt.act.postpone')")
     public MaintenanceRequestDetail postpone(
-            @PathVariable UUID id, @RequestBody(required = false) ActionReasonRequest request, @AuthenticationPrincipal Employee actor) {
-        return MaintenanceRequestDetail.from(
-                maintenanceRequestService.postpone(id, request != null ? request.reason() : null, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.postpone(id, request, actor));
+    }
+
+    @PostMapping("/{id}/countersign")
+    @PreAuthorize("hasAuthority('mt.act.countersign')")
+    public MaintenanceRequestDetail countersign(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.countersign(id, request, actor));
+    }
+
+    @PostMapping("/{id}/overturn")
+    @PreAuthorize("hasAuthority('mt.act.countersign')")
+    public MaintenanceRequestDetail overturn(
+            @PathVariable UUID id,
+            @RequestBody(required = false) OverturnRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.overturn(id, request, actor));
+    }
+
+    // The requester's own step -- gated by ownership in the service.
+    @PostMapping("/{id}/receive")
+    @PreAuthorize("hasAnyAuthority('mt.request', 'mt.view')")
+    public MaintenanceRequestDetail receive(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.receive(id, actor));
+    }
+
+    @PostMapping("/{id}/reject-receipt")
+    @PreAuthorize("hasAnyAuthority('mt.request', 'mt.view')")
+    public MaintenanceRequestDetail rejectReceipt(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.rejectReceipt(id, request, actor));
+    }
+
+    @PostMapping("/{id}/archive")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public MaintenanceRequestDetail archive(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.archive(id, actor));
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public MaintenanceRequestDetail restore(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return MaintenanceRequestDetail.from(maintenanceRequestService.restore(id, actor));
     }
 
     @PostMapping("/{id}/start")

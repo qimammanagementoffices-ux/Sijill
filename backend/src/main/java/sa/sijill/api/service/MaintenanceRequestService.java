@@ -1,5 +1,6 @@
 package sa.sijill.api.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
@@ -11,15 +12,19 @@ import sa.sijill.api.domain.*;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.FinishMaintenanceRequestRequest;
+import sa.sijill.api.web.dto.OverturnRequest;
 import sa.sijill.api.web.dto.PartUsedRequest;
+import sa.sijill.api.web.dto.RequestDecisionRequest;
 import sa.sijill.api.web.dto.SubmitMaintenanceRequestRequest;
 
 /**
- * Differs from NeedRequestService in two ways per master spec §6/§7:
- * requires an extra START step (APPROVED -> IN_PROGRESS) before finish, and
- * has no upfront request lines -- parts are only recorded at finish
- * ("parts-used flow"), decrementing stock the same way as
- * decision-record.md D1's finish-time decrement.
+ * Same two-stage review as NeedRequestService (docs/need-request-workflow.md),
+ * with the two differences master spec §6/§7 calls for: an extra START step
+ * after final approval, and no upfront request lines -- parts are recorded at
+ * finish, decrementing stock the same way as decision-record.md D1.
+ *
+ * Having no lines, none of the approval-time line editing applies here; the
+ * decision body's line list is simply ignored.
  */
 @Service
 public class MaintenanceRequestService {
@@ -46,12 +51,24 @@ public class MaintenanceRequestService {
         this.auditService = auditService;
     }
 
-    public Page<MaintenanceRequest> search(MaintenanceRequestStatus status, UUID restrictToRequesterId, String q, Pageable pageable) {
-        return maintenanceRequestRepository.search(status, restrictToRequesterId, q, pageable);
+    public Page<MaintenanceRequest> search(
+            MaintenanceRequestStatus status, UUID restrictToRequesterId, String q, boolean archived, Pageable pageable) {
+        return maintenanceRequestRepository.search(
+                status, restrictToRequesterId, q, archived, LocalDate.now(), pageable);
     }
 
     public MaintenanceRequest get(UUID id) {
         return maintenanceRequestRepository.findById(id).orElseThrow(() -> ApiException.notFound("Request not found"));
+    }
+
+    /** A postponed request whose date has arrived counts as pending everywhere. */
+    public static MaintenanceRequestStatus effectiveStatus(MaintenanceRequest request) {
+        if (request.getStatus() == MaintenanceRequestStatus.POSTPONED
+                && request.getPostponedUntil() != null
+                && !request.getPostponedUntil().isAfter(LocalDate.now())) {
+            return MaintenanceRequestStatus.PENDING;
+        }
+        return request.getStatus();
     }
 
     @Transactional
@@ -76,57 +93,118 @@ public class MaintenanceRequestService {
         return saved;
     }
 
+    // --- First-level decisions -------------------------------------------
+
     @Transactional
-    public MaintenanceRequest approve(UUID id, Employee actor) {
-        MaintenanceRequest request = get(id);
-        requireStatus(request, MaintenanceRequestStatus.PENDING, MaintenanceRequestStatus.POSTPONED);
-        request.setStatus(MaintenanceRequestStatus.APPROVED);
-        addAction(request, actor, "APPROVE", null);
-        MaintenanceRequest saved = maintenanceRequestRepository.save(request);
-        auditService.record(actor, "MAINTENANCE_REQUEST_APPROVED", "MaintenanceRequest", saved.getId());
-        return saved;
+    public MaintenanceRequest approve(UUID id, RequestDecisionRequest decision, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
+        requireStatus(request, MaintenanceRequestStatus.PENDING);
+        requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
+
+        addAction(request, actor, "APPROVE", comment(decision));
+        request.setStatus(MaintenanceRequestStatus.APPROVED_UNDER_REVIEW);
+        request.setPostponedUntil(null);
+        request.setReturnedBySenior(false);
+        return save(request, actor, "MAINTENANCE_REQUEST_APPROVED");
     }
 
     @Transactional
-    public MaintenanceRequest reject(UUID id, String reason, Employee actor) {
-        MaintenanceRequest request = get(id);
+    public MaintenanceRequest reject(UUID id, RequestDecisionRequest decision, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
+        requireStatus(request, MaintenanceRequestStatus.PENDING);
+        requireNotRepeatingOverturnedDecision(request, actor, "REJECT");
+        requireReason(decision);
+
+        addAction(request, actor, "REJECT", comment(decision));
+        request.setStatus(MaintenanceRequestStatus.REJECTED_UNDER_REVIEW);
+        request.setPostponedUntil(null);
+        request.setReturnedBySenior(false);
+        return save(request, actor, "MAINTENANCE_REQUEST_REJECTED");
+    }
+
+    @Transactional
+    public MaintenanceRequest postpone(UUID id, RequestDecisionRequest decision, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
+        requireStatus(request, MaintenanceRequestStatus.PENDING);
+        requireReason(decision);
+        applyPostponement(request, actor, "POSTPONE", decision);
+        return save(request, actor, "MAINTENANCE_REQUEST_POSTPONED");
+    }
+
+    // --- Second-level review ---------------------------------------------
+
+    @Transactional
+    public MaintenanceRequest countersign(UUID id, RequestDecisionRequest decision, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
         requireStatus(
                 request,
-                MaintenanceRequestStatus.PENDING,
-                MaintenanceRequestStatus.APPROVED,
-                MaintenanceRequestStatus.POSTPONED);
-        request.setStatus(MaintenanceRequestStatus.REJECTED);
-        addAction(request, actor, "REJECT", reason);
-        MaintenanceRequest saved = maintenanceRequestRepository.save(request);
-        auditService.record(actor, "MAINTENANCE_REQUEST_REJECTED", "MaintenanceRequest", saved.getId());
-        return saved;
+                MaintenanceRequestStatus.APPROVED_UNDER_REVIEW,
+                MaintenanceRequestStatus.REJECTED_UNDER_REVIEW);
+        requireDistinctFromFirstLevel(request, actor);
+
+        boolean approving = request.getStatus() == MaintenanceRequestStatus.APPROVED_UNDER_REVIEW;
+        addAction(request, actor, approving ? "COUNTERSIGN_APPROVE" : "COUNTERSIGN_REJECT", comment(decision));
+        request.setStatus(approving ? MaintenanceRequestStatus.APPROVED : MaintenanceRequestStatus.REJECTED);
+        return save(request, actor, approving ? "MAINTENANCE_REQUEST_COUNTERSIGNED" : "MAINTENANCE_REQUEST_REJECTION_CONFIRMED");
     }
 
     @Transactional
-    public MaintenanceRequest postpone(UUID id, String reason, Employee actor) {
-        MaintenanceRequest request = get(id);
-        requireStatus(request, MaintenanceRequestStatus.PENDING, MaintenanceRequestStatus.APPROVED);
-        request.setStatus(MaintenanceRequestStatus.POSTPONED);
-        addAction(request, actor, "POSTPONE", reason);
-        MaintenanceRequest saved = maintenanceRequestRepository.save(request);
-        auditService.record(actor, "MAINTENANCE_REQUEST_POSTPONED", "MaintenanceRequest", saved.getId());
-        return saved;
+    public MaintenanceRequest overturn(UUID id, OverturnRequest overturn, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
+        requireStatus(
+                request,
+                MaintenanceRequestStatus.APPROVED_UNDER_REVIEW,
+                MaintenanceRequestStatus.REJECTED_UNDER_REVIEW);
+        requireDistinctFromFirstLevel(request, actor);
+
+        boolean wasApproval = request.getStatus() == MaintenanceRequestStatus.APPROVED_UNDER_REVIEW;
+        OverturnRequest.Outcome outcome = overturn == null ? null : overturn.outcome();
+        if (outcome == null) {
+            throw ApiException.validation("An overturn needs an outcome", Map.of("outcome", "is required"));
+        }
+        if (wasApproval && outcome == OverturnRequest.Outcome.APPROVE) {
+            throw ApiException.conflict("This request is already approved at the first level");
+        }
+        if (!wasApproval && outcome == OverturnRequest.Outcome.REJECT) {
+            throw ApiException.conflict("This request is already rejected at the first level");
+        }
+
+        RequestDecisionRequest decision = overturn.asDecision();
+        switch (outcome) {
+            case POSTPONE -> {
+                requireReason(decision);
+                applyPostponement(request, actor, "OVERTURN_POSTPONE", decision);
+                request.setReturnedBySenior(true);
+            }
+            case APPROVE -> {
+                addAction(request, actor, "OVERTURN_APPROVE", comment(decision));
+                request.setStatus(MaintenanceRequestStatus.APPROVED);
+                request.setPostponedUntil(null);
+            }
+            case REJECT -> {
+                requireReason(decision);
+                addAction(request, actor, "OVERTURN_REJECT", comment(decision));
+                request.setStatus(MaintenanceRequestStatus.REJECTED);
+                request.setPostponedUntil(null);
+            }
+        }
+        return save(request, actor, "MAINTENANCE_REQUEST_OVERTURNED");
     }
+
+    // --- Work and receipt -------------------------------------------------
 
     @Transactional
     public MaintenanceRequest start(UUID id, Employee actor) {
-        MaintenanceRequest request = get(id);
+        MaintenanceRequest request = openRequest(id);
         requireStatus(request, MaintenanceRequestStatus.APPROVED);
         request.setStatus(MaintenanceRequestStatus.IN_PROGRESS);
         addAction(request, actor, "START", null);
-        MaintenanceRequest saved = maintenanceRequestRepository.save(request);
-        auditService.record(actor, "MAINTENANCE_REQUEST_STARTED", "MaintenanceRequest", saved.getId());
-        return saved;
+        return save(request, actor, "MAINTENANCE_REQUEST_STARTED");
     }
 
     @Transactional
     public MaintenanceRequest finish(UUID id, FinishMaintenanceRequestRequest request, Employee actor) {
-        MaintenanceRequest maintenanceRequest = get(id);
+        MaintenanceRequest maintenanceRequest = openRequest(id);
         requireStatus(maintenanceRequest, MaintenanceRequestStatus.IN_PROGRESS);
 
         if (request != null && request.partsUsed() != null) {
@@ -157,19 +235,150 @@ public class MaintenanceRequestService {
             }
         }
 
-        maintenanceRequest.setStatus(MaintenanceRequestStatus.CLOSED);
-        addAction(maintenanceRequest, actor, "FINISH", null);
-        MaintenanceRequest saved = maintenanceRequestRepository.save(maintenanceRequest);
-        auditService.record(actor, "MAINTENANCE_REQUEST_FINISHED", "MaintenanceRequest", saved.getId());
+        maintenanceRequest.setStatus(MaintenanceRequestStatus.DONE);
+        addAction(maintenanceRequest, actor, "FINISH", request == null ? null : request.notes());
+        return save(maintenanceRequest, actor, "MAINTENANCE_REQUEST_FINISHED");
+    }
+
+    @Transactional
+    public MaintenanceRequest receive(UUID id, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
+        requireStatus(request, MaintenanceRequestStatus.DONE);
+        requireRequester(request, actor);
+
+        request.setStatus(MaintenanceRequestStatus.CLOSED);
+        addAction(request, actor, "RECEIVE", null);
+        return save(request, actor, "MAINTENANCE_REQUEST_RECEIVED");
+    }
+
+    /**
+     * The work does not match what was asked for. The request goes back to
+     * IN_PROGRESS and every part booked against it returns to stock, so the
+     * finish form starts clean rather than double-counting.
+     */
+    @Transactional
+    public MaintenanceRequest rejectReceipt(UUID id, RequestDecisionRequest decision, Employee actor) {
+        MaintenanceRequest request = openRequest(id);
+        requireStatus(request, MaintenanceRequestStatus.DONE);
+        requireRequester(request, actor);
+        requireReason(decision);
+
+        for (MaintenanceRequestPartUsed partUsed : request.getPartsUsed()) {
+            InventoryItem item = partUsed.getInventoryItem();
+            item.setQuantity(item.getQuantity() + partUsed.getQuantity());
+            inventoryItemRepository.save(item);
+        }
+        request.getPartsUsed().clear();
+
+        request.setStatus(MaintenanceRequestStatus.IN_PROGRESS);
+        addAction(request, actor, "REJECT_RECEIPT", comment(decision));
+        return save(request, actor, "MAINTENANCE_REQUEST_RECEIPT_REJECTED");
+    }
+
+    // --- Archive ---------------------------------------------------------
+
+    @Transactional
+    public MaintenanceRequest archive(UUID id, Employee actor) {
+        MaintenanceRequest request = get(id);
+        if (request.getArchivedAt() != null) {
+            throw ApiException.conflict("Request is already archived");
+        }
+        request.setArchivedAt(Instant.now());
+        request.setArchivedBy(actor);
+        addAction(request, actor, "ARCHIVE", null);
+        return save(request, actor, "MAINTENANCE_REQUEST_ARCHIVED");
+    }
+
+    @Transactional
+    public MaintenanceRequest restore(UUID id, Employee actor) {
+        MaintenanceRequest request = get(id);
+        if (request.getArchivedAt() == null) {
+            throw ApiException.conflict("Request is not archived");
+        }
+        request.setArchivedAt(null);
+        request.setArchivedBy(null);
+        addAction(request, actor, "RESTORE", null);
+        return save(request, actor, "MAINTENANCE_REQUEST_RESTORED");
+    }
+
+    // --- Internals -------------------------------------------------------
+
+    private MaintenanceRequest openRequest(UUID id) {
+        MaintenanceRequest request = get(id);
+        if (request.getArchivedAt() != null) {
+            throw ApiException.conflict("Request is archived");
+        }
+        return request;
+    }
+
+    private MaintenanceRequest save(MaintenanceRequest request, Employee actor, String auditAction) {
+        MaintenanceRequest saved = maintenanceRequestRepository.save(request);
+        auditService.record(actor, auditAction, "MaintenanceRequest", saved.getId());
         return saved;
     }
 
-    private void requireStatus(MaintenanceRequest request, MaintenanceRequestStatus... allowed) {
-        for (MaintenanceRequestStatus status : allowed) {
-            if (request.getStatus() == status) return;
+    private void applyPostponement(
+            MaintenanceRequest request, Employee actor, String action, RequestDecisionRequest decision) {
+        LocalDate until = decision == null ? null : decision.postponedUntil();
+        if (until == null) {
+            throw ApiException.validation("A postponement needs a date", Map.of("postponedUntil", "is required"));
         }
-        throw ApiException.conflict(
-                "Request is not in a state that allows this action (current: " + request.getStatus() + ")");
+        if (!until.isAfter(LocalDate.now())) {
+            throw ApiException.validation(
+                    "The postponement date must be in the future", Map.of("postponedUntil", "must be after today"));
+        }
+        request.setStatus(MaintenanceRequestStatus.POSTPONED);
+        request.setPostponedUntil(until);
+        addAction(request, actor, action, comment(decision));
+    }
+
+    private void requireStatus(MaintenanceRequest request, MaintenanceRequestStatus... allowed) {
+        MaintenanceRequestStatus current = effectiveStatus(request);
+        for (MaintenanceRequestStatus status : allowed) {
+            if (current == status) return;
+        }
+        throw ApiException.conflict("Request is not in a state that allows this action (current: " + current + ")");
+    }
+
+    private void requireRequester(MaintenanceRequest request, Employee actor) {
+        if (!request.getRequester().getId().equals(actor.getId())) {
+            throw ApiException.forbidden("Only the requester can confirm or reject the completed work");
+        }
+    }
+
+    private void requireDistinctFromFirstLevel(MaintenanceRequest request, Employee actor) {
+        if (request.getRequester().getId().equals(actor.getId())) {
+            throw ApiException.forbidden("You cannot review your own request");
+        }
+        request.getActions().stream()
+                .filter(entry -> "APPROVE".equals(entry.getAction()) || "REJECT".equals(entry.getAction()))
+                .reduce((first, second) -> second)
+                .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
+                .ifPresent(entry -> {
+                    throw ApiException.forbidden("The first-level decision was yours — another official must review it");
+                });
+    }
+
+    private void requireNotRepeatingOverturnedDecision(MaintenanceRequest request, Employee actor, String action) {
+        if (!request.isReturnedBySenior()) return;
+        request.getActions().stream()
+                .filter(entry -> action.equals(entry.getAction()))
+                .reduce((first, second) -> second)
+                .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
+                .ifPresent(entry -> {
+                    throw ApiException.forbidden("This decision was overturned — another official must take it");
+                });
+    }
+
+    private void requireReason(RequestDecisionRequest decision) {
+        if (decision == null || decision.comment() == null || decision.comment().isBlank()) {
+            throw ApiException.validation("A reason is required", Map.of("comment", "must not be blank"));
+        }
+    }
+
+    private String comment(RequestDecisionRequest decision) {
+        if (decision == null || decision.comment() == null || decision.comment().isBlank()) return null;
+        return decision.comment().trim();
     }
 
     private void addAction(MaintenanceRequest request, Employee actor, String action, String reason) {

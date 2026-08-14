@@ -294,6 +294,84 @@ export type Dictionary = {
     attachmentsFailed: string;
     submit: string;
   };
+  // Shared by every request type (need / maintenance / asset) -- the flow and
+  // its wording are the same, only the domain differs.
+  requestStatus: {
+    PENDING: string;
+    APPROVED_UNDER_REVIEW: string;
+    REJECTED_UNDER_REVIEW: string;
+    APPROVED: string;
+    POSTPONED: string;
+    REJECTED: string;
+    DELIVERED: string;
+    CLOSED: string;
+    IN_PROGRESS: string;
+    DONE: string;
+  };
+  requestActions: {
+    approve: string;
+    reject: string;
+    postpone: string;
+    confirmApproval: string;
+    confirmRejection: string;
+    cancelApproval: string;
+    cancelRejection: string;
+    finishDelivery: string;
+    startWork: string;
+    finishWork: string;
+    confirmReceipt: string;
+    rejectReceipt: string;
+    edit: string;
+    archive: string;
+    restore: string;
+    view: string;
+    print: string;
+  };
+  requestModals: {
+    approveTitle: string;
+    rejectTitle: string;
+    postponeTitle: string;
+    confirmApprovalTitle: string;
+    confirmRejectionTitle: string;
+    cancelApprovalTitle: string;
+    cancelRejectionTitle: string;
+    rejectReceiptTitle: string;
+    rejectReceiptDesc: string;
+    commentLabel: string;
+    commentOptional: string;
+    commentPlaceholder: string;
+    postponeUntilLabel: string;
+    reasonRequired: string;
+    dateRequired: string;
+    editLines: string;
+    removeLine: string;
+    restoreLine: string;
+    keepOneLine: string;
+  };
+  requestCard: {
+    editNoteActive: string;
+    editNoteExpired: string;
+    postponeResurfaceNote: string;
+    returnedBySenior: string;
+    lineQuantityChanged: string;
+    linesRemoved: string;
+    archivedNote: string;
+    pendingTab: string;
+    reviewTab: string;
+    archiveTab: string;
+  };
+  requestDelivery: {
+    title: string;
+    description: string;
+    searchPlaceholder: string;
+    selectedCount: string;
+    availableStock: string;
+    notesLabel: string;
+    notesPlaceholder: string;
+    noItems: string;
+    submit: string;
+    atLeastOne: string;
+  };
   warehouseRequests: {
     title: string;
     addNew: string;

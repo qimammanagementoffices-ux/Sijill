@@ -175,19 +175,53 @@ export type NeedRequestLineDto = {
   itemCode: string;
   itemNameAr: string;
   itemNameEn: string;
+  itemQuantity: number;
+  itemUnit: string | null;
   quantityRequested: number;
+  // Set when an approver trimmed the line; delivery caps against this.
+  quantityApproved: number | null;
+  removed: boolean;
   quantityIssued: number | null;
 };
 
-export type NeedRequestActionDto = { actorName: string; action: string; reason: string | null; createdAt: string };
+export type RequestActionLineEdit = {
+  lineId: string | null;
+  quantityBefore: number;
+  quantityAfter: number | null;
+  removed: boolean;
+};
+
+export type NeedRequestActionDto = {
+  actorName: string | null;
+  action: string;
+  reason: string | null;
+  createdAt: string;
+  lineEdits: RequestActionLineEdit[];
+};
+
+export type NeedRequestStatusValue =
+  | "PENDING"
+  | "APPROVED_UNDER_REVIEW"
+  | "REJECTED_UNDER_REVIEW"
+  | "APPROVED"
+  | "POSTPONED"
+  | "REJECTED"
+  | "DELIVERED"
+  | "CLOSED";
 
 export type NeedRequestListItem = {
   id: string;
+  requesterId: string;
   requesterName: string;
   department: LocalizedRef | null;
   category: LocalizedRef | null;
-  status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
+  status: NeedRequestStatusValue;
   suggestedStartDate: string | null;
+  postponedUntil: string | null;
+  editableUntil: string;
+  canEdit: boolean;
+  returnedBySenior: boolean;
+  archivedAt: string | null;
   notes: string | null;
   lines: NeedRequestLineDto[];
   actions: NeedRequestActionDto[];
@@ -202,11 +236,24 @@ export type NeedRequestDetail = {
   category: LocalizedRef | null;
   room: LocalizedRef | null;
   notes: string | null;
-  status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
+  status: NeedRequestStatusValue;
   suggestedStartDate: string | null;
+  postponedUntil: string | null;
+  editableUntil: string;
+  canEdit: boolean;
+  returnedBySenior: boolean;
+  archivedAt: string | null;
   lines: NeedRequestLineDto[];
   actions: NeedRequestActionDto[];
   version: number;
+};
+
+// Body shared by every decision endpoint: comment, the postpone date when the
+// decision is a postponement, and the line trims made in the same modal.
+export type RequestDecisionBody = {
+  comment?: string | null;
+  postponedUntil?: string | null;
+  lines?: { lineId: string; quantity: number | null; removed: boolean }[];
 };
 
 // --- Maintenance (Phase 4) ---
@@ -223,10 +270,13 @@ export type FaultTypeDto = {
 export type MaintenancePriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type MaintenanceRequestStatusValue =
   | "PENDING"
+  | "APPROVED_UNDER_REVIEW"
+  | "REJECTED_UNDER_REVIEW"
   | "APPROVED"
   | "POSTPONED"
   | "REJECTED"
   | "IN_PROGRESS"
+  | "DONE"
   | "CLOSED";
 
 export type PartUsedDto = {
@@ -246,12 +296,16 @@ export type MaintenanceRequestActionDto = {
 
 export type MaintenanceRequestListItem = {
   id: string;
+  requesterId: string;
   requesterName: string;
   department: LocalizedRef | null;
   faultType: LocalizedRef | null;
   priority: MaintenancePriority;
   status: MaintenanceRequestStatusValue;
   suggestedStartDate: string | null;
+  postponedUntil: string | null;
+  returnedBySenior: boolean;
+  archivedAt: string | null;
   location: string | null;
   description: string | null;
   actions: MaintenanceRequestActionDto[];
@@ -269,6 +323,9 @@ export type MaintenanceRequestDetail = {
   description: string | null;
   status: MaintenanceRequestStatusValue;
   suggestedStartDate: string | null;
+  postponedUntil: string | null;
+  returnedBySenior: boolean;
+  archivedAt: string | null;
   partsUsed: PartUsedDto[];
   actions: MaintenanceRequestActionDto[];
   version: number;
@@ -379,12 +436,24 @@ export type AssetRequestListItem = {
   purpose: AssetRequestPurpose | null;
   priority: AssetRequestPriority | null;
   reason: string | null;
-  status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
+  status: AssetRequestStatusValue;
   suggestedStartDate: string | null;
+  postponedUntil: string | null;
+  returnedBySenior: boolean;
+  archivedAt: string | null;
   lines: AssetRequestLineDto[];
   actions: AssetRequestActionDto[];
   attachments: AttachmentDto[];
 };
+
+export type AssetRequestStatusValue =
+  | "PENDING"
+  | "APPROVED_UNDER_REVIEW"
+  | "REJECTED_UNDER_REVIEW"
+  | "APPROVED"
+  | "POSTPONED"
+  | "REJECTED"
+  | "CLOSED";
 
 // --- Media / branding (Phase 6a) ---
 
@@ -467,8 +536,11 @@ export type AssetRequestDetail = {
   purpose: AssetRequestPurpose | null;
   priority: AssetRequestPriority | null;
   reason: string | null;
-  status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
+  status: AssetRequestStatusValue;
   suggestedStartDate: string | null;
+  postponedUntil: string | null;
+  returnedBySenior: boolean;
+  archivedAt: string | null;
   lines: AssetRequestLineDto[];
   actions: AssetRequestActionDto[];
   attachments: AttachmentDto[];

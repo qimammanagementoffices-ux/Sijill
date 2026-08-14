@@ -35,12 +35,16 @@ public class CostDashboardService {
         Map<String, NamedTotal> requesters = new HashMap<>();
         if ("maintenance".equals(domain)) {
             maintenanceRequests.findAll().stream()
-                    .filter(r -> r.getStatus() == MaintenanceRequestStatus.CLOSED && !r.getPartsUsed().isEmpty())
+                    .filter(r -> (r.getStatus() == MaintenanceRequestStatus.DONE
+                                    || r.getStatus() == MaintenanceRequestStatus.CLOSED)
+                            && !r.getPartsUsed().isEmpty())
                     .filter(r -> inRange(r.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate(), from, to))
                     .forEach(r -> add(r, maintenanceCost(r), departments, requesters));
         } else {
             needRequests.findAll().stream()
-                    .filter(r -> r.getStatus() == NeedRequestStatus.APPROVED || r.getStatus() == NeedRequestStatus.CLOSED)
+                    .filter(r -> r.getStatus() == NeedRequestStatus.APPROVED
+                            || r.getStatus() == NeedRequestStatus.DELIVERED
+                            || r.getStatus() == NeedRequestStatus.CLOSED)
                     .filter(r -> inRange(r.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate(), from, to))
                     .forEach(r -> add(r, needCost(r), departments, requesters));
         }

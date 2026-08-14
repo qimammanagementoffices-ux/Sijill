@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/apiClient";
 import type { BrandingDto } from "@/lib/types";
 
 type FormCell = { label: [string, string, string]; value: ReactNode };
-type FormAction = { actorName: string; action: string; reason: string | null; createdAt: string };
+type FormAction = { actorName: string | null; action: string; reason: string | null; createdAt: string };
 
 const actionAr: Record<string, string> = {
   SUBMIT: "تقديم الطلب", APPROVE: "اعتماد", REJECT: "رفض", POSTPONE: "تأجيل", START: "بدء العمل", FINISH: "إنهاء العمل",

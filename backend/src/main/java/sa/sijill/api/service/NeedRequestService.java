@@ -1,5 +1,6 @@
 package sa.sijill.api.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -15,18 +16,26 @@ import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.CreateNeedRequestRequest;
 import sa.sijill.api.web.dto.FinishNeedRequestRequest;
 import sa.sijill.api.web.dto.NeedRequestLineRequest;
+import sa.sijill.api.web.dto.OverturnRequest;
+import sa.sijill.api.web.dto.RequestDecisionRequest;
 
 /**
- * Per decision-record.md D1: stock decrements on finish (not approve),
- * partial fulfillment allowed. Per D3: finish moves the request straight
- * to CLOSED — no separate DONE/requester-confirmation step.
+ * Two-stage review per docs/need-request-workflow.md. A first-level official
+ * approves or rejects; a second, different official counter-signs or overturns.
+ * Only a counter-signed APPROVED request can be delivered.
  *
- * Action endpoints check current status server-side and reject with a
- * plain 409 CONFLICT (not StaleVersionException — no embedded "current",
- * per docs/api-conventions.md's "action endpoints are not version-based").
+ * Per decision-record.md D1: stock decrements on delivery (not approval),
+ * partial fulfillment allowed. D3's collapsed closure is superseded — the
+ * requester confirms receipt, and rejecting receipt restores the stock that
+ * was deducted.
+ *
+ * Action endpoints check current status server-side and reject with a plain
+ * 409 CONFLICT (not StaleVersionException — see docs/api-conventions.md).
  */
 @Service
 public class NeedRequestService {
+
+    private static final int EDIT_WINDOW_MINUTES = 60;
 
     private final NeedRequestRepository needRequestRepository;
     private final DepartmentRepository departmentRepository;
@@ -53,12 +62,85 @@ public class NeedRequestService {
         this.auditService = auditService;
     }
 
-    public Page<NeedRequest> search(NeedRequestStatus status, UUID restrictToRequesterId, String q, Pageable pageable) {
-        return needRequestRepository.search(status, restrictToRequesterId, q, pageable);
+    public Page<NeedRequest> search(
+            NeedRequestStatus status, UUID restrictToRequesterId, String q, boolean archived, Pageable pageable) {
+        return needRequestRepository.search(status, restrictToRequesterId, q, archived, LocalDate.now(), pageable);
     }
 
     public NeedRequest get(UUID id) {
         return needRequestRepository.findById(id).orElseThrow(() -> ApiException.notFound("Request not found"));
+    }
+
+    /**
+     * A postponed request whose date has arrived counts as pending everywhere —
+     * in the queue query and in every action guard. Resurfacing is a condition,
+     * not a scheduled job: no night to miss, no state to repair.
+     */
+    public static NeedRequestStatus effectiveStatus(NeedRequest request) {
+        if (request.getStatus() == NeedRequestStatus.POSTPONED
+                && request.getPostponedUntil() != null
+                && !request.getPostponedUntil().isAfter(LocalDate.now())) {
+            return NeedRequestStatus.PENDING;
+        }
+        return request.getStatus();
+    }
+
+    /**
+     * The requester edits within an hour of submitting; an admin edits any
+     * still-pending request. Nobody edits once a decision has been taken —
+     * otherwise the lines change under the approvers' names after the fact.
+     */
+    public static boolean canEdit(NeedRequest request, Employee actor) {
+        if (request.getArchivedAt() != null || effectiveStatus(request) != NeedRequestStatus.PENDING) return false;
+        if (request.getRequester().getId().equals(actor.getId())) {
+            return Instant.now().isBefore(editableUntil(request));
+        }
+        return actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals);
+    }
+
+    public static Instant editableUntil(NeedRequest request) {
+        return request.getCreatedAt().plusSeconds(EDIT_WINDOW_MINUTES * 60L);
+    }
+
+    @Transactional
+    public NeedRequest update(UUID id, CreateNeedRequestRequest update, Employee actor) {
+        NeedRequest request = openRequest(id);
+        if (!canEdit(request, actor)) {
+            throw ApiException.conflict("This request can no longer be edited");
+        }
+
+        request.setDepartment(resolveRequesterDepartment(update.departmentId(), request.getRequester()));
+        request.setCategory(resolveCategory(update.categoryId()));
+        request.setRoom(resolveRoom(update.roomId()));
+        request.setNotes(update.notes());
+
+        List<NeedRequestLineRequest> lines = update.lines() == null ? List.of() : update.lines();
+        boolean hasNotes = update.notes() != null && !update.notes().isBlank();
+        if (lines.isEmpty() && !hasNotes) {
+            throw ApiException.validation(
+                    "A request needs at least one line, or notes describing it",
+                    Map.of("lines", "must not be empty unless notes are provided"));
+        }
+
+        request.getLines().clear();
+        for (NeedRequestLineRequest lineRequest : lines) {
+            if (lineRequest.quantityRequested() <= 0) {
+                throw ApiException.validation(
+                        "Line quantity must be positive", Map.of("quantityRequested", "must be > 0"));
+            }
+            InventoryItem item = inventoryItemRepository
+                    .findById(lineRequest.inventoryItemId())
+                    .orElseThrow(() -> ApiException.validation(
+                            "Inventory item not found", Map.of("inventoryItemId", "does not exist")));
+            NeedRequestLine line = new NeedRequestLine();
+            line.setNeedRequest(request);
+            line.setInventoryItem(item);
+            line.setQuantityRequested(lineRequest.quantityRequested());
+            request.getLines().add(line);
+        }
+
+        addAction(request, actor, "EDIT", null);
+        return save(request, actor, "NEED_REQUEST_EDITED");
     }
 
     @Transactional
@@ -105,42 +187,109 @@ public class NeedRequestService {
         return saved;
     }
 
+    // --- First-level decisions -------------------------------------------
+
     @Transactional
-    public NeedRequest approve(UUID id, Employee actor) {
-        NeedRequest request = get(id);
-        requireStatus(request, NeedRequestStatus.PENDING, NeedRequestStatus.POSTPONED);
-        request.setStatus(NeedRequestStatus.APPROVED);
-        addAction(request, actor, "APPROVE", null);
-        NeedRequest saved = needRequestRepository.save(request);
-        auditService.record(actor, "NEED_REQUEST_APPROVED", "NeedRequest", saved.getId());
-        return saved;
+    public NeedRequest approve(UUID id, RequestDecisionRequest decision, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.PENDING);
+        requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
+
+        NeedRequestAction action = addAction(request, actor, "APPROVE", comment(decision));
+        applyLineEdits(request, action, decision);
+        request.setStatus(NeedRequestStatus.APPROVED_UNDER_REVIEW);
+        request.setPostponedUntil(null);
+        request.setReturnedBySenior(false);
+        return save(request, actor, "NEED_REQUEST_APPROVED");
     }
 
     @Transactional
-    public NeedRequest reject(UUID id, String reason, Employee actor) {
-        NeedRequest request = get(id);
-        requireStatus(request, NeedRequestStatus.PENDING, NeedRequestStatus.APPROVED, NeedRequestStatus.POSTPONED);
-        request.setStatus(NeedRequestStatus.REJECTED);
-        addAction(request, actor, "REJECT", reason);
-        NeedRequest saved = needRequestRepository.save(request);
-        auditService.record(actor, "NEED_REQUEST_REJECTED", "NeedRequest", saved.getId());
-        return saved;
+    public NeedRequest reject(UUID id, RequestDecisionRequest decision, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.PENDING);
+        requireNotRepeatingOverturnedDecision(request, actor, "REJECT");
+        requireReason(decision);
+
+        addAction(request, actor, "REJECT", comment(decision));
+        request.setStatus(NeedRequestStatus.REJECTED_UNDER_REVIEW);
+        request.setPostponedUntil(null);
+        request.setReturnedBySenior(false);
+        return save(request, actor, "NEED_REQUEST_REJECTED");
     }
 
     @Transactional
-    public NeedRequest postpone(UUID id, String reason, Employee actor) {
-        NeedRequest request = get(id);
-        requireStatus(request, NeedRequestStatus.PENDING, NeedRequestStatus.APPROVED);
-        request.setStatus(NeedRequestStatus.POSTPONED);
-        addAction(request, actor, "POSTPONE", reason);
-        NeedRequest saved = needRequestRepository.save(request);
-        auditService.record(actor, "NEED_REQUEST_POSTPONED", "NeedRequest", saved.getId());
-        return saved;
+    public NeedRequest postpone(UUID id, RequestDecisionRequest decision, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.PENDING);
+        requireReason(decision);
+        applyPostponement(request, actor, "POSTPONE", decision);
+        return save(request, actor, "NEED_REQUEST_POSTPONED");
     }
+
+    // --- Second-level review ---------------------------------------------
+
+    @Transactional
+    public NeedRequest countersign(UUID id, RequestDecisionRequest decision, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.APPROVED_UNDER_REVIEW, NeedRequestStatus.REJECTED_UNDER_REVIEW);
+        requireDistinctFromFirstLevel(request, actor);
+
+        boolean approving = request.getStatus() == NeedRequestStatus.APPROVED_UNDER_REVIEW;
+        NeedRequestAction action =
+                addAction(request, actor, approving ? "COUNTERSIGN_APPROVE" : "COUNTERSIGN_REJECT", comment(decision));
+        if (approving) {
+            applyLineEdits(request, action, decision);
+        }
+        request.setStatus(approving ? NeedRequestStatus.APPROVED : NeedRequestStatus.REJECTED);
+        return save(request, actor, approving ? "NEED_REQUEST_COUNTERSIGNED" : "NEED_REQUEST_REJECTION_CONFIRMED");
+    }
+
+    @Transactional
+    public NeedRequest overturn(UUID id, OverturnRequest overturn, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.APPROVED_UNDER_REVIEW, NeedRequestStatus.REJECTED_UNDER_REVIEW);
+        requireDistinctFromFirstLevel(request, actor);
+
+        boolean wasApproval = request.getStatus() == NeedRequestStatus.APPROVED_UNDER_REVIEW;
+        OverturnRequest.Outcome outcome = overturn == null ? null : overturn.outcome();
+        if (outcome == null) {
+            throw ApiException.validation("An overturn needs an outcome", Map.of("outcome", "is required"));
+        }
+        if (wasApproval && outcome == OverturnRequest.Outcome.APPROVE) {
+            throw ApiException.conflict("This request is already approved at the first level");
+        }
+        if (!wasApproval && outcome == OverturnRequest.Outcome.REJECT) {
+            throw ApiException.conflict("This request is already rejected at the first level");
+        }
+
+        RequestDecisionRequest decision = overturn.asDecision();
+        switch (outcome) {
+            case POSTPONE -> {
+                requireReason(decision);
+                applyPostponement(request, actor, "OVERTURN_POSTPONE", decision);
+                request.setReturnedBySenior(true);
+            }
+            case APPROVE -> {
+                NeedRequestAction action = addAction(request, actor, "OVERTURN_APPROVE", comment(decision));
+                applyLineEdits(request, action, decision);
+                request.setStatus(NeedRequestStatus.APPROVED);
+                request.setPostponedUntil(null);
+            }
+            case REJECT -> {
+                requireReason(decision);
+                addAction(request, actor, "OVERTURN_REJECT", comment(decision));
+                request.setStatus(NeedRequestStatus.REJECTED);
+                request.setPostponedUntil(null);
+            }
+        }
+        return save(request, actor, "NEED_REQUEST_OVERTURNED");
+    }
+
+    // --- Delivery and receipt --------------------------------------------
 
     @Transactional
     public NeedRequest finish(UUID id, FinishNeedRequestRequest request, Employee actor) {
-        NeedRequest needRequest = get(id);
+        NeedRequest needRequest = openRequest(id);
         requireStatus(needRequest, NeedRequestStatus.APPROVED);
 
         Map<UUID, Integer> issuedByLineId = new HashMap<>();
@@ -150,48 +299,265 @@ public class NeedRequestService {
             }
         }
 
+        int totalIssued = 0;
         for (NeedRequestLine line : needRequest.getLines()) {
+            if (line.isRemoved()) {
+                line.setQuantityIssued(0);
+                continue;
+            }
             Integer requestedIssue = issuedByLineId.get(line.getId());
-            int quantityIssued = requestedIssue != null ? requestedIssue : line.getQuantityRequested();
+            int approved = line.effectiveQuantity();
+            int quantityIssued = requestedIssue != null ? requestedIssue : approved;
 
-            if (quantityIssued < 0 || quantityIssued > line.getQuantityRequested()) {
+            // Capped against the approved quantity, not the requested one:
+            // a line trimmed from 10 to 5 must not be deliverable at 10.
+            if (quantityIssued < 0 || quantityIssued > approved) {
                 throw ApiException.validation(
-                        "Issued quantity must be between 0 and the requested quantity",
+                        "Issued quantity must be between 0 and the approved quantity",
                         Map.of("quantityIssued", "out of range"));
             }
 
             InventoryItem item = line.getInventoryItem();
             if (item.getQuantity() < quantityIssued) {
                 throw ApiException.validation(
-                        "Insufficient stock for item " + item.getCode(), Map.of("quantityIssued", "exceeds on-hand quantity"));
+                        "Insufficient stock for item " + item.getCode(),
+                        Map.of("quantityIssued", "exceeds on-hand quantity"));
             }
             item.setQuantity(item.getQuantity() - quantityIssued);
             inventoryItemRepository.save(item);
 
             line.setQuantityIssued(quantityIssued);
+            totalIssued += quantityIssued;
         }
 
-        needRequest.setStatus(NeedRequestStatus.CLOSED);
-        addAction(needRequest, actor, "FINISH", null);
-        NeedRequest saved = needRequestRepository.save(needRequest);
-        auditService.record(actor, "NEED_REQUEST_FINISHED", "NeedRequest", saved.getId());
+        // A delivery of nothing used to close the request with the remainder
+        // tracked nowhere. A request with no lines is described in notes only
+        // and has nothing to count.
+        if (totalIssued == 0 && !needRequest.getLines().isEmpty()) {
+            throw ApiException.validation(
+                    "Record at least one delivered item", Map.of("lines", "at least one quantity must be positive"));
+        }
+
+        needRequest.setStatus(NeedRequestStatus.DELIVERED);
+        addAction(needRequest, actor, "FINISH", request == null ? null : request.notes());
+        return save(needRequest, actor, "NEED_REQUEST_FINISHED");
+    }
+
+    @Transactional
+    public NeedRequest receive(UUID id, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.DELIVERED);
+        requireRequester(request, actor);
+
+        request.setStatus(NeedRequestStatus.CLOSED);
+        addAction(request, actor, "RECEIVE", null);
+        return save(request, actor, "NEED_REQUEST_RECEIVED");
+    }
+
+    /**
+     * The requester says the delivery does not match. The request goes back to
+     * APPROVED and every issued quantity returns to stock, so reopening the
+     * delivery modal starts from the same numbers without double-counting.
+     */
+    @Transactional
+    public NeedRequest rejectReceipt(UUID id, RequestDecisionRequest decision, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.DELIVERED);
+        requireRequester(request, actor);
+        requireReason(decision);
+
+        for (NeedRequestLine line : request.getLines()) {
+            Integer issued = line.getQuantityIssued();
+            if (issued == null || issued == 0) continue;
+            InventoryItem item = line.getInventoryItem();
+            item.setQuantity(item.getQuantity() + issued);
+            inventoryItemRepository.save(item);
+        }
+
+        request.setStatus(NeedRequestStatus.APPROVED);
+        addAction(request, actor, "REJECT_RECEIPT", comment(decision));
+        return save(request, actor, "NEED_REQUEST_RECEIPT_REJECTED");
+    }
+
+    // --- Archive ---------------------------------------------------------
+
+    @Transactional
+    public NeedRequest archive(UUID id, Employee actor) {
+        NeedRequest request = get(id);
+        if (request.getArchivedAt() != null) {
+            throw ApiException.conflict("Request is already archived");
+        }
+        request.setArchivedAt(Instant.now());
+        request.setArchivedBy(actor);
+        addAction(request, actor, "ARCHIVE", null);
+        return save(request, actor, "NEED_REQUEST_ARCHIVED");
+    }
+
+    @Transactional
+    public NeedRequest restore(UUID id, Employee actor) {
+        NeedRequest request = get(id);
+        if (request.getArchivedAt() == null) {
+            throw ApiException.conflict("Request is not archived");
+        }
+        request.setArchivedAt(null);
+        request.setArchivedBy(null);
+        addAction(request, actor, "RESTORE", null);
+        return save(request, actor, "NEED_REQUEST_RESTORED");
+    }
+
+    // --- Internals -------------------------------------------------------
+
+    private NeedRequest openRequest(UUID id) {
+        NeedRequest request = get(id);
+        if (request.getArchivedAt() != null) {
+            throw ApiException.conflict("Request is archived");
+        }
+        return request;
+    }
+
+    private NeedRequest save(NeedRequest request, Employee actor, String auditAction) {
+        NeedRequest saved = needRequestRepository.save(request);
+        auditService.record(actor, auditAction, "NeedRequest", saved.getId());
         return saved;
     }
 
-    private void requireStatus(NeedRequest request, NeedRequestStatus... allowed) {
-        for (NeedRequestStatus status : allowed) {
-            if (request.getStatus() == status) return;
+    private void applyPostponement(
+            NeedRequest request, Employee actor, String action, RequestDecisionRequest decision) {
+        LocalDate until = decision == null ? null : decision.postponedUntil();
+        if (until == null) {
+            throw ApiException.validation("A postponement needs a date", Map.of("postponedUntil", "is required"));
         }
-        throw ApiException.conflict("Request is not in a state that allows this action (current: " + request.getStatus() + ")");
+        if (!until.isAfter(LocalDate.now())) {
+            throw ApiException.validation(
+                    "The postponement date must be in the future", Map.of("postponedUntil", "must be after today"));
+        }
+        request.setStatus(NeedRequestStatus.POSTPONED);
+        request.setPostponedUntil(until);
+        addAction(request, actor, action, comment(decision));
     }
 
-    private void addAction(NeedRequest request, Employee actor, String action, String reason) {
+    /**
+     * Line trims and drops made inside a decision modal. The before/after pair
+     * is recorded on the action that made it, so a first-level trim and a
+     * later counter-sign trim stay separately attributable.
+     */
+    private void applyLineEdits(NeedRequest request, NeedRequestAction action, RequestDecisionRequest decision) {
+        if (decision == null) return;
+        Map<UUID, NeedRequestLine> byId = new HashMap<>();
+        for (NeedRequestLine line : request.getLines()) {
+            byId.put(line.getId(), line);
+        }
+
+        for (RequestDecisionRequest.DecisionLine edit : decision.linesOrEmpty()) {
+            NeedRequestLine line = byId.get(edit.lineId());
+            if (line == null) {
+                throw ApiException.validation("Unknown line", Map.of("lineId", "does not belong to this request"));
+            }
+            if (line.isRemoved()) continue;
+
+            int before = line.effectiveQuantity();
+            if (edit.removed()) {
+                line.setRemoved(true);
+                recordLineEdit(action, line, before, null, true);
+                continue;
+            }
+            if (edit.quantity() == null || edit.quantity() == before) continue;
+            if (edit.quantity() <= 0) {
+                throw ApiException.validation(
+                        "An approved quantity must be positive — drop the line instead",
+                        Map.of("quantity", "must be > 0"));
+            }
+            line.setQuantityApproved(edit.quantity());
+            recordLineEdit(action, line, before, edit.quantity(), false);
+        }
+
+        // Only meaningful for requests that have lines at all: submit accepts a
+        // notes-only request, and that shape has nothing to keep.
+        if (!request.getLines().isEmpty() && request.getLines().stream().allMatch(NeedRequestLine::isRemoved)) {
+            throw ApiException.validation(
+                    "At least one item must remain on the request", Map.of("lines", "cannot all be removed"));
+        }
+    }
+
+    private void recordLineEdit(
+            NeedRequestAction action, NeedRequestLine line, int before, Integer after, boolean removed) {
+        NeedRequestActionLine edit = new NeedRequestActionLine();
+        edit.setAction(action);
+        edit.setLine(line);
+        edit.setQuantityBefore(before);
+        edit.setQuantityAfter(after);
+        edit.setRemoved(removed);
+        action.getLineEdits().add(edit);
+    }
+
+    private void requireStatus(NeedRequest request, NeedRequestStatus... allowed) {
+        NeedRequestStatus current = effectiveStatus(request);
+        for (NeedRequestStatus status : allowed) {
+            if (current == status) return;
+        }
+        throw ApiException.conflict(
+                "Request is not in a state that allows this action (current: " + current + ")");
+    }
+
+    private void requireRequester(NeedRequest request, Employee actor) {
+        if (!request.getRequester().getId().equals(actor.getId())) {
+            throw ApiException.forbidden("Only the requester can confirm or reject receipt");
+        }
+    }
+
+    /**
+     * A two-stage review where one employee can act at both stages is not a
+     * review. Permissions do not settle this — one employee may legitimately
+     * hold both keys — so the check is on the actor id.
+     */
+    private void requireDistinctFromFirstLevel(NeedRequest request, Employee actor) {
+        if (request.getRequester().getId().equals(actor.getId())) {
+            throw ApiException.forbidden("You cannot review your own request");
+        }
+        request.getActions().stream()
+                .filter(entry -> "APPROVE".equals(entry.getAction()) || "REJECT".equals(entry.getAction()))
+                .reduce((first, second) -> second)
+                .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
+                .ifPresent(entry -> {
+                    throw ApiException.forbidden("The first-level decision was yours — another official must review it");
+                });
+    }
+
+    /**
+     * After a senior overturn the request lands back with the same official,
+     * who could otherwise simply repeat the decision that was just overturned.
+     */
+    private void requireNotRepeatingOverturnedDecision(NeedRequest request, Employee actor, String action) {
+        if (!request.isReturnedBySenior()) return;
+        request.getActions().stream()
+                .filter(entry -> action.equals(entry.getAction()))
+                .reduce((first, second) -> second)
+                .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
+                .ifPresent(entry -> {
+                    throw ApiException.forbidden(
+                            "This decision was overturned — another official must take it");
+                });
+    }
+
+    private void requireReason(RequestDecisionRequest decision) {
+        if (decision == null || decision.comment() == null || decision.comment().isBlank()) {
+            throw ApiException.validation("A reason is required", Map.of("comment", "must not be blank"));
+        }
+    }
+
+    private String comment(RequestDecisionRequest decision) {
+        if (decision == null || decision.comment() == null || decision.comment().isBlank()) return null;
+        return decision.comment().trim();
+    }
+
+    private NeedRequestAction addAction(NeedRequest request, Employee actor, String action, String reason) {
         NeedRequestAction entry = new NeedRequestAction();
         entry.setNeedRequest(request);
         entry.setActor(actor);
         entry.setAction(action);
         entry.setReason(reason);
         request.getActions().add(entry);
+        return entry;
     }
 
     private Department resolveDepartment(UUID id) {

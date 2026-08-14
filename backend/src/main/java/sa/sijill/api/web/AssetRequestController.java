@@ -38,10 +38,11 @@ public class AssetRequestController {
             @RequestParam(required = false) AssetRequestStatus status,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean mine,
+            @RequestParam(defaultValue = "false") boolean archived,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "as.view") ? actor.getId() : null;
-        Page<AssetRequest> page = assetRequestService.search(status, restrictToRequesterId, q, pageable);
+        Page<AssetRequest> page = assetRequestService.search(status, restrictToRequesterId, q, archived, pageable);
         List<UUID> ids = page.getContent().stream().map(AssetRequest::getId).toList();
         Map<UUID, List<AttachmentDto>> attachments = ids.isEmpty()
                 ? Map.of()
@@ -74,24 +75,59 @@ public class AssetRequestController {
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAuthority('as.act.approve')")
-    public AssetRequestDetail approve(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
-        return AssetRequestDetail.from(assetRequestService.approve(id, actor));
+    public AssetRequestDetail approve(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.approve(id, request, actor));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('as.act.reject')")
     public AssetRequestDetail reject(
-            @PathVariable UUID id, @RequestBody(required = false) ActionReasonRequest request, @AuthenticationPrincipal Employee actor) {
-        return AssetRequestDetail.from(
-                assetRequestService.reject(id, request != null ? request.reason() : null, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.reject(id, request, actor));
     }
 
     @PostMapping("/{id}/postpone")
     @PreAuthorize("hasAuthority('as.act.postpone')")
     public AssetRequestDetail postpone(
-            @PathVariable UUID id, @RequestBody(required = false) ActionReasonRequest request, @AuthenticationPrincipal Employee actor) {
-        return AssetRequestDetail.from(
-                assetRequestService.postpone(id, request != null ? request.reason() : null, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.postpone(id, request, actor));
+    }
+
+    @PostMapping("/{id}/countersign")
+    @PreAuthorize("hasAuthority('as.act.countersign')")
+    public AssetRequestDetail countersign(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.countersign(id, request, actor));
+    }
+
+    @PostMapping("/{id}/overturn")
+    @PreAuthorize("hasAuthority('as.act.countersign')")
+    public AssetRequestDetail overturn(
+            @PathVariable UUID id,
+            @RequestBody(required = false) OverturnRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.overturn(id, request, actor));
+    }
+
+    @PostMapping("/{id}/archive")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public AssetRequestDetail archive(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.archive(id, actor));
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public AssetRequestDetail restore(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.restore(id, actor));
     }
 
     @PostMapping("/{id}/finish")

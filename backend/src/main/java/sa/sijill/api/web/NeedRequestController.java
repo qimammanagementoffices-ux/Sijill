@@ -41,18 +41,19 @@ public class NeedRequestController {
             @RequestParam(required = false) NeedRequestStatus status,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean mine,
+            @RequestParam(defaultValue = "false") boolean archived,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "wh.view") ? actor.getId() : null;
-        Page<NeedRequest> page = needRequestService.search(status, restrictToRequesterId, q, pageable);
+        Page<NeedRequest> page = needRequestService.search(status, restrictToRequesterId, q, archived, pageable);
         Set<UUID> ids = page.getContent().stream().map(NeedRequest::getId).collect(Collectors.toSet());
         Map<UUID, List<Attachment>> attachments = ids.isEmpty()
                 ? Map.of()
                 : attachmentRepository.findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.NEED_REQUEST, ids).stream()
                         .sorted(Comparator.comparing(Attachment::getCreatedAt))
                         .collect(Collectors.groupingBy(Attachment::getOwnerId));
-        return PagedResponse.from(page, request ->
-                NeedRequestListItem.from(request, attachments.getOrDefault(request.getId(), List.of())));
+        return PagedResponse.from(page, request -> NeedRequestListItem.from(
+                request, attachments.getOrDefault(request.getId(), List.of()), actor));
     }
 
     @GetMapping("/{id}")
@@ -60,41 +61,120 @@ public class NeedRequestController {
     public NeedRequestDetail get(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         NeedRequest request = needRequestService.get(id);
         requireOwnerOrView(request, actor);
-        return NeedRequestDetail.from(request);
+        return NeedRequestDetail.from(request, actor);
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('wh.request')")
     public NeedRequestDetail submit(
             @RequestBody CreateNeedRequestRequest request, @AuthenticationPrincipal Employee actor) {
-        return NeedRequestDetail.from(needRequestService.submit(request, actor));
+        return detail(needRequestService.submit(request, actor), actor);
     }
+
+    // The requester's one-hour edit window, or an admin on a still-pending
+    // request. The service is the authority on both -- never the browser clock.
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('wh.request', 'emp.manage')")
+    public NeedRequestDetail update(
+            @PathVariable UUID id,
+            @RequestBody CreateNeedRequestRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.update(id, request, actor), actor);
+    }
+
+    // --- First-level decisions ---
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAuthority('wh.act.approve')")
-    public NeedRequestDetail approve(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
-        return NeedRequestDetail.from(needRequestService.approve(id, actor));
+    public NeedRequestDetail approve(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.approve(id, request, actor), actor);
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('wh.act.reject')")
     public NeedRequestDetail reject(
-            @PathVariable UUID id, @RequestBody(required = false) ActionReasonRequest request, @AuthenticationPrincipal Employee actor) {
-        return NeedRequestDetail.from(needRequestService.reject(id, request != null ? request.reason() : null, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.reject(id, request, actor), actor);
     }
 
     @PostMapping("/{id}/postpone")
     @PreAuthorize("hasAuthority('wh.act.postpone')")
     public NeedRequestDetail postpone(
-            @PathVariable UUID id, @RequestBody(required = false) ActionReasonRequest request, @AuthenticationPrincipal Employee actor) {
-        return NeedRequestDetail.from(needRequestService.postpone(id, request != null ? request.reason() : null, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.postpone(id, request, actor), actor);
     }
+
+    // --- Second-level review ---
+
+    @PostMapping("/{id}/countersign")
+    @PreAuthorize("hasAuthority('wh.act.countersign')")
+    public NeedRequestDetail countersign(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.countersign(id, request, actor), actor);
+    }
+
+    @PostMapping("/{id}/overturn")
+    @PreAuthorize("hasAuthority('wh.act.countersign')")
+    public NeedRequestDetail overturn(
+            @PathVariable UUID id,
+            @RequestBody(required = false) OverturnRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.overturn(id, request, actor), actor);
+    }
+
+    // --- Delivery and receipt ---
 
     @PostMapping("/{id}/finish")
     @PreAuthorize("hasAuthority('wh.act.finish')")
     public NeedRequestDetail finish(
-            @PathVariable UUID id, @RequestBody(required = false) FinishNeedRequestRequest request, @AuthenticationPrincipal Employee actor) {
-        return NeedRequestDetail.from(needRequestService.finish(id, request, actor));
+            @PathVariable UUID id,
+            @RequestBody(required = false) FinishNeedRequestRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.finish(id, request, actor), actor);
+    }
+
+    // Receipt is the requester's own step -- gated by ownership in the
+    // service, not by a permission key.
+    @PostMapping("/{id}/receive")
+    @PreAuthorize("hasAnyAuthority('wh.request', 'wh.view')")
+    public NeedRequestDetail receive(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.receive(id, actor), actor);
+    }
+
+    @PostMapping("/{id}/reject-receipt")
+    @PreAuthorize("hasAnyAuthority('wh.request', 'wh.view')")
+    public NeedRequestDetail rejectReceipt(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.rejectReceipt(id, request, actor), actor);
+    }
+
+    // --- Archive (never delete: workflow rule 4) ---
+
+    @PostMapping("/{id}/archive")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public NeedRequestDetail archive(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.archive(id, actor), actor);
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasAuthority('emp.manage')")
+    public NeedRequestDetail restore(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.restore(id, actor), actor);
+    }
+
+    private NeedRequestDetail detail(NeedRequest request, Employee actor) {
+        return NeedRequestDetail.from(request, actor);
     }
 
     private void requireOwnerOrView(NeedRequest request, Employee actor) {

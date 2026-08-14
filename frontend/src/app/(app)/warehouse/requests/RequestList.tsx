@@ -10,33 +10,76 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewRequestView from "@/components/NewRequestView";
-import RequestActionDialog from "@/components/RequestActionDialog";
-import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
+import RequestDecisionDialog from "@/components/RequestDecisionDialog";
+import RequestDeliveryDialog from "@/components/RequestDeliveryDialog";
+import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
-import type { NeedRequestDetail, NeedRequestListItem, PagedResponse } from "@/lib/types";
+import type {
+  NeedRequestDetail,
+  NeedRequestListItem,
+  NeedRequestStatusValue,
+  PagedResponse,
+  RequestDecisionBody,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
+  APPROVED_UNDER_REVIEW: "s-review",
+  REJECTED_UNDER_REVIEW: "s-review",
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
+  DELIVERED: "s-delivered",
   CLOSED: "s-closed",
 };
+
+// Which decision each button sends, and what the dialog needs from the user.
+type DecisionKind =
+  | "approve"
+  | "reject"
+  | "postpone"
+  | "countersign"
+  | "overturn-approve"
+  | "overturn-reject"
+  | "overturn-postpone"
+  | "reject-receipt";
+
+// A refusal or a deferral always has to say why; an approval need not.
+const REQUIRES_REASON: DecisionKind[] = [
+  "reject",
+  "postpone",
+  "overturn-reject",
+  "overturn-postpone",
+  "reject-receipt",
+];
+
+// Only decisions that grant the items may trim or drop lines.
+const GRANTS_ITEMS: DecisionKind[] = ["approve", "countersign", "overturn-approve"];
 
 export default function RequestList({
   dict,
   errorsDict,
   commonDict,
   attachmentsDict,
+  statusDict,
+  actionsDict,
+  modalsDict,
+  cardDict,
+  deliveryDict,
   locale,
 }: {
   dict: Dictionary["warehouseRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  statusDict: Dictionary["requestStatus"];
+  actionsDict: Dictionary["requestActions"];
+  modalsDict: Dictionary["requestModals"];
+  cardDict: Dictionary["requestCard"];
+  deliveryDict: Dictionary["requestDelivery"];
   locale: string;
 }) {
   const router = useRouter();
@@ -51,16 +94,19 @@ export default function RequestList({
   const [, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<{ id: string; action: "reject" | "postpone" } | null>(null);
+  const [decision, setDecision] = useState<{ request: NeedRequestListItem; kind: DecisionKind } | null>(null);
+  const [delivering, setDelivering] = useState<NeedRequestListItem | null>(null);
   const [viewRequest, setViewRequest] = useState<NeedRequestListItem | null>(null);
-  const [reason, setReason] = useState("");
+  const [archived, setArchived] = useState(false);
 
-  function load(statusFilter = status, query = appliedQuery, mineOnly = mine) {
+  function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (query) params.set("q", query);
     if (mineOnly) params.set("mine", "true");
+    if (showArchived) params.set("archived", "true");
     setFiltering(true);
     apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests?${params.toString()}`)
       .then(setPage)
@@ -78,8 +124,11 @@ export default function RequestList({
       return;
     }
     load("PENDING", "", false);
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setPermissions(me.permissions))
+    apiFetch<{ id: string; permissions: string[] }>("/auth/me")
+      .then((me) => {
+        setPermissions(me.permissions);
+        setCurrentEmployeeId(me.id);
+      })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -89,29 +138,61 @@ export default function RequestList({
   }, [searchParams, permissions]);
 
   function statusLabel(s: string) {
-    return {
-      PENDING: dict.statusPending,
-      APPROVED: dict.statusApproved,
-      POSTPONED: dict.statusPostponed,
-      REJECTED: dict.statusRejected,
-      CLOSED: dict.statusClosed,
-    }[s];
+    return statusDict[s as NeedRequestStatusValue] ?? s;
   }
 
   function actionLabel(action: string) {
-    return {
-      SUBMIT: dict.submit,
-      APPROVE: dict.approve,
-      REJECT: dict.reject,
-      POSTPONE: dict.postpone,
-      FINISH: dict.finish,
-    }[action] ?? action;
+    return (
+      {
+        SUBMIT: dict.submit,
+        EDIT: actionsDict.edit,
+        APPROVE: actionsDict.approve,
+        REJECT: actionsDict.reject,
+        POSTPONE: actionsDict.postpone,
+        COUNTERSIGN_APPROVE: actionsDict.confirmApproval,
+        COUNTERSIGN_REJECT: actionsDict.confirmRejection,
+        OVERTURN_APPROVE: actionsDict.cancelRejection,
+        OVERTURN_REJECT: actionsDict.cancelApproval,
+        OVERTURN_POSTPONE: actionsDict.postpone,
+        FINISH: actionsDict.finishDelivery,
+        RECEIVE: actionsDict.confirmReceipt,
+        REJECT_RECEIPT: actionsDict.rejectReceipt,
+        ARCHIVE: actionsDict.archive,
+        RESTORE: actionsDict.restore,
+      }[action] ?? action
+    );
   }
 
-  function selectView(nextStatus: string, mineOnly: boolean) {
+  // "تم تعديل <صنف> من 10 إلى 5" / "تم حذف الأصناف: ..." — one notice per
+  // decision that touched a line, with the item name resolved from the
+  // request's own lines (removed lines are kept, so the name always resolves).
+  function lineEditNotices(request: NeedRequestListItem) {
+    const nameOf = (lineId: string | null) =>
+      request.lines.find((line) => line.id === lineId)?.itemNameAr ?? "—";
+    const notices: string[] = [];
+    for (const action of request.actions) {
+      for (const edit of action.lineEdits ?? []) {
+        if (edit.removed) continue;
+        notices.push(
+          cardDict.lineQuantityChanged
+            .replace("{item}", nameOf(edit.lineId))
+            .replace("{before}", String(edit.quantityBefore))
+            .replace("{after}", String(edit.quantityAfter ?? 0))
+        );
+      }
+      const dropped = (action.lineEdits ?? []).filter((edit) => edit.removed).map((edit) => nameOf(edit.lineId));
+      if (dropped.length > 0) {
+        notices.push(cardDict.linesRemoved.replace("{items}", dropped.join("، ")));
+      }
+    }
+    return notices;
+  }
+
+  function selectView(nextStatus: string, mineOnly: boolean, showArchived = false) {
     setStatus(nextStatus);
     setMine(mineOnly);
-    load(nextStatus, appliedQuery, mineOnly);
+    setArchived(showArchived);
+    load(nextStatus, appliedQuery, mineOnly, showArchived);
   }
 
   function handleSearch(e: FormEvent) {
@@ -120,16 +201,77 @@ export default function RequestList({
     load(status, q, mine);
   }
 
-  async function act(id: string, action: "approve" | "reject" | "postpone", actionReason?: string) {
-    const key = `${id}:${action}`;
+  // Every decision hits the same shape of endpoint; the overturn variants
+  // differ only in the outcome they carry.
+  const DECISION_PATH: Record<DecisionKind, string> = {
+    approve: "approve",
+    reject: "reject",
+    postpone: "postpone",
+    countersign: "countersign",
+    "overturn-approve": "overturn",
+    "overturn-reject": "overturn",
+    "overturn-postpone": "overturn",
+    "reject-receipt": "reject-receipt",
+  };
+
+  async function act(id: string, kind: DecisionKind, body: RequestDecisionBody) {
+    const key = `${id}:${kind}`;
     setBusyAction(key);
     try {
-      await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/${action}`, {
+      const outcome = kind.startsWith("overturn-") ? kind.slice("overturn-".length).toUpperCase() : null;
+      await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/${DECISION_PATH[kind]}`, {
         method: "POST",
-        body: action === "approve" ? undefined : JSON.stringify({ reason: actionReason || null }),
+        body: JSON.stringify(outcome ? { ...body, outcome } : body),
       });
-      setPendingAction(null);
-      setReason("");
+      setDecision(null);
+      load();
+      setToast(commonDict.actionSuccess);
+    } catch (error) {
+      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  function decisionTitle(kind: DecisionKind, status: NeedRequestStatusValue) {
+    switch (kind) {
+      case "approve":
+        return modalsDict.approveTitle;
+      case "reject":
+        return modalsDict.rejectTitle;
+      case "postpone":
+      case "overturn-postpone":
+        return modalsDict.postponeTitle;
+      case "countersign":
+        return status === "APPROVED_UNDER_REVIEW"
+          ? modalsDict.confirmApprovalTitle
+          : modalsDict.confirmRejectionTitle;
+      case "overturn-reject":
+        return modalsDict.cancelApprovalTitle;
+      case "overturn-approve":
+        return modalsDict.cancelRejectionTitle;
+      case "reject-receipt":
+        return modalsDict.rejectReceiptTitle;
+    }
+  }
+
+  // Counter-signing a rejection grants nothing, so it offers no line editor.
+  function editableLines(kind: DecisionKind, request: NeedRequestListItem) {
+    if (!GRANTS_ITEMS.includes(kind)) return undefined;
+    if (kind === "countersign" && request.status !== "APPROVED_UNDER_REVIEW") return undefined;
+    return request.lines;
+  }
+
+  // Simple no-body actions: deliver, receive, archive, restore.
+  async function post(id: string, path: string, body?: unknown) {
+    const key = `${id}:${path}`;
+    setBusyAction(key);
+    try {
+      await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/${path}`, {
+        method: "POST",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      setDelivering(null);
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
@@ -181,9 +323,15 @@ export default function RequestList({
         <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">
-              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{dict.pendingTab}</button>
-              <button type="button" className={`btn btn-sm ${status === "" && !mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{status === "PENDING" && !mine && !archived && page ? ` (${page.totalElements})` : ""}</button>
+              {permissions.includes("wh.act.countersign") && (
+                <button type="button" className={`btn btn-sm ${status === "APPROVED_UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("APPROVED_UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
+              )}
+              <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
+              {permissions.includes("emp.manage") && (
+                <button type="button" className={`btn btn-sm ${archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false, true)}>{cardDict.archiveTab}</button>
+              )}
             </div>
             <form className="filter-row" onSubmit={handleSearch}>
               <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
@@ -216,7 +364,7 @@ export default function RequestList({
                   <h3 className="request-card-title">
                     {dict.cardTitle} — {request.category ? request.category.ar : "—"}
                   </h3>
-                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
+                  <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && request.postponedUntil && <time>{request.postponedUntil}</time>}</span>
                 </header>
 
                 <div className="request-card-meta">
@@ -230,8 +378,8 @@ export default function RequestList({
                 {(request.lines?.length ?? 0) > 0 && (
                   <div className="request-card-chips">
                     {(request.lines ?? []).map((line) => (
-                      <span key={line.id} className="chip">
-                        {line.itemNameAr} × {line.quantityRequested}
+                      <span key={line.id} className={line.removed ? "chip chip-removed" : "chip"}>
+                        {line.itemNameAr} × {line.quantityApproved ?? line.quantityRequested}
                       </span>
                     ))}
                   </div>
@@ -239,7 +387,33 @@ export default function RequestList({
 
                 {request.notes && <p className="request-card-notes">{request.notes}</p>}
 
-                {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
+                {/* What the approvers changed, per decision, so a first-level
+                    trim and a later counter-sign trim stay separate. */}
+                {lineEditNotices(request).map((notice, index) => (
+                  <p key={index} className="request-card-notice">{notice}</p>
+                ))}
+
+                {request.canEdit && (
+                  <p className="edit-note">
+                    {cardDict.editNoteActive.replace("{time}", formatActionDate(request.editableUntil))}
+                  </p>
+                )}
+                {!request.canEdit && request.status === "PENDING" && request.requesterId === currentEmployeeId && (
+                  <p className="edit-note expired">{cardDict.editNoteExpired}</p>
+                )}
+                {request.status === "POSTPONED" && request.postponedUntil && (
+                  <p className="request-card-notice">
+                    {cardDict.postponeResurfaceNote.replace("{date}", request.postponedUntil)}
+                  </p>
+                )}
+                {request.returnedBySenior && <p className="request-card-notice">{cardDict.returnedBySenior}</p>}
+                {request.archivedAt && <p className="request-card-notice">{cardDict.archivedNote}</p>}
+
+                {/* Suppressed while postponed: the postpone date is the date
+                    that matters, and two competing dates read as a bug. */}
+                {request.suggestedStartDate && request.status !== "POSTPONED" && (
+                  <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
+                )}
 
                 <RequestCardActivity
                   actions={request.actions}
@@ -249,41 +423,73 @@ export default function RequestList({
                   attachmentsDict={attachmentsDict}
                 />
 
+                {/* Each stage shows only its own actions, and only to the
+                    employee entitled to take them. */}
                 <div className="request-card-actions">
-                  {(request.status === "PENDING" || request.status === "POSTPONED") &&
-                    permissions.includes("wh.act.approve") && (
-                      <button
-                        type="button"
-                        className="btn btn-sm request-decision request-decision-approve"
-                        disabled={busyAction !== null}
-                        onClick={() => void act(request.id, "approve")}
-                      >
-                        {busyAction === `${request.id}:approve` && <span className="spinner" />}
-                        {dict.approve}
-                      </button>
+                  {request.status === "PENDING" && !request.archivedAt && (
+                    <>
+                      {permissions.includes("wh.act.approve") && (
+                        <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "approve" })}>
+                          {actionsDict.approve}
+                        </button>
+                      )}
+                      {permissions.includes("wh.act.postpone") && (
+                        <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "postpone" })}>
+                          {actionsDict.postpone}
+                        </button>
+                      )}
+                      {permissions.includes("wh.act.reject") && (
+                        <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "reject" })}>
+                          {actionsDict.reject}
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {(request.status === "APPROVED_UNDER_REVIEW" || request.status === "REJECTED_UNDER_REVIEW") &&
+                    !request.archivedAt &&
+                    permissions.includes("wh.act.countersign") && (
+                      <>
+                        <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "countersign" })}>
+                          {request.status === "APPROVED_UNDER_REVIEW" ? actionsDict.confirmApproval : actionsDict.confirmRejection}
+                        </button>
+                        <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: request.status === "APPROVED_UNDER_REVIEW" ? "overturn-reject" : "overturn-approve" })}>
+                          {request.status === "APPROVED_UNDER_REVIEW" ? actionsDict.cancelApproval : actionsDict.cancelRejection}
+                        </button>
+                        <button type="button" className="btn btn-sm request-decision request-decision-postpone" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "overturn-postpone" })}>
+                          {actionsDict.postpone}
+                        </button>
+                      </>
                     )}
-                  {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") &&
-                    permissions.includes("wh.act.reject") && (
-                      <button
-                        type="button"
-                        className="btn btn-sm request-decision request-decision-reject"
-                        disabled={busyAction !== null}
-                        onClick={() => setPendingAction({ id: request.id, action: "reject" })}
-                      >
-                        {dict.reject}
+
+                  {/* Delivery belongs to the storekeeper, not the requester:
+                      the beneficiary must not be the one declaring what left
+                      the warehouse. */}
+                  {request.status === "APPROVED" && !request.archivedAt && permissions.includes("wh.act.finish") && (
+                    <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDelivering(request)}>
+                      {actionsDict.finishDelivery}
+                    </button>
+                  )}
+
+                  {request.status === "DELIVERED" && !request.archivedAt && request.requesterId === currentEmployeeId && (
+                    <>
+                      <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => void post(request.id, "receive")}>
+                        {busyAction === `${request.id}:receive` && <span className="spinner" />}
+                        {actionsDict.confirmReceipt}
                       </button>
-                    )}
-                  {(request.status === "PENDING" || request.status === "APPROVED") &&
-                    permissions.includes("wh.act.postpone") && (
-                      <button
-                        type="button"
-                        className="btn btn-sm request-decision request-decision-postpone"
-                        disabled={busyAction !== null}
-                        onClick={() => setPendingAction({ id: request.id, action: "postpone" })}
-                      >
-                        {dict.postpone}
+                      <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "reject-receipt" })}>
+                        {actionsDict.rejectReceipt}
                       </button>
-                    )}
+                    </>
+                  )}
+
+                  {permissions.includes("emp.manage") && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
+                      {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
+                      {request.archivedAt ? actionsDict.restore : actionsDict.archive}
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     className="btn btn-outline btn-sm"
@@ -321,19 +527,30 @@ export default function RequestList({
         </div>
       )}
 
-      {pendingAction && (
-        <RequestActionDialog
-          title={pendingAction.action === "reject" ? dict.reject : dict.postpone}
-          reasonLabel={dict.reasonLabel}
-          cancelLabel={commonDict.cancel}
+      {decision && (
+        <RequestDecisionDialog
+          key={`${decision.request.id}:${decision.kind}`}
+          title={decisionTitle(decision.kind, decision.request.status)}
+          description={decision.kind === "reject-receipt" ? modalsDict.rejectReceiptDesc : undefined}
+          requireComment={REQUIRES_REASON.includes(decision.kind)}
+          needsDate={decision.kind === "postpone" || decision.kind === "overturn-postpone"}
+          lines={editableLines(decision.kind, decision.request)}
           submitting={busyAction !== null}
-          reason={reason}
-          onReasonChange={setReason}
-          onConfirm={() => void act(pendingAction.id, pendingAction.action, reason)}
-          onCancel={() => {
-            setPendingAction(null);
-            setReason("");
-          }}
+          dict={modalsDict}
+          commonDict={commonDict}
+          onConfirm={(body) => void act(decision.request.id, decision.kind, body)}
+          onCancel={() => setDecision(null)}
+        />
+      )}
+
+      {delivering && (
+        <RequestDeliveryDialog
+          lines={delivering.lines}
+          submitting={busyAction !== null}
+          dict={deliveryDict}
+          commonDict={commonDict}
+          onConfirm={(body) => void post(delivering.id, "finish", body)}
+          onCancel={() => setDelivering(null)}
         />
       )}
 

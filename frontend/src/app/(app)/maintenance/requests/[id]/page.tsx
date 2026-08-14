@@ -10,6 +10,7 @@ export default async function MaintenanceRequestDetailPage({ params }: { params:
       dict={dict.maintenanceRequests}
       commonDict={dict.common}
       attachmentsDict={dict.attachments}
+      statusDict={dict.requestStatus}
     />
   );
 }

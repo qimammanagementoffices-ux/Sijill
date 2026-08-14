@@ -1,9 +1,11 @@
 package sa.sijill.api.web.dto;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import sa.sijill.api.domain.AssetRequest;
+import sa.sijill.api.service.AssetRequestService;
 
 public record AssetRequestListItem(
         UUID id,
@@ -20,6 +22,9 @@ public record AssetRequestListItem(
         String reason,
         String status,
         LocalDate suggestedStartDate,
+        LocalDate postponedUntil,
+        boolean returnedBySenior,
+        Instant archivedAt,
         List<AssetRequestLineDto> lines,
         List<AssetRequestActionDto> actions,
         List<AttachmentDto> attachments) {
@@ -69,8 +74,11 @@ public record AssetRequestListItem(
                 request.getPurpose() == null ? null : request.getPurpose().name(),
                 request.getPriority() == null ? null : request.getPriority().name(),
                 request.getReason(),
-                request.getStatus().name(),
+                AssetRequestService.effectiveStatus(request).name(),
                 request.getSuggestedStartDate(),
+                request.getPostponedUntil(),
+                request.isReturnedBySenior(),
+                request.getArchivedAt(),
                 lines,
                 request.getActions().stream().map(AssetRequestActionDto::from).toList(),
                 attachments);
