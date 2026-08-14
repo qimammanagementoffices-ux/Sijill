@@ -42,18 +42,24 @@ public class NeedRequestController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean mine,
             @RequestParam(defaultValue = "false") boolean archived,
+            // The counter-signer's queue: both under-review states at once.
+            @RequestParam(defaultValue = "false") boolean underReview,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "wh.view") ? actor.getId() : null;
-        Page<NeedRequest> page = needRequestService.search(status, restrictToRequesterId, q, archived, pageable);
+        Page<NeedRequest> page =
+                needRequestService.search(status, restrictToRequesterId, q, archived, underReview, pageable);
         Set<UUID> ids = page.getContent().stream().map(NeedRequest::getId).collect(Collectors.toSet());
-        Map<UUID, List<Attachment>> attachments = ids.isEmpty()
-                ? Map.of()
-                : attachmentRepository.findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.NEED_REQUEST, ids).stream()
-                        .sorted(Comparator.comparing(Attachment::getCreatedAt))
-                        .collect(Collectors.groupingBy(Attachment::getOwnerId));
+        Map<UUID, List<Attachment>> attachments = attachmentsByRequest(AttachmentOwnerType.NEED_REQUEST, ids);
+        // Proof of delivery is kept apart from the requester's own evidence so
+        // the card can label each for what it is.
+        Map<UUID, List<Attachment>> deliveryAttachments =
+                attachmentsByRequest(AttachmentOwnerType.NEED_REQUEST_DELIVERY, ids);
         return PagedResponse.from(page, request -> NeedRequestListItem.from(
-                request, attachments.getOrDefault(request.getId(), List.of()), actor));
+                request,
+                attachments.getOrDefault(request.getId(), List.of()),
+                deliveryAttachments.getOrDefault(request.getId(), List.of()),
+                actor));
     }
 
     @GetMapping("/{id}")
@@ -142,6 +148,17 @@ public class NeedRequestController {
         return detail(needRequestService.finish(id, request, actor), actor);
     }
 
+    // Writes off an undelivered remainder instead of leaving a short-delivered
+    // request open forever. Same permission as delivering it.
+    @PostMapping("/{id}/cancel-remainder")
+    @PreAuthorize("hasAuthority('wh.act.finish')")
+    public NeedRequestDetail cancelRemainder(
+            @PathVariable UUID id,
+            @RequestBody(required = false) RequestDecisionRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return detail(needRequestService.cancelRemainder(id, request, actor), actor);
+    }
+
     // Receipt is the requester's own step -- gated by ownership in the
     // service, not by a permission key.
     @PostMapping("/{id}/receive")
@@ -171,6 +188,13 @@ public class NeedRequestController {
     @PreAuthorize("hasAuthority('emp.manage')")
     public NeedRequestDetail restore(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         return detail(needRequestService.restore(id, actor), actor);
+    }
+
+    private Map<UUID, List<Attachment>> attachmentsByRequest(AttachmentOwnerType ownerType, Set<UUID> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return attachmentRepository.findByOwnerTypeAndOwnerIdIn(ownerType, ids).stream()
+                .sorted(Comparator.comparing(Attachment::getCreatedAt))
+                .collect(Collectors.groupingBy(Attachment::getOwnerId));
     }
 
     private NeedRequestDetail detail(NeedRequest request, Employee actor) {

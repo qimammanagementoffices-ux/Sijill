@@ -31,9 +31,14 @@ public record NeedRequestListItem(
         String notes,
         List<NeedRequestLineDto> lines,
         List<NeedRequestActionDto> actions,
-        List<AttachmentDto> attachments) {
+        List<AttachmentDto> attachments,
+        List<AttachmentDto> deliveryAttachments) {
 
-    public static NeedRequestListItem from(NeedRequest request, List<Attachment> attachments, Employee actor) {
+    public static NeedRequestListItem from(
+            NeedRequest request,
+            List<Attachment> attachments,
+            List<Attachment> deliveryAttachments,
+            Employee actor) {
         Category category = request.getCategory();
         if (category == null) {
             category = request.getLines().stream()
@@ -63,6 +68,7 @@ public record NeedRequestListItem(
                 request.getNotes(),
                 request.getLines().stream().map(NeedRequestLineDto::from).toList(),
                 request.getActions().stream().map(NeedRequestActionDto::from).toList(),
-                attachments.stream().map(AttachmentDto::from).toList());
+                attachments.stream().map(AttachmentDto::from).toList(),
+                deliveryAttachments.stream().map(AttachmentDto::from).toList());
     }
 }

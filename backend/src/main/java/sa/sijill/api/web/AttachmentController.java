@@ -86,7 +86,7 @@ public class AttachmentController {
                     ? List.of("sys.maintenance")
                     : List.of("mt.view", "mt.request");
             case EMPLOYEE -> List.of("emp.view");
-            case NEED_REQUEST -> List.of("wh.view", "wh.request");
+            case NEED_REQUEST, NEED_REQUEST_DELIVERY -> List.of("wh.view", "wh.request");
             case ASSET_REQUEST -> List.of("as.view", "as.request");
         };
     }
@@ -102,6 +102,8 @@ public class AttachmentController {
                     : List.of("mt.view", "mt.request");
             case EMPLOYEE -> List.of("emp.manage");
             case NEED_REQUEST -> List.of("wh.request", "wh.view");
+            // Proof of delivery is filed by whoever hands the items over.
+            case NEED_REQUEST_DELIVERY -> List.of("wh.act.finish");
             case ASSET_REQUEST -> List.of("as.request", "as.view");
         };
     }

@@ -206,6 +206,7 @@ export type NeedRequestStatusValue =
   | "APPROVED"
   | "POSTPONED"
   | "REJECTED"
+  | "PARTIALLY_DELIVERED"
   | "DELIVERED"
   | "CLOSED";
 
@@ -226,6 +227,9 @@ export type NeedRequestListItem = {
   lines: NeedRequestLineDto[];
   actions: NeedRequestActionDto[];
   attachments: AttachmentDto[];
+  // Proof of delivery filed by the storekeeper, kept apart from the
+  // requester's own attachments.
+  deliveryAttachments: AttachmentDto[];
 };
 
 export type NeedRequestDetail = {
@@ -465,6 +469,7 @@ export type AttachmentOwnerType =
   | "MAINTENANCE"
   | "EMPLOYEE"
   | "NEED_REQUEST"
+  | "NEED_REQUEST_DELIVERY"
   | "ASSET_REQUEST"
   | "ASSET_ACQUISITION"
   | "WAREHOUSE_INVOICE";

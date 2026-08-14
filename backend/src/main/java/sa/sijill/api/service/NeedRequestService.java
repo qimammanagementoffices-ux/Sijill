@@ -63,13 +63,42 @@ public class NeedRequestService {
         this.auditService = auditService;
     }
 
+    @Transactional
     public Page<NeedRequest> search(
-            NeedRequestStatus status, UUID restrictToRequesterId, String q, boolean archived, Pageable pageable) {
-        return needRequestRepository.search(status, restrictToRequesterId, q, archived, LocalDate.now(), pageable);
+            NeedRequestStatus status,
+            UUID restrictToRequesterId,
+            String q,
+            boolean archived,
+            boolean underReview,
+            Pageable pageable) {
+        Page<NeedRequest> page = needRequestRepository.search(
+                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(), pageable);
+        page.getContent().forEach(this::materialiseResurface);
+        return page;
     }
 
     public NeedRequest get(UUID id) {
         return needRequestRepository.findById(id).orElseThrow(() -> ApiException.notFound("Request not found"));
+    }
+
+    /**
+     * Turns a due postponement into a real status change with a log entry, so
+     * the return to the queue is visible in the request's history rather than
+     * only implied by {@link #effectiveStatus}. Idempotent: once the status is
+     * PENDING there is nothing left to do.
+     *
+     * A write during a read, deliberately — the alternative is a nightly job
+     * that can miss a night, and the entry has to exist before anyone acts on
+     * the request or the history is wrong for exactly the period it matters.
+     */
+    private void materialiseResurface(NeedRequest request) {
+        if (request.getStatus() != NeedRequestStatus.POSTPONED) return;
+        if (request.getPostponedUntil() == null || request.getPostponedUntil().isAfter(LocalDate.now())) return;
+
+        request.setStatus(NeedRequestStatus.PENDING);
+        // Null actor = the system acted, not an employee.
+        addAction(request, null, "RESURFACE", null);
+        needRequestRepository.save(request);
     }
 
     /**
@@ -288,10 +317,17 @@ public class NeedRequestService {
 
     // --- Delivery and receipt --------------------------------------------
 
+    /**
+     * Records what actually left the warehouse. Callable more than once: a
+     * short delivery leaves the request PARTIALLY_DELIVERED and open, and each
+     * later pass adds to what was already issued rather than replacing it. The
+     * request only reaches DELIVERED when every approved quantity is met, or
+     * when the remainder is written off through {@link #cancelRemainder}.
+     */
     @Transactional
     public NeedRequest finish(UUID id, FinishNeedRequestRequest request, Employee actor) {
         NeedRequest needRequest = openRequest(id);
-        requireStatus(needRequest, NeedRequestStatus.APPROVED);
+        requireStatus(needRequest, NeedRequestStatus.APPROVED, NeedRequestStatus.PARTIALLY_DELIVERED);
 
         Map<UUID, Integer> issuedByLineId = new HashMap<>();
         if (request != null && request.lines() != null) {
@@ -300,43 +336,77 @@ public class NeedRequestService {
             }
         }
 
-        int totalIssued = 0;
+        int issuedNow = 0;
+        int outstanding = 0;
         for (NeedRequestLine line : needRequest.getLines()) {
             if (line.isRemoved()) {
                 line.setQuantityIssued(0);
                 continue;
             }
-            Integer requestedIssue = issuedByLineId.get(line.getId());
             int approved = line.effectiveQuantity();
-            int quantityIssued = requestedIssue != null ? requestedIssue : approved;
+            int alreadyIssued = line.getQuantityIssued() == null ? 0 : line.getQuantityIssued();
+            int remaining = approved - alreadyIssued;
 
-            // Capped against the approved quantity, not the requested one:
-            // a line trimmed from 10 to 5 must not be deliverable at 10.
-            if (quantityIssued < 0 || quantityIssued > approved) {
+            Integer requestedIssue = issuedByLineId.get(line.getId());
+            int quantityIssued = requestedIssue != null ? requestedIssue : remaining;
+
+            // Capped against what is still outstanding on the approved
+            // quantity, so repeated passes cannot over-deliver in total.
+            if (quantityIssued < 0 || quantityIssued > remaining) {
                 throw RequestWorkflowErrors.issuedOutOfRange();
             }
 
-            InventoryItem item = line.getInventoryItem();
-            if (item.getQuantity() < quantityIssued) {
-                throw RequestWorkflowErrors.insufficientStock(item.getCode());
+            if (quantityIssued > 0) {
+                InventoryItem item = line.getInventoryItem();
+                if (item.getQuantity() < quantityIssued) {
+                    throw RequestWorkflowErrors.insufficientStock(item.getCode());
+                }
+                item.setQuantity(item.getQuantity() - quantityIssued);
+                inventoryItemRepository.save(item);
             }
-            item.setQuantity(item.getQuantity() - quantityIssued);
-            inventoryItemRepository.save(item);
 
-            line.setQuantityIssued(quantityIssued);
-            totalIssued += quantityIssued;
+            line.setQuantityIssued(alreadyIssued + quantityIssued);
+            issuedNow += quantityIssued;
+            outstanding += remaining - quantityIssued;
         }
 
-        // A delivery of nothing used to close the request with the remainder
-        // tracked nowhere. A request with no lines is described in notes only
-        // and has nothing to count.
-        if (totalIssued == 0 && !needRequest.getLines().isEmpty()) {
+        // A delivery of nothing would otherwise advance the request while
+        // handing over nothing. A request with no lines is described in notes
+        // only and has nothing to count.
+        if (issuedNow == 0 && !needRequest.getLines().isEmpty()) {
             throw RequestWorkflowErrors.nothingDelivered();
         }
 
-        needRequest.setStatus(NeedRequestStatus.DELIVERED);
+        needRequest.setStatus(
+                outstanding > 0 ? NeedRequestStatus.PARTIALLY_DELIVERED : NeedRequestStatus.DELIVERED);
         addAction(needRequest, actor, "FINISH", request == null ? null : request.notes());
         return save(needRequest, actor, "NEED_REQUEST_FINISHED");
+    }
+
+    /**
+     * Writes off what was never delivered, with a reason, instead of leaving a
+     * short-delivered request open forever. The approved quantities drop to
+     * what was actually issued, so the shortfall is recorded rather than
+     * silently forgotten, and the request moves on to the requester.
+     */
+    @Transactional
+    public NeedRequest cancelRemainder(UUID id, RequestDecisionRequest decision, Employee actor) {
+        NeedRequest request = openRequest(id);
+        requireStatus(request, NeedRequestStatus.PARTIALLY_DELIVERED);
+        requireReason(decision);
+
+        NeedRequestAction action = addAction(request, actor, "CANCEL_REMAINDER", comment(decision));
+        for (NeedRequestLine line : request.getLines()) {
+            if (line.isRemoved()) continue;
+            int approved = line.effectiveQuantity();
+            int issued = line.getQuantityIssued() == null ? 0 : line.getQuantityIssued();
+            if (issued >= approved) continue;
+            recordLineEdit(action, line, approved, issued, false);
+            line.setQuantityApproved(issued);
+        }
+
+        request.setStatus(NeedRequestStatus.DELIVERED);
+        return save(request, actor, "NEED_REQUEST_REMAINDER_CANCELLED");
     }
 
     @Transactional
@@ -364,10 +434,15 @@ public class NeedRequestService {
 
         for (NeedRequestLine line : request.getLines()) {
             Integer issued = line.getQuantityIssued();
-            if (issued == null || issued == 0) continue;
-            InventoryItem item = line.getInventoryItem();
-            item.setQuantity(item.getQuantity() + issued);
-            inventoryItemRepository.save(item);
+            if (issued != null && issued > 0) {
+                InventoryItem item = line.getInventoryItem();
+                item.setQuantity(item.getQuantity() + issued);
+                inventoryItemRepository.save(item);
+            }
+            // Cleared, not kept: finish() adds to what was already issued, so
+            // leaving the old figure here would make the redelivery think
+            // nothing is outstanding.
+            line.setQuantityIssued(null);
         }
 
         request.setStatus(NeedRequestStatus.APPROVED);

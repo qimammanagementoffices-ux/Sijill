@@ -43,6 +43,7 @@ public class CostDashboardService {
         } else {
             needRequests.findAll().stream()
                     .filter(r -> r.getStatus() == NeedRequestStatus.APPROVED
+                            || r.getStatus() == NeedRequestStatus.PARTIALLY_DELIVERED
                             || r.getStatus() == NeedRequestStatus.DELIVERED
                             || r.getStatus() == NeedRequestStatus.CLOSED)
                     .filter(r -> inRange(r.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate(), from, to))

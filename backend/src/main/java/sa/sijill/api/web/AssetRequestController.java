@@ -39,10 +39,12 @@ public class AssetRequestController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean mine,
             @RequestParam(defaultValue = "false") boolean archived,
+            @RequestParam(defaultValue = "false") boolean underReview,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "as.view") ? actor.getId() : null;
-        Page<AssetRequest> page = assetRequestService.search(status, restrictToRequesterId, q, archived, pageable);
+        Page<AssetRequest> page =
+                assetRequestService.search(status, restrictToRequesterId, q, archived, underReview, pageable);
         List<UUID> ids = page.getContent().stream().map(AssetRequest::getId).toList();
         Map<UUID, List<AttachmentDto>> attachments = ids.isEmpty()
                 ? Map.of()

@@ -48,6 +48,8 @@ type DecisionKind =
 
 const REQUIRES_REASON: DecisionKind[] = ["reject", "postpone", "overturn-reject", "overturn-postpone"];
 
+type AssetRequestView = "pending" | "review" | "all" | "mine" | "archive";
+
 export default function AssetRequestList({
   dict,
   errorsDict,
@@ -73,7 +75,7 @@ export default function AssetRequestList({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [view, setView] = useState<"pending" | "all" | "mine">("pending");
+  const [view, setView] = useState<AssetRequestView>("pending");
   const [q, setQ] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [page, setPage] = useState<PagedResponse<AssetRequestListItem> | null>(null);
@@ -86,10 +88,13 @@ export default function AssetRequestList({
   const [decision, setDecision] = useState<{ request: AssetRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
 
-  function queryFor(nextView: "pending" | "all" | "mine", query: string) {
+  function queryFor(nextView: AssetRequestView, query: string) {
     const params = new URLSearchParams();
     if (nextView === "pending") params.set("status", "PENDING");
     if (nextView === "mine") params.set("mine", "true");
+    // Both under-review states at once — a single status filter cannot say it.
+    if (nextView === "review") params.set("underReview", "true");
+    if (nextView === "archive") params.set("archived", "true");
     if (query) params.set("q", query);
     return `?${params.toString()}`;
   }
@@ -112,7 +117,9 @@ export default function AssetRequestList({
       return;
     }
     load("pending", "");
-    apiFetch<{ permissions: string[] }>("/auth/me").then((me) => setPermissions(me.permissions)).catch(() => {});
+    apiFetch<{ id: string; permissions: string[] }>("/auth/me")
+      .then((me) => setPermissions(me.permissions))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -171,7 +178,7 @@ export default function AssetRequestList({
     }
   }
 
-  function selectView(nextView: "pending" | "all" | "mine") {
+  function selectView(nextView: AssetRequestView) {
     setView(nextView);
     load(nextView);
   }
@@ -262,8 +269,14 @@ export default function AssetRequestList({
           <div className="request-toolbar">
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${view === "pending" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("pending")}>{dict.pendingTab}</button>
+              {permissions.includes("as.act.countersign") && (
+                <button type="button" className={`btn btn-sm ${view === "review" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("review")}>{cardDict.reviewTab}</button>
+              )}
               <button type="button" className={`btn btn-sm ${view === "all" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("all")}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${view === "mine" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("mine")}>{dict.mineTab}</button>
+              {permissions.includes("emp.manage") && (
+                <button type="button" className={`btn btn-sm ${view === "archive" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("archive")}>{cardDict.archiveTab}</button>
+              )}
             </div>
             <form className="filter-row" onSubmit={handleSearch}>
               <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={commonDict.search} />
@@ -275,9 +288,11 @@ export default function AssetRequestList({
           <div className="table-toolbar-actions">
             <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
             <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
-              {dict.addNew}
-            </button>
+            {permissions.includes("as.request") && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
+                {dict.addNew}
+              </button>
+            )}
           </div>
         </div>
 
@@ -296,7 +311,8 @@ export default function AssetRequestList({
                 <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}
                 {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
-                <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+                <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle}
+                  systemActorLabel={cardDict.systemActor} attachmentsDict={attachmentsDict} />
                 <div className="request-card-actions">
                   {request.status === "PENDING" && !request.archivedAt && (
                     <>

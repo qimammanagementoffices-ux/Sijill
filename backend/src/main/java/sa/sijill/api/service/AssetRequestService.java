@@ -59,9 +59,28 @@ public class AssetRequestService {
         this.auditService = auditService;
     }
 
+    @Transactional
     public Page<AssetRequest> search(
-            AssetRequestStatus status, UUID restrictToRequesterId, String q, boolean archived, Pageable pageable) {
-        return assetRequestRepository.search(status, restrictToRequesterId, q, archived, LocalDate.now(), pageable);
+            AssetRequestStatus status,
+            UUID restrictToRequesterId,
+            String q,
+            boolean archived,
+            boolean underReview,
+            Pageable pageable) {
+        Page<AssetRequest> page = assetRequestRepository.search(
+                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(), pageable);
+        page.getContent().forEach(this::materialiseResurface);
+        return page;
+    }
+
+    /** See NeedRequestService.materialiseResurface for why this is a write during a read. */
+    private void materialiseResurface(AssetRequest request) {
+        if (request.getStatus() != AssetRequestStatus.POSTPONED) return;
+        if (request.getPostponedUntil() == null || request.getPostponedUntil().isAfter(LocalDate.now())) return;
+
+        request.setStatus(AssetRequestStatus.PENDING);
+        addAction(request, null, "RESURFACE", null);
+        assetRequestRepository.save(request);
     }
 
     /** A postponed request whose date has arrived counts as pending everywhere. */

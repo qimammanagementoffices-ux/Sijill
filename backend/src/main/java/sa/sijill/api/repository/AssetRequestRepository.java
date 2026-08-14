@@ -17,7 +17,10 @@ public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID
             left join r.asset legacyAsset
             where (:archived = true and r.archivedAt is not null
                 or :archived = false and r.archivedAt is null)
-              and (:status is null
+              and (:underReview = false or r.status in (
+                    sa.sijill.api.domain.AssetRequestStatus.APPROVED_UNDER_REVIEW,
+                    sa.sijill.api.domain.AssetRequestStatus.REJECTED_UNDER_REVIEW))
+              and (:underReview = true or :status is null
                 or r.status = :status
                 or (:status = sa.sijill.api.domain.AssetRequestStatus.PENDING
                     and r.status = sa.sijill.api.domain.AssetRequestStatus.POSTPONED
@@ -45,6 +48,8 @@ public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID
             @Param("requesterId") UUID requesterId,
             @Param("q") String q,
             @Param("archived") boolean archived,
+            // The counter-signer's queue is both review states at once.
+            @Param("underReview") boolean underReview,
             @Param("today") LocalDate today,
             Pageable pageable);
 

@@ -102,6 +102,11 @@ export default function MaintenanceRequestList({
     if (query) params.set("q", query);
     if (mineOnly) params.set("mine", "true");
     if (showArchived) params.set("archived", "true");
+    // Sentinel for the counter-signer's queue: both under-review states.
+    if (statusFilter === "UNDER_REVIEW") {
+      params.delete("status");
+      params.set("underReview", "true");
+    }
     setFiltering(true);
     apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests?${params.toString()}`)
       .then(setPage)
@@ -293,7 +298,7 @@ export default function MaintenanceRequestList({
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{status === "PENDING" && !mine && !archived && page ? ` (${page.totalElements})` : ""}</button>
               {permissions.includes("mt.act.countersign") && (
-                <button type="button" className={`btn btn-sm ${status === "APPROVED_UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("APPROVED_UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
+                <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
               )}
               <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
@@ -358,6 +363,7 @@ export default function MaintenanceRequestList({
                   attachments={request.attachments}
                   actionLabel={actionLabel}
                   activityTitle={dict.activityTitle}
+                  systemActorLabel={cardDict.systemActor}
                   attachmentsDict={attachmentsDict}
                 />
 

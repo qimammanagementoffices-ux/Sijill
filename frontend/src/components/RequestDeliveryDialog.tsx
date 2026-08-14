@@ -1,11 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 import type { Dictionary } from "@/i18n/getDictionary";
 import type { NeedRequestLineDto } from "@/lib/types";
 
 // The legacy "إنهاء التسليم — تقرير الأصناف" modal: the storekeeper records
 // what actually left the warehouse, which may be less than what was approved.
+// A short delivery leaves the request open, so this can be reopened later for
+// the remainder — the quantities below are what is still outstanding, not the
+// original request.
 export default function RequestDeliveryDialog({
   lines,
   submitting,
@@ -18,25 +22,40 @@ export default function RequestDeliveryDialog({
   submitting: boolean;
   dict: Dictionary["requestDelivery"];
   commonDict: Dictionary["common"];
-  onConfirm: (body: { lines: { lineId: string; quantityIssued: number }[]; notes: string | null }) => void;
+  onConfirm: (
+    body: { lines: { lineId: string; quantityIssued: number }[]; notes: string | null },
+    files: File[]
+  ) => void;
   onCancel: () => void;
 }) {
-  const deliverable = useMemo(() => lines.filter((line) => !line.removed), [lines]);
+  const deliverable = useMemo(
+    () =>
+      lines
+        .filter((line) => !line.removed)
+        .map((line) => {
+          const approved = line.quantityApproved ?? line.quantityRequested;
+          const issued = line.quantityIssued ?? 0;
+          return { line, remaining: Math.max(0, approved - issued) };
+        })
+        .filter((entry) => entry.remaining > 0),
+    [lines]
+  );
 
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [issued, setIssued] = useState<Record<string, number>>(() =>
     Object.fromEntries(
-      deliverable.map((line) => [
+      deliverable.map(({ line, remaining }) => [
         line.id,
-        // Default to the approved quantity, capped by what is actually on hand.
-        Math.min(line.quantityApproved ?? line.quantityRequested, line.itemQuantity),
+        // Default to everything still outstanding, capped by what is on hand.
+        Math.min(remaining, line.itemQuantity),
       ])
     )
   );
   const [error, setError] = useState<string | null>(null);
 
-  const visible = deliverable.filter((line) => {
+  const visible = deliverable.filter(({ line }) => {
     const needle = search.trim().toLowerCase();
     if (!needle) return true;
     return (
@@ -45,18 +64,21 @@ export default function RequestDeliveryDialog({
       line.itemCode.toLowerCase().includes(needle)
     );
   });
-  const selectedCount = deliverable.filter((line) => (issued[line.id] ?? 0) > 0).length;
+  const selectedCount = deliverable.filter(({ line }) => (issued[line.id] ?? 0) > 0).length;
 
   function submit() {
-    const total = deliverable.reduce((sum, line) => sum + (issued[line.id] ?? 0), 0);
+    const total = deliverable.reduce((sum, { line }) => sum + (issued[line.id] ?? 0), 0);
     if (deliverable.length > 0 && total === 0) {
       setError(dict.atLeastOne);
       return;
     }
-    onConfirm({
-      lines: deliverable.map((line) => ({ lineId: line.id, quantityIssued: issued[line.id] ?? 0 })),
-      notes: notes.trim() || null,
-    });
+    onConfirm(
+      {
+        lines: deliverable.map(({ line }) => ({ lineId: line.id, quantityIssued: issued[line.id] ?? 0 })),
+        notes: notes.trim() || null,
+      },
+      files
+    );
   }
 
   return (
@@ -89,13 +111,15 @@ export default function RequestDeliveryDialog({
               <span className="chip chip-sm">{dict.selectedCount.replace("{n}", String(selectedCount))}</span>
 
               <ul className="delivery-lines">
-                {visible.map((line) => {
-                  const cap = Math.min(line.quantityApproved ?? line.quantityRequested, line.itemQuantity);
+                {visible.map(({ line, remaining }) => {
+                  const cap = Math.min(remaining, line.itemQuantity);
                   return (
                     <li key={line.id} className="delivery-line">
                       <div className="delivery-line-text">
                         <b>{line.itemNameAr}</b>
                         <small>
+                          {dict.remaining.replace("{qty}", String(remaining))}
+                          {" · "}
                           {dict.availableStock
                             .replace("{qty}", String(line.itemQuantity))
                             .replace("{unit}", line.itemUnit ?? "")}
@@ -127,6 +151,22 @@ export default function RequestDeliveryDialog({
               value={notes}
               placeholder={dict.notesPlaceholder}
               onChange={(event) => setNotes(event.target.value)}
+            />
+          </div>
+
+          {/* Proof of delivery. Uploaded under its own owner type after the
+              delivery is recorded, so it never mixes with the requester's
+              own attachments on the card. */}
+          <div className="field">
+            <label>{dict.attachmentsHint}</label>
+            <PendingAttachmentPicker
+              files={files}
+              uploadLabel={dict.addAttachment}
+              emptyLabel={dict.noAttachments}
+              removeLabel={dict.removeAttachment}
+              disabled={submitting}
+              onSelect={(selected) => setFiles((current) => [...current, ...selected])}
+              onRemove={(index) => setFiles((current) => current.filter((_, i) => i !== index))}
             />
           </div>
 

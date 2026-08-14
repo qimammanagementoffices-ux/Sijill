@@ -7,6 +7,10 @@ public record AssetRequestActionDto(String actorName, String action, String reas
 
     public static AssetRequestActionDto from(AssetRequestAction action) {
         return new AssetRequestActionDto(
-                action.getActor().getName(), action.getAction(), action.getReason(), action.getCreatedAt());
+                // Null actor means the system acted, not an employee.
+                action.getActor() == null ? null : action.getActor().getName(),
+                action.getAction(),
+                action.getReason(),
+                action.getCreatedAt());
     }
 }

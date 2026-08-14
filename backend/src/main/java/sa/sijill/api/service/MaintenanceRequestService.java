@@ -52,10 +52,28 @@ public class MaintenanceRequestService {
         this.auditService = auditService;
     }
 
+    @Transactional
     public Page<MaintenanceRequest> search(
-            MaintenanceRequestStatus status, UUID restrictToRequesterId, String q, boolean archived, Pageable pageable) {
-        return maintenanceRequestRepository.search(
-                status, restrictToRequesterId, q, archived, LocalDate.now(), pageable);
+            MaintenanceRequestStatus status,
+            UUID restrictToRequesterId,
+            String q,
+            boolean archived,
+            boolean underReview,
+            Pageable pageable) {
+        Page<MaintenanceRequest> page = maintenanceRequestRepository.search(
+                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(), pageable);
+        page.getContent().forEach(this::materialiseResurface);
+        return page;
+    }
+
+    /** See NeedRequestService.materialiseResurface for why this is a write during a read. */
+    private void materialiseResurface(MaintenanceRequest request) {
+        if (request.getStatus() != MaintenanceRequestStatus.POSTPONED) return;
+        if (request.getPostponedUntil() == null || request.getPostponedUntil().isAfter(LocalDate.now())) return;
+
+        request.setStatus(MaintenanceRequestStatus.PENDING);
+        addAction(request, null, "RESURFACE", null);
+        maintenanceRequestRepository.save(request);
     }
 
     public MaintenanceRequest get(UUID id) {

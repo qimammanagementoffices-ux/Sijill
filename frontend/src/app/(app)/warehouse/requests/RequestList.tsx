@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch, ApiError } from "@/lib/apiClient";
+import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
@@ -33,6 +33,7 @@ const STATUS_STAMP_CLASS: Record<string, string> = {
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
+  PARTIALLY_DELIVERED: "s-progress",
   DELIVERED: "s-delivered",
   CLOSED: "s-closed",
 };
@@ -46,15 +47,18 @@ type DecisionKind =
   | "overturn-approve"
   | "overturn-reject"
   | "overturn-postpone"
-  | "reject-receipt";
+  | "reject-receipt"
+  | "cancel-remainder";
 
-// A refusal or a deferral always has to say why; an approval need not.
+// A refusal, a deferral or a write-off always has to say why; an approval
+// need not.
 const REQUIRES_REASON: DecisionKind[] = [
   "reject",
   "postpone",
   "overturn-reject",
   "overturn-postpone",
   "reject-receipt",
+  "cancel-remainder",
 ];
 
 // Only decisions that grant the items may trim or drop lines.
@@ -110,6 +114,12 @@ export default function RequestList({
     if (query) params.set("q", query);
     if (mineOnly) params.set("mine", "true");
     if (showArchived) params.set("archived", "true");
+    // Sentinel for the counter-signer's queue: both under-review states, which
+    // a single status filter cannot express.
+    if (statusFilter === "UNDER_REVIEW") {
+      params.delete("status");
+      params.set("underReview", "true");
+    }
     setFiltering(true);
     apiFetch<PagedResponse<NeedRequestListItem>>(`/warehouse/requests?${params.toString()}`)
       .then(setPage)
@@ -169,12 +179,20 @@ export default function RequestList({
   // "تم تعديل <صنف> من 10 إلى 5" / "تم حذف الأصناف: ..." — one notice per
   // decision that touched a line, with the item name resolved from the
   // request's own lines (removed lines are kept, so the name always resolves).
+  //
+  // Any line whose approved quantity differs from what was asked for, but which
+  // no action row accounts for, still gets a notice at the end — unattributed,
+  // but present. The card must never show a quantity that silently disagrees
+  // with what the requester submitted.
   function lineEditNotices(request: NeedRequestListItem) {
     const nameOf = (lineId: string | null) =>
       request.lines.find((line) => line.id === lineId)?.itemNameAr ?? "—";
     const notices: string[] = [];
+    const accountedFor = new Set<string>();
+
     for (const action of request.actions) {
       for (const edit of action.lineEdits ?? []) {
+        if (edit.lineId) accountedFor.add(edit.lineId);
         if (edit.removed) continue;
         notices.push(
           cardDict.lineQuantityChanged
@@ -188,7 +206,39 @@ export default function RequestList({
         notices.push(cardDict.linesRemoved.replace("{items}", dropped.join("، ")));
       }
     }
+
+    const unattributedDrops: string[] = [];
+    for (const line of request.lines) {
+      if (accountedFor.has(line.id)) continue;
+      if (line.removed) {
+        unattributedDrops.push(line.itemNameAr);
+      } else if (line.quantityApproved !== null && line.quantityApproved !== line.quantityRequested) {
+        notices.push(
+          cardDict.lineQuantityChangedNoActor
+            .replace("{item}", line.itemNameAr)
+            .replace("{before}", String(line.quantityRequested))
+            .replace("{after}", String(line.quantityApproved))
+        );
+      }
+    }
+    if (unattributedDrops.length > 0) {
+      notices.push(cardDict.linesRemoved.replace("{items}", unattributedDrops.join("، ")));
+    }
     return notices;
+  }
+
+  // "المتبقي من هذا الطلب: صنف × 2" while a short delivery is still open.
+  function outstandingNotice(request: NeedRequestListItem) {
+    if (request.status !== "PARTIALLY_DELIVERED") return null;
+    const parts = request.lines
+      .filter((line) => !line.removed)
+      .map((line) => ({
+        line,
+        remaining: (line.quantityApproved ?? line.quantityRequested) - (line.quantityIssued ?? 0),
+      }))
+      .filter((entry) => entry.remaining > 0)
+      .map((entry) => `${entry.line.itemNameAr} × ${entry.remaining}`);
+    return parts.length === 0 ? null : cardDict.outstandingNotice.replace("{items}", parts.join("، "));
   }
 
   function selectView(nextStatus: string, mineOnly: boolean, showArchived = false) {
@@ -215,6 +265,7 @@ export default function RequestList({
     "overturn-reject": "overturn",
     "overturn-postpone": "overturn",
     "reject-receipt": "reject-receipt",
+    "cancel-remainder": "cancel-remainder",
   };
 
   async function act(id: string, kind: DecisionKind, body: RequestDecisionBody) {
@@ -255,6 +306,8 @@ export default function RequestList({
         return modalsDict.cancelRejectionTitle;
       case "reject-receipt":
         return modalsDict.rejectReceiptTitle;
+      case "cancel-remainder":
+        return modalsDict.cancelRemainderTitle;
     }
   }
 
@@ -265,7 +318,41 @@ export default function RequestList({
     return request.lines;
   }
 
-  // Simple no-body actions: deliver, receive, archive, restore.
+  // Delivery, plus its proof-of-delivery files. The files go up under their
+  // own owner type only after the delivery itself is recorded — a failed
+  // upload must not lose the stock movement.
+  async function deliver(
+    id: string,
+    body: { lines: { lineId: string; quantityIssued: number }[]; notes: string | null },
+    files: File[]
+  ) {
+    setBusyAction(`${id}:finish`);
+    try {
+      await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/finish`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      let uploadFailed = false;
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          await apiUpload(`/attachments?ownerType=NEED_REQUEST_DELIVERY&ownerId=${id}`, formData);
+        } catch {
+          uploadFailed = true;
+        }
+      }
+      setDelivering(null);
+      load();
+      setToast(uploadFailed ? deliveryDict.attachmentsFailed : commonDict.actionSuccess);
+    } catch (error) {
+      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  // Simple no-body actions: receive, archive, restore.
   async function post(id: string, path: string, body?: unknown) {
     const key = `${id}:${path}`;
     setBusyAction(key);
@@ -328,7 +415,7 @@ export default function RequestList({
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{status === "PENDING" && !mine && !archived && page ? ` (${page.totalElements})` : ""}</button>
               {permissions.includes("wh.act.countersign") && (
-                <button type="button" className={`btn btn-sm ${status === "APPROVED_UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("APPROVED_UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
+                <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
               )}
               <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
@@ -409,7 +496,22 @@ export default function RequestList({
                     {cardDict.postponeResurfaceNote.replace("{date}", request.postponedUntil)}
                   </p>
                 )}
+                {outstandingNotice(request) && (
+                  <p className="request-card-notice">{outstandingNotice(request)}</p>
+                )}
                 {request.returnedBySenior && <p className="request-card-notice">{cardDict.returnedBySenior}</p>}
+                {(request.deliveryAttachments?.length ?? 0) > 0 && (
+                  <section className="request-card-section">
+                    <h4>{cardDict.deliveryAttachments}</h4>
+                    <div className="request-card-chips">
+                      {request.deliveryAttachments.map((attachment) => (
+                        <a key={attachment.id} className="chip chip-sm" href={attachment.url} target="_blank" rel="noopener noreferrer">
+                          {attachment.filename}
+                        </a>
+                      ))}
+                    </div>
+                  </section>
+                )}
                 {request.archivedAt && <p className="request-card-notice">{cardDict.archivedNote}</p>}
 
                 {/* Suppressed while postponed: the postpone date is the date
@@ -423,6 +525,7 @@ export default function RequestList({
                   attachments={request.attachments}
                   actionLabel={actionLabel}
                   activityTitle={dict.activityTitle}
+                  systemActorLabel={cardDict.systemActor}
                   attachmentsDict={attachmentsDict}
                 />
 
@@ -468,9 +571,19 @@ export default function RequestList({
                   {/* Delivery belongs to the storekeeper, not the requester:
                       the beneficiary must not be the one declaring what left
                       the warehouse. */}
-                  {request.status === "APPROVED" && !request.archivedAt && permissions.includes("wh.act.finish") && (
-                    <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDelivering(request)}>
-                      {actionsDict.finishDelivery}
+                  {(request.status === "APPROVED" || request.status === "PARTIALLY_DELIVERED") &&
+                    !request.archivedAt &&
+                    permissions.includes("wh.act.finish") && (
+                      <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDelivering(request)}>
+                        {request.status === "PARTIALLY_DELIVERED" ? actionsDict.deliverRemainder : actionsDict.finishDelivery}
+                      </button>
+                    )}
+
+                  {/* Writes off what will never arrive, so a short delivery
+                      does not leave the request open indefinitely. */}
+                  {request.status === "PARTIALLY_DELIVERED" && !request.archivedAt && permissions.includes("wh.act.finish") && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "cancel-remainder" })}>
+                      {actionsDict.cancelRemainder}
                     </button>
                   )}
 
@@ -552,7 +665,7 @@ export default function RequestList({
           submitting={busyAction !== null}
           dict={deliveryDict}
           commonDict={commonDict}
-          onConfirm={(body) => void post(delivering.id, "finish", body)}
+          onConfirm={(body, files) => void deliver(delivering.id, body, files)}
           onCancel={() => setDelivering(null)}
         />
       )}

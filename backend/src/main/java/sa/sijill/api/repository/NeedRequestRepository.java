@@ -15,13 +15,17 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
     /**
      * Asking for PENDING also returns postponed requests whose date has
      * arrived — resurfacing is a query condition, not a scheduled job, so the
-     * queue and its badge count cannot drift apart.
+     * queue and its badge count cannot drift apart. {@code underReview}
+     * overrides {@code status} and returns both under-review states.
      */
     @Query("""
             select r from NeedRequest r
             where (:archived = true and r.archivedAt is not null
                 or :archived = false and r.archivedAt is null)
-              and (:status is null
+              and (:underReview = false or r.status in (
+                    sa.sijill.api.domain.NeedRequestStatus.APPROVED_UNDER_REVIEW,
+                    sa.sijill.api.domain.NeedRequestStatus.REJECTED_UNDER_REVIEW))
+              and (:underReview = true or :status is null
                 or r.status = :status
                 or (:status = sa.sijill.api.domain.NeedRequestStatus.PENDING
                     and r.status = sa.sijill.api.domain.NeedRequestStatus.POSTPONED
@@ -37,6 +41,9 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
             @Param("requesterId") UUID requesterId,
             @Param("q") String q,
             @Param("archived") boolean archived,
+            // The counter-signer's queue is both review states at once, which a
+            // single status parameter cannot express.
+            @Param("underReview") boolean underReview,
             @Param("today") LocalDate today,
             Pageable pageable);
 

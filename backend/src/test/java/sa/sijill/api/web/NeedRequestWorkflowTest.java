@@ -136,15 +136,37 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"));
 
-        var finish = new FinishNeedRequestRequest(
+        // 3 of 5 leaves the request open rather than closing it and abandoning
+        // the remaining 2.
+        var partial = new FinishNeedRequestRequest(
                 List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 3)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(partial)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PARTIALLY_DELIVERED"))
+                .andExpect(jsonPath("$.lines[0].quantityIssued").value(3));
+
+        // The remainder cannot be over-delivered: only 2 are still outstanding.
+        var tooMany = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 3)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(tooMany)))
+                .andExpect(status().isBadRequest());
+
+        // The second pass adds to what was already issued rather than replacing it.
+        var finish = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 2)), null);
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(finish)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DELIVERED"))
-                .andExpect(jsonPath("$.lines[0].quantityIssued").value(3));
+                .andExpect(jsonPath("$.lines[0].quantityIssued").value(5));
 
         // Only the requester closes the request by confirming receipt.
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/receive")
@@ -174,7 +196,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .getContentAsString();
         org.assertj.core.api.Assertions.assertThat(
                         objectMapper.readTree(itemBody).get("quantity").asInt())
-                .isEqualTo(7); // 10 - 3 issued (not 5 requested)
+                .isEqualTo(5); // 10 - 3 then - 2, deducted per delivery pass
     }
 
     /** A line trimmed during approval must not stay deliverable at the original quantity. */
@@ -225,6 +247,58 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(empty)))
                 .andExpect(status().isBadRequest());
+    }
+
+    /** A shortfall that will never arrive is written off, not left open forever. */
+    @Test
+    void writingOffTheRemainderClosesAShortDelivery() throws Exception {
+        String adminToken = createAdminAndGetToken("0596994444");
+        String requesterToken = createEmployeeAndLogin(adminToken, "0596995555", Set.of("wh.request"));
+        String seniorToken = createEmployeeAndLogin(adminToken, "0596996666", Set.of("wh.act.countersign", "wh.view"));
+        String itemId = createItemWithStock(adminToken, 10);
+
+        var submit = new CreateNeedRequestRequest(
+                null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
+        JsonNode created = objectMapper.readTree(mockMvc.perform(post("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submit)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString());
+        String requestId = created.get("id").asText();
+        UUID lineId = UUID.fromString(created.get("lines").get(0).get("id").asText());
+
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/approve")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken));
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/countersign")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken));
+
+        var partial = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(lineId, 2)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(partial)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PARTIALLY_DELIVERED"));
+
+        // A write-off has to say why.
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/cancel-remainder")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isBadRequest());
+
+        var writeOff = new RequestDecisionRequest("نفد المخزون", null, null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/cancel-remainder")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(writeOff)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DELIVERED"))
+                // The approved quantity drops to what was actually handed over,
+                // so the shortfall is recorded rather than forgotten.
+                .andExpect(jsonPath("$.lines[0].quantityApproved").value(2))
+                .andExpect(jsonPath("$.lines[0].quantityIssued").value(2));
     }
 
     @Test

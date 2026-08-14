@@ -23,6 +23,8 @@ const ACTION_TONE: Record<string, string> = {
   START: "started",
   FINISH: "finished",
   RECEIVE: "finished",
+  RESURFACE: "postponed",
+  CANCEL_REMAINDER: "rejected",
 };
 
 export function formatActionDate(value: string) {
@@ -44,12 +46,16 @@ export default function RequestCardActivity({
   actionLabel,
   activityTitle,
   attachmentsDict,
+  systemActorLabel,
 }: {
   actions?: RequestAction[];
   attachments?: AttachmentDto[];
   actionLabel: (action: string) => string;
   activityTitle: string;
   attachmentsDict: Dictionary["attachments"];
+  // Shown for entries the system wrote rather than an employee — currently
+  // only a postponed request returning to the queue.
+  systemActorLabel?: string;
 }) {
   return (
     <>
@@ -84,8 +90,10 @@ export default function RequestCardActivity({
                     <b className="request-timeline-status">{actionLabel(entry.action)}</b>
                     <time dateTime={entry.createdAt}>{formatActionDate(entry.createdAt)}</time>
                   </div>
-                  {entry.actorName?.trim() && entry.actorName.trim() !== "فارغ" && (
+                  {entry.actorName?.trim() && entry.actorName.trim() !== "فارغ" ? (
                     <span className="request-timeline-actor">{entry.actorName}</span>
+                  ) : (
+                    systemActorLabel && <span className="request-timeline-actor">{systemActorLabel}</span>
                   )}
                   {entry.reason && <p>{entry.reason}</p>}
                 </div>

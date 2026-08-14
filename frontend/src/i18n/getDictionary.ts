@@ -303,6 +303,7 @@ export type Dictionary = {
     APPROVED: string;
     POSTPONED: string;
     REJECTED: string;
+    PARTIALLY_DELIVERED: string;
     DELIVERED: string;
     CLOSED: string;
     IN_PROGRESS: string;
@@ -317,6 +318,8 @@ export type Dictionary = {
     cancelApproval: string;
     cancelRejection: string;
     finishDelivery: string;
+    deliverRemainder: string;
+    cancelRemainder: string;
     startWork: string;
     finishWork: string;
     confirmReceipt: string;
@@ -337,6 +340,8 @@ export type Dictionary = {
     cancelRejectionTitle: string;
     rejectReceiptTitle: string;
     rejectReceiptDesc: string;
+    cancelRemainderTitle: string;
+    cancelRemainderDesc: string;
     commentLabel: string;
     commentOptional: string;
     commentPlaceholder: string;
@@ -354,7 +359,11 @@ export type Dictionary = {
     postponeResurfaceNote: string;
     returnedBySenior: string;
     lineQuantityChanged: string;
+    lineQuantityChangedNoActor: string;
     linesRemoved: string;
+    outstandingNotice: string;
+    deliveryAttachments: string;
+    systemActor: string;
     archivedNote: string;
     pendingTab: string;
     reviewTab: string;
@@ -370,6 +379,12 @@ export type Dictionary = {
     searchPlaceholder: string;
     selectedCount: string;
     availableStock: string;
+    remaining: string;
+    attachmentsHint: string;
+    addAttachment: string;
+    noAttachments: string;
+    removeAttachment: string;
+    attachmentsFailed: string;
     notesLabel: string;
     notesPlaceholder: string;
     noItems: string;
