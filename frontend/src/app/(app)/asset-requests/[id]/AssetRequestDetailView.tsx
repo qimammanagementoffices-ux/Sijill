@@ -68,6 +68,13 @@ export default function AssetRequestDetailView({
     REJECTED: dict.statusRejected,
     CLOSED: dict.statusClosed,
   }[request.status];
+  const purposeLabel = request.purpose === "PURCHASE"
+    ? dict.purposePurchase
+    : request.purpose === "MAINTENANCE"
+      ? dict.purposeMaintenance
+      : request.purpose === "TRANSFER"
+        ? dict.purposeTransfer
+        : dict.cardTitle;
 
   return (
     <>
@@ -83,7 +90,13 @@ export default function AssetRequestDetailView({
       <div className="panel">
         <div className="panel-body">
           <p style={{ margin: "0 0 8px" }}>
-            <strong>{dict.assetLabel}:</strong> {request.assetNumber} — {request.assetNameAr}
+            <strong>{dict.purposeLabel}:</strong> {purposeLabel}
+          </p>
+          <p style={{ margin: "0 0 8px" }}>
+            <strong>{dict.assetLabel}:</strong> {request.assetNumber !== "—" ? `${request.assetNumber} — ` : ""}{request.assetNameAr}
+          </p>
+          <p style={{ margin: "0 0 8px" }}>
+            <strong>{dict.departmentLabel}:</strong> {request.department?.ar ?? "—"}
           </p>
           <p style={{ margin: 0 }}>
             <strong>{dict.reasonLabel}:</strong> {request.reason}

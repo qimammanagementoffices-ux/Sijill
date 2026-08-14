@@ -96,6 +96,16 @@ export default function AssetRequestList({
     }[s];
   }
 
+  function purposeLabel(purpose: AssetRequestListItem["purpose"]) {
+    return purpose === "PURCHASE"
+      ? dict.purposePurchase
+      : purpose === "MAINTENANCE"
+        ? dict.purposeMaintenance
+        : purpose === "TRANSFER"
+          ? dict.purposeTransfer
+          : dict.cardTitle;
+  }
+
   function actionLabel(action: string) {
     return { SUBMIT: dict.submit, APPROVE: dict.approve, REJECT: dict.reject, POSTPONE: dict.postpone, FINISH: dict.finish }[action] ?? action;
   }
@@ -196,13 +206,13 @@ export default function AssetRequestList({
             {page.content.map((request) => (
               <article key={request.id} className="request-card">
                 <header className="request-card-head">
-                  <h3 className="request-card-title">{dict.cardTitle} — {request.assetNameAr}</h3>
+                  <h3 className="request-card-title">{purposeLabel(request.purpose)} — {request.assetNameAr}</h3>
                   <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
                 </header>
-                <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}<span className="chip chip-sm">{request.assetNumber}</span></div>
+                <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}
                 {request.suggestedStartDate && <p className="request-card-banner">{dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b></p>}
-                <RequestCardActivity actions={request.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
+                <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
                 <div className="request-card-actions">
                   {(request.status === "PENDING" || request.status === "POSTPONED") && permissions.includes("as.act.approve") && <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => void act(request.id, "approve")}>{dict.approve}</button>}
                   {(request.status === "PENDING" || request.status === "APPROVED" || request.status === "POSTPONED") && permissions.includes("as.act.reject") && <button type="button" className="btn btn-sm request-decision request-decision-reject" disabled={busyAction !== null} onClick={() => setPendingAction({ id: request.id, action: "reject" })}>{dict.reject}</button>}
@@ -252,7 +262,7 @@ export default function AssetRequestList({
         <div className="overlay no-print" role="dialog" aria-modal="true" aria-labelledby="asset-request-view-title">
           <div className="modal wide request-view-modal">
             <div className="modal-head">
-              <h3 id="asset-request-view-title">{dict.cardTitle} — {viewRequest.assetNameAr}</h3>
+              <h3 id="asset-request-view-title">{purposeLabel(viewRequest.purpose)} — {viewRequest.assetNameAr}</h3>
               <button type="button" className="modal-close" onClick={() => setViewRequest(null)} aria-label="close">×</button>
             </div>
             <div className="modal-body request-form-modal-body">
@@ -267,6 +277,9 @@ export default function AssetRequestList({
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
                   { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
                   { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
+                  { label: ["نوع الطلب", "Request Purpose", "अनुरोध का उद्देश्य"], value: purposeLabel(viewRequest.purpose) },
+                  { label: ["الغرفة", "Room", "कमरा"], value: viewRequest.room?.ar ?? "—" },
+                  ...(viewRequest.destinationRoom ? [{ label: ["الغرفة الجديدة", "Destination Room", "गंतव्य कमरा"] as [string, string, string], value: viewRequest.destinationRoom.ar }] : []),
                   { label: ["الأصل المطلوب", "Requested Asset", "अनुरोधित संपत्ति"], value: viewRequest.assetNameAr },
                   { label: ["رقم الأصل", "Asset Number", "संपत्ति संख्या"], value: viewRequest.assetNumber },
                   { label: ["تاريخ التقديم", "Submission Date", "प्रस्तुत करने की तिथि"], value: viewRequest.actions.find((a) => a.action === "SUBMIT")?.createdAt?.slice(0, 10) ?? "—" },

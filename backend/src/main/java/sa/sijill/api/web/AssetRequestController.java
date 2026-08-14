@@ -1,6 +1,9 @@
 package sa.sijill.api.web;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -9,9 +12,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.AssetRequest;
 import sa.sijill.api.domain.AssetRequestStatus;
+import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.Permission;
 import sa.sijill.api.error.ApiException;
+import sa.sijill.api.repository.AttachmentRepository;
 import sa.sijill.api.service.AssetRequestService;
 import sa.sijill.api.web.dto.*;
 
@@ -20,9 +25,11 @@ import sa.sijill.api.web.dto.*;
 public class AssetRequestController {
 
     private final AssetRequestService assetRequestService;
+    private final AttachmentRepository attachmentRepository;
 
-    public AssetRequestController(AssetRequestService assetRequestService) {
+    public AssetRequestController(AssetRequestService assetRequestService, AttachmentRepository attachmentRepository) {
         this.assetRequestService = assetRequestService;
+        this.attachmentRepository = attachmentRepository;
     }
 
     @GetMapping
@@ -35,7 +42,14 @@ public class AssetRequestController {
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "as.view") ? actor.getId() : null;
         Page<AssetRequest> page = assetRequestService.search(status, restrictToRequesterId, q, pageable);
-        return PagedResponse.from(page, AssetRequestListItem::from);
+        List<UUID> ids = page.getContent().stream().map(AssetRequest::getId).toList();
+        Map<UUID, List<AttachmentDto>> attachments = ids.isEmpty()
+                ? Map.of()
+                : attachmentRepository.findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.ASSET_REQUEST, ids).stream()
+                        .map(AttachmentDto::from)
+                        .collect(Collectors.groupingBy(AttachmentDto::ownerId));
+        return PagedResponse.from(
+                page, request -> AssetRequestListItem.from(request, attachments.getOrDefault(request.getId(), List.of())));
     }
 
     @GetMapping("/{id}")
@@ -43,7 +57,12 @@ public class AssetRequestController {
     public AssetRequestDetail get(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         AssetRequest request = assetRequestService.get(id);
         requireOwnerOrView(request, actor);
-        return AssetRequestDetail.from(request);
+        List<AttachmentDto> attachments = attachmentRepository
+                .findByOwnerTypeAndOwnerIdOrderByCreatedAtAsc(AttachmentOwnerType.ASSET_REQUEST, id)
+                .stream()
+                .map(AttachmentDto::from)
+                .toList();
+        return AssetRequestDetail.from(request, attachments);
     }
 
     @PostMapping

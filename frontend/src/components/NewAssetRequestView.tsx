@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { apiFetch, ApiError } from "@/lib/apiClient";
-import type { AssetListItem, AssetRequestDetail, PagedResponse } from "@/lib/types";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import { entityName, useEntityLocale } from "@/i18n/entityName";
+import type {
+  AssetListItem,
+  AssetRequestDetail,
+  AssetRequestPurpose,
+  AttachmentDto,
+  CategoryDto,
+  LocalizedEntityDto,
+  LocalizedRef,
+  PagedResponse,
+  RoomDto,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
+
+type MeData = { departments: LocalizedRef[] };
 
 export default function NewAssetRequestView({
   dict,
@@ -16,37 +30,145 @@ export default function NewAssetRequestView({
   dict: Dictionary["assetRequests"];
   errorsDict: Dictionary["errors"];
   onSubmitted: (request: AssetRequestDetail) => void;
-  // When set, the submit button renders externally (via
-  // <button form={formId}>) instead of inline -- used inside a modal,
-  // same pattern as EmployeeForm.
   formId?: string;
   onSubmittingChange?: (submitting: boolean) => void;
 }) {
+  const entityLocale = useEntityLocale();
+  const [me, setMe] = useState<MeData | null>(null);
+  const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
+  const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [assets, setAssets] = useState<AssetListItem[] | null>(null);
-  const [assetId, setAssetId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [destinationRoomId, setDestinationRoomId] = useState("");
+  const [priority, setPriority] = useState<"NORMAL" | "URGENT">("NORMAL");
+  const [purpose, setPurpose] = useState<AssetRequestPurpose>("PURCHASE");
+  const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({});
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
+  const [assetQuery, setAssetQuery] = useState("");
+  const [assetSearchOpen, setAssetSearchOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    apiFetch<PagedResponse<AssetListItem>>("/assets?size=200").then((p) => setAssets(p.content));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    Promise.all([
+      apiFetch<MeData>("/auth/me"),
+      apiFetch<LocalizedEntityDto[]>("/departments"),
+      apiFetch<RoomDto[]>("/rooms"),
+      apiFetch<CategoryDto[]>("/assets/categories"),
+      apiFetch<PagedResponse<AssetListItem>>("/assets?size=1000"),
+    ])
+      .then(([meData, departmentRows, roomRows, categoryRows, assetPage]) => {
+        setMe(meData);
+        setDepartments(departmentRows);
+        setRooms(roomRows);
+        setCategories(categoryRows);
+        setAssets(assetPage.content);
+        if (meData.departments.length === 1) setDepartmentId(meData.departments[0]!.id);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : errorsDict.generic));
+  }, [errorsDict.generic]);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitting]);
+  }, [submitting, onSubmittingChange]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  const assignedDepartmentIds = useMemo(
+    () => new Set(me?.departments.map((department) => department.id) ?? []),
+    [me]
+  );
+  const departmentOptions = useMemo(
+    () => (departments ? flattenDepartmentHierarchy(departments, entityLocale).filter(({ item }) => assignedDepartmentIds.has(item.id)) : []),
+    [assignedDepartmentIds, departments, entityLocale]
+  );
+  const excludedDepartmentIds = useMemo(
+    () => new Set((departments ?? []).filter((department) => !assignedDepartmentIds.has(department.id)).map((department) => department.id)),
+    [assignedDepartmentIds, departments]
+  );
+  const departmentName = departmentOptions.find(({ item }) => item.id === departmentId)?.path ?? "—";
+  const visibleRooms = (rooms ?? []).filter((room) => !departmentId || room.departmentId === departmentId);
+  const assetPool = (assets ?? []).filter((asset) => !roomId || asset.room?.id === roomId);
+  const normalizedAssetQuery = assetQuery.trim().toLocaleLowerCase(entityLocale);
+  const matchingAssets = assetPool.filter((asset) => {
+    if (selectedAssetIds.has(asset.id)) return false;
+    if (!normalizedAssetQuery) return true;
+    return `${asset.assetNumber} ${asset.nameAr} ${asset.nameEn}`
+      .toLocaleLowerCase(entityLocale)
+      .includes(normalizedAssetQuery);
+  });
+  const selectedAssets = (assets ?? []).filter((asset) => selectedAssetIds.has(asset.id));
+  const purchaseLines = Object.entries(categoryQuantities)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([categoryId, quantity]) => ({ categoryId, assetId: null, quantity }));
+  const assetLines = [...selectedAssetIds].map((assetId) => ({ assetId, categoryId: null, quantity: 1 }));
+  const hasSelection = purpose === "PURCHASE" ? purchaseLines.length > 0 : assetLines.length > 0;
+
+  function changePurpose(next: AssetRequestPurpose) {
+    setPurpose(next);
+    setCategoryQuantities({});
+    setSelectedAssetIds(new Set());
+    setAssetQuery("");
+    setAssetSearchOpen(false);
+    if (next !== "TRANSFER") setDestinationRoomId("");
+  }
+
+  function chooseAsset(assetId: string) {
+    setSelectedAssetIds((current) => new Set([...current, assetId]));
+    setAssetQuery("");
+    setAssetSearchOpen(false);
+  }
+
+  function removeAsset(assetId: string) {
+    setSelectedAssetIds((current) => {
+      const next = new Set(current);
+      next.delete(assetId);
+      return next;
+    });
+  }
+
+  function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(event.target.files ?? []);
+    if (picked.length) setFiles((current) => [...current, ...picked]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     setError(null);
+    if (!departmentId || !hasSelection || !reason.trim() || (purpose === "TRANSFER" && !destinationRoomId)) {
+      setError(dict.requiredFields);
+      return;
+    }
     setSubmitting(true);
     try {
       const created = await apiFetch<AssetRequestDetail>("/asset-requests", {
         method: "POST",
-        body: JSON.stringify({ assetId: assetId || null, reason: reason || null }),
+        body: JSON.stringify({
+          departmentId,
+          roomId: roomId || null,
+          purpose,
+          priority,
+          destinationRoomId: purpose === "TRANSFER" ? destinationRoomId : null,
+          reason: reason.trim(),
+          lines: purpose === "PURCHASE" ? purchaseLines : assetLines,
+        }),
       });
+
+      let uploadFailed = false;
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          await apiUpload<AttachmentDto>(`/attachments?ownerType=ASSET_REQUEST&ownerId=${created.id}`, formData);
+        } catch {
+          uploadFailed = true;
+        }
+      }
+      if (uploadFailed) window.alert(dict.attachmentsFailed);
       onSubmitted(created);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);
@@ -54,41 +176,189 @@ export default function NewAssetRequestView({
     }
   }
 
-  if (!assets) return <SectionLoading />;
+  if (!me || !departments || !rooms || !categories || !assets) return <SectionLoading />;
 
   return (
-    <form id={formId} onSubmit={handleSubmit}>
-      <div className="panel">
-        <div className="panel-body">
-          <div className="form-grid">
-            <div className="field span2">
-              <label>{dict.assetLabel}</label>
-              <select value={assetId} onChange={(e) => setAssetId(e.target.value)} required>
-                <option value="">—</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.assetNumber} — {asset.nameAr}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field span2">
-              <label>{dict.reasonLabel}</label>
-              <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
-            </div>
-          </div>
+    <form id={formId} className="legacy-asset-request-form" onSubmit={handleSubmit}>
+      <div className="form-grid asset-request-context-grid">
+        <div className={departmentOptions.length === 1 ? "readonly-box" : "field"}>
+          <label className={departmentOptions.length === 1 ? "readonly-box-label" : undefined}>
+            {dict.departmentLabel} <span className="required-mark">*</span>
+          </label>
+          {departmentOptions.length === 1 ? (
+            <span className="readonly-box-value">{departmentName}</span>
+          ) : (
+            <DepartmentHierarchyPicker
+              departments={departments}
+              selectedIds={departmentId ? new Set([departmentId]) : new Set()}
+              onChange={(ids) => {
+                setDepartmentId(ids.values().next().value ?? "");
+                setRoomId("");
+                setDestinationRoomId("");
+                setSelectedAssetIds(new Set());
+              }}
+              locale={entityLocale}
+              multiple={false}
+              excludedIds={excludedDepartmentIds}
+            />
+          )}
+        </div>
+        <div className="field">
+          <label>{dict.roomLabel}</label>
+          <select
+            value={roomId}
+            disabled={!departmentId}
+            onChange={(event) => {
+              setRoomId(event.target.value);
+              setSelectedAssetIds(new Set());
+            }}
+          >
+            <option value="">—</option>
+            {visibleRooms.map((room) => (
+              <option key={room.id} value={room.id}>{room.roomNumber} — {room.nameAr}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>{dict.priorityLabel}</label>
+          <select value={priority} onChange={(event) => setPriority(event.target.value as "NORMAL" | "URGENT")}>
+            <option value="NORMAL">{dict.priorityNormal}</option>
+            <option value="URGENT">{dict.priorityUrgent}</option>
+          </select>
         </div>
       </div>
 
-      {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
-          {error}
-        </p>
+      <label className="asset-request-purpose-label">{dict.purposeLabel}</label>
+      <div className="pill-select asset-request-purpose-tabs" role="tablist">
+        {([
+          ["PURCHASE", "🛒", dict.purposePurchase],
+          ["MAINTENANCE", "🔧", dict.purposeMaintenance],
+          ["TRANSFER", "▣", dict.purposeTransfer],
+        ] as const).map(([value, icon, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={purpose === value}
+            className={`pill-opt ${purpose === value ? "checked" : ""}`}
+            onClick={() => changePurpose(value)}
+          >
+            <span aria-hidden="true">{icon}</span><span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {purpose === "TRANSFER" && (
+        <div className="field asset-request-destination">
+          <label>{dict.destinationRoomLabel} <span className="required-mark">*</span></label>
+          <select value={destinationRoomId} onChange={(event) => setDestinationRoomId(event.target.value)} required>
+            <option value="">—</option>
+            {rooms.filter((room) => room.id !== roomId).map((room) => (
+              <option key={room.id} value={room.id}>
+                {room.roomNumber} — {room.nameAr}{room.departmentNameAr ? ` — ${room.departmentNameAr}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
+
+      <h4 className="ps-section-title asset-request-selection-title">
+        {purpose === "PURCHASE" ? dict.pickCategories : purpose === "TRANSFER" ? dict.pickTransferAssets : dict.pickAssets}
+      </h4>
+
+      {purpose === "PURCHASE" ? (
+        <div className="asset-category-quantity-list">
+          {categories.map((category) => (
+            <div key={category.id} className="asset-category-quantity-row">
+              <span>{category.icon && <b aria-hidden="true">{category.icon}</b>} {entityName(category, entityLocale)}</span>
+              <label>
+                <input
+                  aria-label={`${dict.quantityLabel}: ${entityName(category, entityLocale)}`}
+                  type="number"
+                  min={0}
+                  value={categoryQuantities[category.id] ?? 0}
+                  onChange={(event) => setCategoryQuantities((current) => ({
+                    ...current,
+                    [category.id]: Math.max(0, Number(event.target.value) || 0),
+                  }))}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="asset-autocomplete">
+          {selectedAssets.length > 0 && (
+            <div className="asset-autocomplete-selected">
+              {selectedAssets.map((asset) => (
+                <button key={asset.id} type="button" className="department-chip" onClick={() => removeAsset(asset.id)}>
+                  <span>{asset.assetNumber} — {entityName(asset, entityLocale)}</span><b aria-hidden="true">×</b>
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            value={assetQuery}
+            onFocus={() => setAssetSearchOpen(true)}
+            onBlur={() => window.setTimeout(() => setAssetSearchOpen(false), 150)}
+            onChange={(event) => {
+              setAssetQuery(event.target.value);
+              setAssetSearchOpen(true);
+            }}
+            placeholder={dict.assetSearchPlaceholder}
+            autoComplete="off"
+          />
+          {assetSearchOpen && (
+            <div className="asset-autocomplete-options" role="listbox">
+              {matchingAssets.length === 0 ? (
+                <div className="asset-autocomplete-empty">{dict.noMatchingAssets}</div>
+              ) : matchingAssets.slice(0, 12).map((asset) => (
+                <button key={asset.id} type="button" role="option" aria-selected="false" onClick={() => chooseAsset(asset.id)}>
+                  <b>{entityName(asset, entityLocale)}</b>
+                  <span>{asset.assetNumber}{asset.category ? ` — ${entityLocale === "ar" ? asset.category.ar : asset.category.en}` : ""}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="field asset-request-description">
+        <label>{dict.reasonLabel} <span className="required-mark">*</span></label>
+        <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder={dict.descriptionPlaceholder} required />
+      </div>
+
+      <div className="field asset-request-attachments">
+        <label>{dict.attachmentsHint}</label>
+        <div className="filebox">
+          <label className="upl">
+            {dict.addAttachment}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onChange={handleFilesSelected}
+            />
+          </label>
+          <span>{files.length ? `${files.length}` : dict.noAttachments}</span>
+        </div>
+        {files.length > 0 && (
+          <div className="asset-request-file-list">
+            {files.map((file, index) => (
+              <span key={`${file.name}-${index}`} className="chip chip-sm">
+                {file.name}
+                <button type="button" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))} aria-label={dict.removeAttachment}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {error && <p className="form-error" role="alert">{error}</p>}
       {!formId && (
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting && <span className="spinner" />}
-          {dict.submit}
+        <button type="submit" className="btn btn-primary" disabled={submitting || !hasSelection}>
+          {submitting && <span className="spinner" />}{dict.submit}
         </button>
       )}
     </form>

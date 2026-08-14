@@ -1649,6 +1649,77 @@ img[data-viewable] {
   font-weight: 700;
 }
 
+/* Legacy asset-request modal: purpose tabs, quantity rows and searchable
+   multi-asset selection share the same paper/ink treatment as request cards. */
+.legacy-asset-request-form { display: flex; flex-direction: column; gap: 14px; }
+.asset-request-context-grid { align-items: start; }
+.asset-request-context-grid .readonly-box { min-height: 76px; justify-content: center; }
+.asset-request-purpose-label { color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+.asset-request-purpose-tabs .pill-opt {
+  appearance: none;
+  justify-content: center;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+.asset-request-purpose-tabs .pill-opt:hover { border-color: var(--slate); }
+.asset-request-purpose-tabs .pill-opt.checked { background: var(--paper-dim); border-color: var(--ink); }
+.asset-request-destination { margin-top: 2px; }
+.asset-request-selection-title { margin: 0; }
+.asset-category-quantity-list { display: grid; gap: 8px; }
+.asset-category-quantity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.asset-category-quantity-row input { width: 72px; padding: 7px; text-align: center; }
+.asset-autocomplete { position: relative; }
+.asset-autocomplete > input { width: 100%; }
+.asset-autocomplete-selected { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.asset-autocomplete-options {
+  position: absolute;
+  z-index: 20;
+  inset-inline: 0;
+  top: calc(100% + 4px);
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(28, 50, 42, 0.16);
+}
+.asset-autocomplete-options button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: start;
+}
+.asset-autocomplete-options button:hover { background: var(--paper-dim); }
+.asset-autocomplete-options button span { color: var(--slate); font-size: 11.5px; }
+.asset-autocomplete-empty { padding: 12px; color: var(--slate); font-size: 12px; text-align: center; }
+.asset-request-description textarea { min-height: 92px; }
+.asset-request-file-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.asset-request-file-list button { border: 0; background: transparent; color: inherit; cursor: pointer; }
+.legacy-asset-request-form .form-error { margin: 0; color: var(--seal); font-size: 12.5px; }
+
 .step-track {
   display: flex;
   align-items: center;

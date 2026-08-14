@@ -352,6 +352,20 @@ export type AssetTransferDto = {
 
 export type AssetRequestActionDto = { actorName: string; action: string; reason: string | null; createdAt: string };
 
+export type AssetRequestPurpose = "PURCHASE" | "MAINTENANCE" | "TRANSFER";
+export type AssetRequestPriority = "NORMAL" | "URGENT";
+export type AssetRequestLineDto = {
+  id: string;
+  assetId: string | null;
+  assetNumber: string | null;
+  assetNameAr: string | null;
+  assetNameEn: string | null;
+  categoryId: string | null;
+  categoryNameAr: string | null;
+  categoryNameEn: string | null;
+  quantity: number;
+};
+
 export type AssetRequestListItem = {
   id: string;
   requesterId: string;
@@ -360,10 +374,16 @@ export type AssetRequestListItem = {
   assetNameAr: string;
   assetNameEn: string;
   department: LocalizedRef | null;
+  room: LocalizedRef | null;
+  destinationRoom: LocalizedRef | null;
+  purpose: AssetRequestPurpose | null;
+  priority: AssetRequestPriority | null;
   reason: string | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
+  lines: AssetRequestLineDto[];
   actions: AssetRequestActionDto[];
+  attachments: AttachmentDto[];
 };
 
 // --- Media / branding (Phase 6a) ---
@@ -376,6 +396,7 @@ export type AttachmentOwnerType =
   | "MAINTENANCE"
   | "EMPLOYEE"
   | "NEED_REQUEST"
+  | "ASSET_REQUEST"
   | "ASSET_ACQUISITION"
   | "WAREHOUSE_INVOICE";
 
@@ -431,14 +452,20 @@ export type AssetRequestDetail = {
   id: string;
   requesterId: string;
   requesterName: string;
-  assetId: string;
+  assetId: string | null;
   assetNumber: string;
   assetNameAr: string;
   assetNameEn: string;
   department: LocalizedRef | null;
+  room: LocalizedRef | null;
+  destinationRoom: LocalizedRef | null;
+  purpose: AssetRequestPurpose | null;
+  priority: AssetRequestPriority | null;
   reason: string | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
+  lines: AssetRequestLineDto[];
   actions: AssetRequestActionDto[];
+  attachments: AttachmentDto[];
   version: number;
 };
