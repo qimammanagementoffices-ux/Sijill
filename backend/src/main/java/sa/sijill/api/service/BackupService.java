@@ -8,6 +8,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
+import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +31,8 @@ public class BackupService {
     private final BackupSnapshotRepository backupSnapshotRepository;
     private final StorageService storageService;
     private final RestoreBookkeeper restoreBookkeeper;
+    private final Flyway flyway;
+    private final DataSource dataSource;
     private final String pgHost;
     private final String pgPort;
     private final String pgDatabase;
@@ -51,6 +56,8 @@ public class BackupService {
             BackupSnapshotRepository backupSnapshotRepository,
             StorageService storageService,
             RestoreBookkeeper restoreBookkeeper,
+            Flyway flyway,
+            DataSource dataSource,
             @Value("${PGHOST}") String pgHost,
             @Value("${PGPORT}") String pgPort,
             @Value("${PGDATABASE}") String pgDatabase,
@@ -60,6 +67,8 @@ public class BackupService {
         this.backupSnapshotRepository = backupSnapshotRepository;
         this.storageService = storageService;
         this.restoreBookkeeper = restoreBookkeeper;
+        this.flyway = flyway;
+        this.dataSource = dataSource;
         this.pgHost = pgHost;
         this.pgPort = pgPort;
         this.pgDatabase = pgDatabase;
@@ -138,6 +147,7 @@ public class BackupService {
                 resetPublicSchema();
                 try {
                     runPgRestore(targetFile);
+                    refreshDatabaseAfterRestore();
                 } catch (Exception restoreFailure) {
                     recoverToPreRestoreState(preRestoreSnapshot, restoreFailure);
                     return;
@@ -168,6 +178,7 @@ public class BackupService {
         try {
             downloadTo(preRestoreSnapshot, recoveryFile);
             runPgRestore(recoveryFile);
+            refreshDatabaseAfterRestore();
             throw ApiException.internal(
                     "Restore failed and the database was automatically rolled back to its pre-restore state. Original error: "
                             + originalFailure.getMessage());
@@ -180,6 +191,26 @@ public class BackupService {
                     + " | Recovery error: " + recoveryFailure.getMessage());
         } finally {
             deleteQuietly(recoveryFile);
+        }
+    }
+
+    /**
+     * A dump can predate the currently deployed application, so restoring it
+     * also restores an older Flyway history. Bring that schema forward before
+     * serving another request, then discard JDBC connections that observed
+     * the dropped schema. Without both steps the process stays alive but its
+     * endpoints fail until Render is restarted manually.
+     */
+    private void refreshDatabaseAfterRestore() {
+        evictDatabaseConnections();
+        flyway.repair();
+        flyway.migrate();
+        evictDatabaseConnections();
+    }
+
+    private void evictDatabaseConnections() {
+        if (dataSource instanceof HikariDataSource hikariDataSource) {
+            hikariDataSource.getHikariPoolMXBean().softEvictConnections();
         }
     }
 

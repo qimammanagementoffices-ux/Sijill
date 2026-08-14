@@ -67,7 +67,7 @@ export default function AppShell({
       return;
     }
     setAuthFailed(false);
-    apiFetch<EmployeeSummary>("/auth/me")
+    apiFetch<EmployeeSummary>("/auth/me", { signal: AbortSignal.timeout(30_000) })
       .then(setEmployee)
       .catch((error) => {
         // Only the server saying "not you" ends the session. A network blip,

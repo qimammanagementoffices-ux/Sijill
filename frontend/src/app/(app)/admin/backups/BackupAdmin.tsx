@@ -152,6 +152,10 @@ export default function BackupAdmin({
       await apiFetch(`/backups/${restoreTarget.id}/restore`, {
         method: "POST",
         body: JSON.stringify({ pin }),
+        // A stalled Render instance must not leave the confirmation button
+        // spinning forever. Three minutes still leaves ample time for the
+        // pre-restore snapshot, pg_restore and Flyway migration sequence.
+        signal: AbortSignal.timeout(180_000),
       });
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(RESTORE_FLASH_KEY, dict.restoreSuccess);
