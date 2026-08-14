@@ -2,6 +2,8 @@ import { clearToken, getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
+const IMAGE_COMPRESSION_TARGET_MB = 1.8;
+const COMPRESSIBLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/bmp"]);
 
 export class ApiError extends Error {
   status: number;
@@ -66,17 +68,46 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 // For multipart file uploads — apiFetch always sends Content-Type:
 // application/json, which would break the browser's automatic boundary
 // header for FormData.
-export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
-  for (const value of formData.values()) {
-    if (value instanceof File && value.size > MAX_UPLOAD_SIZE_BYTES) {
+async function prepareUpload(formData: FormData): Promise<FormData> {
+  const prepared = new FormData();
+
+  for (const [key, value] of formData.entries()) {
+    if (!(value instanceof File)) {
+      prepared.append(key, value);
+      continue;
+    }
+
+    let file = value;
+    if (file.size > MAX_UPLOAD_SIZE_BYTES && COMPRESSIBLE_IMAGE_TYPES.has(file.type)) {
+      const { default: imageCompression } = await import("browser-image-compression");
+      file = await imageCompression(file, {
+        maxSizeMB: IMAGE_COMPRESSION_TARGET_MB,
+        maxWidthOrHeight: 2560,
+        initialQuality: 0.85,
+        maxIteration: 12,
+        useWebWorker: false,
+      });
+    }
+
+    // Keep the server-side 2 MB contract authoritative. Some unusually
+    // complex images cannot reach the target without becoming unusable.
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       throw new ApiError(400, "File must be 2MB or smaller", "VALIDATION_ERROR");
     }
+
+    prepared.append(key, file, file.name || value.name);
   }
+
+  return prepared;
+}
+
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const prepared = await prepareUpload(formData);
   const token = getToken();
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
+    body: prepared,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
