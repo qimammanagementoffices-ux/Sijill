@@ -325,6 +325,43 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void archivedRequestCanBeRestoredWithoutSerialisingTheAggregate() throws Exception {
+        String adminToken = createAdminAndGetToken("0596333399");
+        String itemId = createItemWithStock(adminToken, 10);
+        var submit = new CreateNeedRequestRequest(
+                null, null, null, null, List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 2)));
+        String submitBody = mockMvc.perform(post("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submit)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String requestId = objectMapper.readTree(submitBody).get("id").asText();
+
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/archive")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.archivedAt").isNotEmpty());
+
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/restore")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/warehouse/requests")
+                        .param("archived", "true")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+
+        mockMvc.perform(get("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(requestId));
+    }
+
+    @Test
     void requesterWithoutWhViewOnlySeesOwnRequests() throws Exception {
         String adminToken = createAdminAndGetToken("0596555555");
         String requesterAToken = createEmployeeAndLogin(adminToken, "0596666666", Set.of("wh.request"));
