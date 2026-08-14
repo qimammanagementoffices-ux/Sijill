@@ -243,6 +243,7 @@ export default function BackupAdmin({
           <form onSubmit={handleRestoreSubmit} className="modal">
             <div className="modal-head">
               <h3>{dict.restoreConfirmTitle}</h3>
+              <button type="button" className="modal-close" onClick={closeRestoreModal} aria-label="close" disabled={restoring}>×</button>
             </div>
             <div className="modal-body">
               <p style={{ marginTop: 0 }}>{dict.restoreConfirmWarning}</p>
@@ -282,6 +283,7 @@ export default function BackupAdmin({
           <form onSubmit={handleDeleteSubmit} className="modal">
             <div className="modal-head">
               <h3>{dict.deleteConfirmTitle}</h3>
+              <button type="button" className="modal-close" onClick={closeDeleteModal} aria-label="close" disabled={deleting}>×</button>
             </div>
             <div className="modal-body">
               <p style={{ marginTop: 0 }}>{dict.deleteConfirm}</p>

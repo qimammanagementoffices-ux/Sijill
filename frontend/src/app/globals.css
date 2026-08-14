@@ -1778,11 +1778,12 @@ img[data-viewable] {
 .modal {
   position: relative;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 14px;
   width: 100%;
   max-width: 620px;
   box-shadow: 0 24px 60px -12px rgba(27, 42, 74, 0.4);
   animation: pop 0.15s ease;
+  overflow: hidden;
 }
 .modal.wide {
   max-width: 760px;
@@ -1801,7 +1802,8 @@ img[data-viewable] {
   }
 }
 .modal-head {
-  padding: 18px 22px;
+  min-height: 64px;
+  padding: 15px 20px;
   border-bottom: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
@@ -1820,13 +1822,11 @@ body.lang-en .modal-head h3 {
   font-weight: 800;
 }
 .modal-close {
-  position: absolute;
-  top: -16px;
-  inset-inline-end: -16px;
-  border: 1px solid var(--line);
-  background: var(--paper);
-  width: 34px;
-  height: 34px;
+  position: static;
+  border: 0;
+  background: var(--paper-dim);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   font-size: 15px;
   color: var(--slate);
@@ -1835,7 +1835,7 @@ body.lang-en .modal-head h3 {
   align-items: center;
   justify-content: center;
   flex: none;
-  box-shadow: 0 6px 16px -4px rgba(27, 42, 74, 0.3);
+  box-shadow: none;
   z-index: 2;
 }
 .modal-body {
@@ -1844,12 +1844,29 @@ body.lang-en .modal-head h3 {
   overflow: auto;
 }
 .modal-foot {
-  padding: 16px 22px;
+  min-height: 74px;
+  padding: 15px 20px;
   border-top: 1px solid var(--line-soft);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+}
+.modal-foot .btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9px;
+}
+.modal-foot .btn-primary {
+  background: var(--seal);
+  color: #fff;
+}
+.modal-foot .btn-primary:hover {
+  background: #742030;
+}
+.modal-foot .btn-outline {
+  background: #fff;
+  border-color: var(--line);
 }
 
 /* Legacy maintenance request composer: a compact, single-screen form with
