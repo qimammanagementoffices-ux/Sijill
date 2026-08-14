@@ -8,7 +8,6 @@ import SectionLoading from "@/components/SectionLoading";
 import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
-const MAX_ATTACHMENT_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 function localToday() {
@@ -81,10 +80,6 @@ export default function NewInvoiceView({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (attachmentsDict && pendingFiles.some((file) => file.size > MAX_ATTACHMENT_SIZE_BYTES)) {
-      setError(attachmentsDict.tooLarge);
-      return;
-    }
     if (attachmentsDict && pendingFiles.some((file) => !ALLOWED_ATTACHMENT_TYPES.has(file.type))) {
       setError(attachmentsDict.unsupportedType);
       return;
