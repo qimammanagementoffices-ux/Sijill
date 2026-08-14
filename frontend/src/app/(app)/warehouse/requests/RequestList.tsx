@@ -23,6 +23,7 @@ import type {
   NeedRequestListItem,
   NeedRequestStatusValue,
   PagedResponse,
+  RequestActionLineEdit,
   RequestDecisionBody,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -184,34 +185,40 @@ export default function RequestList({
   // no action row accounts for, still gets a notice at the end — unattributed,
   // but present. The card must never show a quantity that silently disagrees
   // with what the requester submitted.
-  function lineEditNotices(request: NeedRequestListItem) {
+  // Rendered inside the decision's own timeline entry — a quantity cut or a
+  // dropped line is something a named official did, not a loose fact about
+  // the request.
+  function lineEditNotices(request: NeedRequestListItem, edits: RequestActionLineEdit[]) {
     const nameOf = (lineId: string | null) =>
       request.lines.find((line) => line.id === lineId)?.itemNameAr ?? "—";
-    const notices: string[] = [];
-    const accountedFor = new Set<string>();
-
-    for (const action of request.actions) {
-      for (const edit of action.lineEdits ?? []) {
-        if (edit.lineId) accountedFor.add(edit.lineId);
-        if (edit.removed) continue;
-        notices.push(
-          cardDict.lineQuantityChanged
-            .replace("{item}", nameOf(edit.lineId))
-            .replace("{before}", String(edit.quantityBefore))
-            .replace("{after}", String(edit.quantityAfter ?? 0))
-        );
-      }
-      const dropped = (action.lineEdits ?? []).filter((edit) => edit.removed).map((edit) => nameOf(edit.lineId));
-      if (dropped.length > 0) {
-        notices.push(cardDict.linesRemoved.replace("{items}", dropped.join("، ")));
-      }
+    const notices = edits
+      .filter((edit) => !edit.removed)
+      .map((edit) =>
+        cardDict.lineQuantityChanged
+          .replace("{item}", nameOf(edit.lineId))
+          .replace("{before}", String(edit.quantityBefore))
+          .replace("{after}", String(edit.quantityAfter ?? 0))
+      );
+    const dropped = edits.filter((edit) => edit.removed).map((edit) => nameOf(edit.lineId));
+    if (dropped.length > 0) {
+      notices.push(cardDict.linesRemoved.replace("{items}", dropped.join("، ")));
     }
+    return notices;
+  }
 
-    const unattributedDrops: string[] = [];
+  // A line whose approved quantity no action row accounts for. Still shown,
+  // unattributed, so the card can never display a quantity that silently
+  // disagrees with what the requester submitted.
+  function unattributedEdits(request: NeedRequestListItem) {
+    const accountedFor = new Set(
+      request.actions.flatMap((action) => (action.lineEdits ?? []).map((edit) => edit.lineId))
+    );
+    const notices: string[] = [];
+    const dropped: string[] = [];
     for (const line of request.lines) {
       if (accountedFor.has(line.id)) continue;
       if (line.removed) {
-        unattributedDrops.push(line.itemNameAr);
+        dropped.push(line.itemNameAr);
       } else if (line.quantityApproved !== null && line.quantityApproved !== line.quantityRequested) {
         notices.push(
           cardDict.lineQuantityChangedNoActor
@@ -221,9 +228,7 @@ export default function RequestList({
         );
       }
     }
-    if (unattributedDrops.length > 0) {
-      notices.push(cardDict.linesRemoved.replace("{items}", unattributedDrops.join("، ")));
-    }
+    if (dropped.length > 0) notices.push(cardDict.linesRemoved.replace("{items}", dropped.join("، ")));
     return notices;
   }
 
@@ -489,9 +494,7 @@ export default function RequestList({
 
                 {request.notes && <p className="request-card-notes">{request.notes}</p>}
 
-                {/* What the approvers changed, per decision, so a first-level
-                    trim and a later counter-sign trim stay separate. */}
-                {lineEditNotices(request).map((notice, index) => (
+                {unattributedEdits(request).map((notice, index) => (
                   <p key={index} className="request-card-notice">{notice}</p>
                 ))}
 
@@ -538,6 +541,7 @@ export default function RequestList({
                   actionLabel={actionLabel}
                   activityTitle={dict.activityTitle}
                   systemActorLabel={cardDict.systemActor}
+                  lineEditNotices={(edits) => lineEditNotices(request, edits)}
                   attachmentsDict={attachmentsDict}
                 />
 

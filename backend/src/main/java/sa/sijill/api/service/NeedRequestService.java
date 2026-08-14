@@ -536,6 +536,13 @@ public class NeedRequestService {
             if (edit.quantity() <= 0) {
                 throw RequestWorkflowErrors.quantityMustBePositive();
             }
+            // A decision may cut what was asked for or drop it, never grant
+            // more than was requested: raising it here would commit stock
+            // nobody asked for and would not be visible to the requester as
+            // anything they submitted.
+            if (edit.quantity() > line.getQuantityRequested()) {
+                throw RequestWorkflowErrors.quantityAboveRequested();
+            }
             line.setQuantityApproved(edit.quantity());
             recordLineEdit(action, line, before, edit.quantity(), false);
         }

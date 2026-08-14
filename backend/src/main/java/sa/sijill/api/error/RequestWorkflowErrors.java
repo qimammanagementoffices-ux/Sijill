@@ -109,6 +109,13 @@ public final class RequestWorkflowErrors {
                 Map.of("quantity", "must be > 0"));
     }
 
+    public static ApiException quantityAboveRequested() {
+        return validation(
+                "QUANTITY_ABOVE_REQUESTED",
+                "An approved quantity cannot exceed what was requested",
+                Map.of("quantity", "must not exceed quantityRequested"));
+    }
+
     public static ApiException noLinesLeft() {
         return validation(
                 "NO_LINES_LEFT", "At least one item must remain on the request", Map.of("lines", "cannot all be removed"));

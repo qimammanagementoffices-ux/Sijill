@@ -1,12 +1,20 @@
 import type { AttachmentDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
+type RequestActionLineEdit = {
+  lineId: string | null;
+  quantityBefore: number;
+  quantityAfter: number | null;
+  removed: boolean;
+};
+
 type RequestAction = {
   // Null when the system acted rather than an employee.
   actorName: string | null;
   action: string;
   reason: string | null;
   createdAt: string;
+  lineEdits?: RequestActionLineEdit[];
 };
 
 const ACTION_TONE: Record<string, string> = {
@@ -47,6 +55,7 @@ export default function RequestCardActivity({
   activityTitle,
   attachmentsDict,
   systemActorLabel,
+  lineEditNotices,
 }: {
   actions?: RequestAction[];
   attachments?: AttachmentDto[];
@@ -56,6 +65,10 @@ export default function RequestCardActivity({
   // Shown for entries the system wrote rather than an employee — currently
   // only a postponed request returning to the queue.
   systemActorLabel?: string;
+  // "تم تعديل صنف من 5 إلى 2" / "تم حذف الأصناف: ..." for one decision.
+  // Rendered inside that decision's entry, not loose on the card: a quantity
+  // change is something an official did, and it has to read as theirs.
+  lineEditNotices?: (edits: RequestActionLineEdit[]) => string[];
 }) {
   return (
     <>
@@ -96,6 +109,9 @@ export default function RequestCardActivity({
                     systemActorLabel && <span className="request-timeline-actor">{systemActorLabel}</span>
                   )}
                   {entry.reason && <p>{entry.reason}</p>}
+                  {(lineEditNotices?.(entry.lineEdits ?? []) ?? []).map((notice, noticeIndex) => (
+                    <p key={noticeIndex} className="request-timeline-edit">{notice}</p>
+                  ))}
                 </div>
               </li>
             ))}

@@ -125,12 +125,19 @@ export default function RequestDecisionDialog({
                   return (
                     <li key={line.id} className={edit.removed ? "decision-line removed" : "decision-line"}>
                       <span className="decision-line-name">{line.itemNameAr}</span>
+                      {/* A decision may cut or drop a line, never ask for
+                          more than the requester did. */}
                       <input
                         type="number"
                         min={1}
+                        max={line.quantityRequested}
                         value={edit.quantity}
                         disabled={edit.removed}
-                        onChange={(event) => setLine(line.id, { quantity: Number(event.target.value) })}
+                        onChange={(event) =>
+                          setLine(line.id, {
+                            quantity: Math.min(line.quantityRequested, Math.max(0, Number(event.target.value))),
+                          })
+                        }
                       />
                       <button
                         type="button"
