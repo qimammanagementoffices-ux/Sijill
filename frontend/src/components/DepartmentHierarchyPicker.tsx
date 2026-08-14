@@ -149,9 +149,7 @@ export default function DepartmentHierarchyPicker({
 
   const placeholder = locale === "ar" ? "ابحث بالاسم أو المسار…" : locale === "hi" ? "नाम या पथ से खोजें…" : "Search by name or path…";
   const noResults = locale === "ar" ? "لا توجد أقسام مطابقة" : locale === "hi" ? "कोई मेल खाता विभाग नहीं" : "No matching departments";
-  const administrationLabel = locale === "ar" ? "الإدارات (مطلوب — يمكن اختيار أكثر من إدارة)" : locale === "hi" ? "प्रशासन (आवश्यक — एकाधिक विकल्प)" : "Administrations (required — multiple choices)";
   const subdivisionsLabel = locale === "ar" ? "المراحل والأقسام (اختياري — يمكن اختيار أكثر من واحد)" : locale === "hi" ? "चरण और विभाग (वैकल्पिक — एकाधिक विकल्प)" : "Stages and departments (optional — multiple choices)";
-  const chooseAdministration = locale === "ar" ? "اختر إدارة واحدة أو أكثر لإظهار المراحل والأقسام التابعة لها" : locale === "hi" ? "चरण और विभाग देखने के लिए एक या अधिक प्रशासन चुनें" : "Choose one or more administrations to show their stages and departments";
 
   const matchesQuery = ({ item, path }: DepartmentTreeRow) =>
     !normalizedQuery || `${path} ${item.nameAr} ${item.nameEn} ${item.nameHi ?? ""}`.toLocaleLowerCase(locale).includes(normalizedQuery);
@@ -173,7 +171,6 @@ export default function DepartmentHierarchyPicker({
       </div>
       {employeeAssignment ? (
         <div className="department-assignment-options">
-          <div className="department-picker-group-title">{administrationLabel}</div>
           <div className="department-picker-options" role="group">
             {rootRows.filter(matchesQuery).length === 0 ? <div className="department-picker-empty">{noResults}</div> : rootRows.filter(matchesQuery).map(({ item }) => (
               <label key={item.id} className={`department-picker-row${selectedIds.has(item.id) ? " selected" : ""}`}>
@@ -182,11 +179,11 @@ export default function DepartmentHierarchyPicker({
               </label>
             ))}
           </div>
-          <div className="department-picker-group-title optional">{subdivisionsLabel}</div>
-          <div className="department-picker-options" role="group">
-            {descendantGroups.length === 0 ? (
-              <div className="department-picker-empty">{chooseAdministration}</div>
-            ) : descendantGroups.map(({ root, descendants }) => (
+          {descendantGroups.length > 0 && (
+            <>
+              <div className="department-picker-group-title optional">{subdivisionsLabel}</div>
+              <div className="department-picker-options" role="group">
+                {descendantGroups.map(({ root, descendants }) => (
               <div className="department-picker-subgroup" key={root.item.id}>
                 <div className="department-picker-subgroup-title">{root.path}</div>
                 {descendants.filter(matchesQuery).length === 0 ? (
@@ -200,8 +197,10 @@ export default function DepartmentHierarchyPicker({
                   </label>
                 ))}
               </div>
-            ))}
-          </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="department-picker-options" role={multiple ? "group" : "radiogroup"}>
