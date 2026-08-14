@@ -5,6 +5,34 @@ const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
 const IMAGE_COMPRESSION_TARGET_MB = 1.8;
 const COMPRESSIBLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/bmp"]);
 
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+async function compressPdfForUpload(file: File): Promise<File> {
+  const { compress } = await import("@quicktoolsone/pdf-compress");
+  const makeFile = (bytes: ArrayBuffer) => new File([bytes], file.name, {
+    type: "application/pdf",
+    lastModified: file.lastModified,
+  });
+
+  const balanced = makeFile((await compress(await file.arrayBuffer(), {
+    preset: "balanced",
+    gracefulDegradation: true,
+    timeout: 300_000,
+  })).pdf);
+  if (balanced.size <= MAX_UPLOAD_SIZE_BYTES) return balanced;
+
+  const maximum = makeFile((await compress(await file.arrayBuffer(), {
+    preset: "max",
+    gracefulDegradation: true,
+    enableRasterization: true,
+    timeout: 300_000,
+  })).pdf);
+
+  return maximum.size < balanced.size ? maximum : balanced;
+}
+
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -88,9 +116,20 @@ async function prepareUpload(formData: FormData): Promise<FormData> {
         useWebWorker: false,
       });
     }
+    if (file.size > MAX_UPLOAD_SIZE_BYTES && isPdf(file)) {
+      try {
+        file = await compressPdfForUpload(file);
+      } catch {
+        throw new ApiError(
+          400,
+          "PDF compression failed. Please use a valid, unprotected PDF.",
+          "PDF_COMPRESSION_ERROR"
+        );
+      }
+    }
 
     // Keep the server-side 2 MB contract authoritative. Some unusually
-    // complex images cannot reach the target without becoming unusable.
+    // complex images or PDFs cannot reach the target without becoming unusable.
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       throw new ApiError(400, "File must be 2MB or smaller", "VALIDATION_ERROR");
     }
