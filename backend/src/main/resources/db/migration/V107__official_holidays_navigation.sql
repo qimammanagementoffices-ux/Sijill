@@ -1,6 +1,6 @@
-insert into translation_entry (key, ar, en, hi) values
+insert into translation (key, value_ar, value_en, value_hi) values
     ('dashboard.officialHolidaysNav', 'الإجازات الرسمية', 'Official holidays', 'आधिकारिक छुट्टियां')
 on conflict (key) do update set
-    ar = excluded.ar,
-    en = excluded.en,
-    hi = excluded.hi;
+    value_ar = excluded.value_ar,
+    value_en = excluded.value_en,
+    value_hi = excluded.value_hi;
