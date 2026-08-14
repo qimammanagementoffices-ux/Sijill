@@ -7,6 +7,7 @@ import type {
   AttachmentDto,
   CategoryDto,
   InventoryItemListItem,
+  LocalizedEntityDto,
   LocalizedRef,
   NeedRequestDetail,
   PagedResponse,
@@ -14,6 +15,7 @@ import type {
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import { flattenDepartmentHierarchy, type DepartmentTreeRow } from "@/components/DepartmentHierarchyPicker";
 
 type MeData = { name: string; departments: LocalizedRef[] };
 type LineDraft = { inventoryItemId: string; quantityRequested: string };
@@ -38,6 +40,7 @@ export default function NewRequestView({
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentTreeRow[] | null>(null);
 
   const [step, setStep] = useState(1);
   const [departmentId, setDepartmentId] = useState("");
@@ -58,17 +61,22 @@ export default function NewRequestView({
   useEffect(() => {
     Promise.all([
       apiFetch<MeData>("/auth/me"),
+      apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<CategoryDto[]>("/warehouse/categories"),
       apiFetch<PagedResponse<InventoryItemListItem>>("/warehouse/items?size=200"),
       apiFetch<RoomDto[]>("/rooms"),
-    ]).then(([m, c, i, r]) => {
+    ]).then(([m, departmentRows, c, i, r]) => {
+      const assignedIds = new Set(m.departments.map((department) => department.id));
+      const assignedDepartments = flattenDepartmentHierarchy(departmentRows, entityLocale)
+        .filter(({ item }) => assignedIds.has(item.id));
       setMe(m);
-      setDepartmentId(m.departments.length === 1 ? (m.departments[0]?.id ?? "") : "");
+      setDepartmentOptions(assignedDepartments);
+      setDepartmentId(assignedDepartments.length === 1 ? assignedDepartments[0]!.item.id : "");
       setCategories(c);
       setItems(i.content);
       setRooms(r);
     });
-  }, []);
+  }, [entityLocale]);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
@@ -94,12 +102,7 @@ export default function NewRequestView({
 
   const filteredItems = items?.filter((item) => !categoryId || item.category?.id === categoryId) ?? [];
 
-  const selectedDepartment = me?.departments.find((department) => department.id === departmentId);
-  const departmentName = selectedDepartment
-    ? entityLocale === "en"
-      ? selectedDepartment.en
-      : selectedDepartment.ar
-    : "—";
+  const departmentName = departmentOptions?.find(({ item }) => item.id === departmentId)?.path ?? "—";
   const filledLines = lines.filter((l) => l.inventoryItemId);
   const hasContent = customMode ? customText.trim().length > 0 : filledLines.length > 0;
 
@@ -148,7 +151,7 @@ export default function NewRequestView({
     }
   }
 
-  if (!me || !categories || !items || !rooms) return <SectionLoading />;
+  if (!me || !departmentOptions || !categories || !items || !rooms) return <SectionLoading />;
 
   const stepLabels = [dict.stepDeptType, dict.stepItems, dict.stepAttachments];
 
@@ -180,20 +183,19 @@ export default function NewRequestView({
               multiple assignments become a select in the same card. */}
           <div className="readonly-pair">
             <div className="readonly-box">
-              <label className="readonly-box-label" htmlFor={me.departments.length > 1 ? "wizard-department" : undefined}>
+              <label className="readonly-box-label" htmlFor={departmentOptions.length > 1 ? "wizard-department" : undefined}>
                 {dict.columnDepartment}
               </label>
-              {me.departments.length > 1 ? (
+              {departmentOptions.length > 1 ? (
                 <select
                   id="wizard-department"
-                  className="readonly-box-select"
                   value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
+                  onChange={(e) => { setDepartmentId(e.target.value); setRoomId(""); }}
                 >
                   <option value="">—</option>
-                  {me.departments.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {entityLocale === "en" ? department.en : department.ar}
+                  {departmentOptions.map(({ item, path }) => (
+                    <option key={item.id} value={item.id}>
+                      {path}
                     </option>
                   ))}
                 </select>
@@ -247,7 +249,7 @@ export default function NewRequestView({
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={!categoryId || (me.departments.length > 1 && !departmentId)}
+              disabled={!categoryId || (departmentOptions.length > 1 && !departmentId)}
               onClick={() => setStep(2)}
             >
               {dict.nextStep}

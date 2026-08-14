@@ -2963,9 +2963,8 @@ body.lang-en .modal-head h3 {
 .category-radio-name { order: 0; flex: 1; }
 
 /* ── Wizard read-only pair (department / requester) ────── */
-/* Both values come from the signed-in employee and are never editable, so
-   they read as labelled facts on the app's own parchment tone rather than
-   as greyed-out inputs. */
+/* Values come from the signed-in employee. A single department reads as a
+   locked fact; multiple assignments use the standard form select. */
 .readonly-pair {
   display: flex;
   gap: 16px;
@@ -2992,28 +2991,6 @@ body.lang-en .modal-head h3 {
   color: var(--ink);
   overflow-wrap: anywhere;
 }
-.readonly-box-select {
-  width: 100%;
-  min-height: 30px;
-  padding: 0 0 2px;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: none;
-}
-.readonly-box-select:hover,
-.readonly-box-select:focus {
-  border-bottom-color: var(--line);
-  outline: none;
-  box-shadow: none;
-}
-
 /* ── Wizard step actions ───────────────────────────────── */
 /* Back/cancel sits at the start of the row, the forward action at the end;
    space-between resolves correctly under both dir=rtl and dir=ltr. */

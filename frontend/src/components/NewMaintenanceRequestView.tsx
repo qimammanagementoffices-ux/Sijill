@@ -3,9 +3,10 @@
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
-import type { AttachmentDto, FaultTypeDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
+import type { AttachmentDto, FaultTypeDto, LocalizedEntityDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import { flattenDepartmentHierarchy, type DepartmentTreeRow } from "@/components/DepartmentHierarchyPicker";
 
 const PRIORITIES: MaintenancePriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 type MeData = { departments: LocalizedRef[] };
@@ -29,7 +30,7 @@ export default function NewMaintenanceRequestView({
   onSubmittingChange?: (submitting: boolean) => void;
 }) {
   const entityLocale = useEntityLocale();
-  const [departments, setDepartments] = useState<LocalizedRef[] | null>(null);
+  const [departments, setDepartments] = useState<DepartmentTreeRow[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [departmentId, setDepartmentId] = useState("");
@@ -54,17 +55,20 @@ export default function NewMaintenanceRequestView({
   useEffect(() => {
     Promise.all([
       apiFetch<MeData>("/auth/me"),
+      apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<RoomDto[]>("/rooms"),
       apiFetch<FaultTypeDto[]>("/maintenance/fault-types"),
-    ]).then(([me, roomRows, faultTypeRows]) => {
-      setDepartments(me.departments);
+    ]).then(([me, departmentRows, roomRows, faultTypeRows]) => {
+      const assignedIds = new Set(me.departments.map((department) => department.id));
+      const assignedDepartments = flattenDepartmentHierarchy(departmentRows, entityLocale)
+        .filter(({ item }) => assignedIds.has(item.id));
+      setDepartments(assignedDepartments);
       setRooms(roomRows.filter((room) => room.active));
       setFaultTypes(faultTypeRows);
-      setDepartmentId(me.departments[0]?.id ?? "");
+      setDepartmentId(assignedDepartments.length === 1 ? assignedDepartments[0]!.item.id : "");
       setFaultTypeId(faultTypeRows[0]?.id ?? "");
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [entityLocale]);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
@@ -121,12 +125,16 @@ export default function NewMaintenanceRequestView({
       <div className="form-grid">
         <div className="field">
           <label>{dict.departmentLabel}</label>
-          <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setRoomId(""); }}>
-            <option value="">—</option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>{entityLocale === "en" ? department.en : department.ar}</option>
-            ))}
-          </select>
+          {departments.length === 1 ? (
+            <input value={departments[0]!.path} readOnly aria-readonly="true" />
+          ) : (
+            <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setRoomId(""); }}>
+              <option value="">—</option>
+              {departments.map(({ item, path }) => (
+                <option key={item.id} value={item.id}>{path}</option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="field">
           <label>{dict.roomLabel}</label>
