@@ -8,7 +8,7 @@ Sources reconciled here: the owner's workflow description, the legacy app
 Arabic strings are the exact copy to ship — do not re-translate them. Where a
 string already exists in the legacy dictionary its key is given in `code`.
 
-**Status: implemented** in `V107` (need requests) and `V108` (maintenance and
+**Status: implemented** in `V109` (need requests) and `V108` (maintenance and
 asset requests). §7 records the defects found in the workflow as first
 described and how each was resolved — read it before changing any of this.
 
@@ -53,7 +53,7 @@ Two deliberate differences per request type:
 | Storekeeper | `wh.act.finish` | Record the actual delivery and deduct stock. |
 | Admin | `emp.manage` | Keeps the edit affordance after the requester's window closes; archives. |
 
-One new permission key per domain, seeded in `V107`:
+One new permission key per domain, seeded in `V109`:
 `wh.act.countersign`, `mt.act.countersign`, `as.act.countersign`.
 Without it the second stage would fall back to `wh.act.approve` — meaning the
 same employee approves and then counter-signs their own approval, and the

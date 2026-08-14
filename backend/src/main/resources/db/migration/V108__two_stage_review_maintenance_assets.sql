@@ -1,4 +1,7 @@
--- Extends the two-stage review of V107 to maintenance and asset requests.
+-- The maintenance and asset half of the two-stage review; V109 carries the
+-- need-request half and seeds the mt./as. countersign permissions. The two are
+-- independent, so this running first is harmless -- the numbering only reads
+-- backwards because the need-request file was renumbered off a collision.
 -- Same column widening: APPROVED_UNDER_REVIEW / REJECTED_UNDER_REVIEW are 21
 -- characters and the status columns are varchar(20).
 alter table maintenance_request alter column status type varchar(32);
