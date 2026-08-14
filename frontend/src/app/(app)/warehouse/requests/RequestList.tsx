@@ -14,7 +14,7 @@ import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import { useSession } from "@/lib/session";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestDeliveryDialog from "@/components/RequestDeliveryDialog";
-import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
+import RequestCardActivity from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
@@ -27,6 +27,38 @@ import type {
   RequestDecisionBody,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
+
+function formatEditDeadline(value: string, locale: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const intlLocale = locale === "ar" ? "ar-EG" : locale === "hi" ? "hi-IN" : "en-GB";
+  const day = new Intl.DateTimeFormat(intlLocale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "Asia/Riyadh",
+  }).format(date);
+  const time = new Intl.DateTimeFormat(intlLocale, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Riyadh",
+  }).format(date);
+  if (locale === "ar") return `${time} في ${day}`;
+  if (locale === "hi") return `${day}, ${time}`;
+  return `${time} on ${day}`;
+}
+
+function formatCardDate(value: string | undefined, locale: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : locale === "hi" ? "hi-IN" : "en-GB", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "Asia/Riyadh",
+  }).format(date);
+}
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
@@ -481,8 +513,10 @@ export default function RequestList({
                 <div className="request-card-meta">
                   <span>{request.requesterName}</span>
                   {request.department && <span>{request.department.ar}</span>}
-                  {request.suggestedStartDate && (
-                    <span className="mono">{request.suggestedStartDate}</span>
+                  {formatCardDate(request.actions.find((entry) => entry.action === "SUBMIT")?.createdAt, locale) && (
+                    <time className="request-card-meta-date">
+                      {formatCardDate(request.actions.find((entry) => entry.action === "SUBMIT")?.createdAt, locale)}
+                    </time>
                   )}
                 </div>
 
@@ -496,15 +530,13 @@ export default function RequestList({
                   </div>
                 )}
 
-                {request.notes && <p className="request-card-notes">{request.notes}</p>}
-
                 {unattributedEdits(request).map((notice, index) => (
                   <p key={index} className="request-card-notice">{notice}</p>
                 ))}
 
                 {request.canEdit && (
                   <p className="edit-note">
-                    {cardDict.editNoteActive.replace("{time}", formatActionDate(request.editableUntil))}
+                    {cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
                   </p>
                 )}
                 {!request.canEdit && request.status === "PENDING" && request.requesterId === currentEmployeeId && (
@@ -535,7 +567,7 @@ export default function RequestList({
 
                 {/* Suppressed while postponed: the postpone date is the date
                     that matters, and two competing dates read as a bug. */}
-                {request.suggestedStartDate && request.status !== "POSTPONED" && (
+                {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
                   <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
                 )}
 
@@ -547,6 +579,7 @@ export default function RequestList({
                   systemActorLabel={cardDict.systemActor}
                   lineEditNotices={(edits) => lineEditNotices(request, edits)}
                   attachmentsDict={attachmentsDict}
+                  submissionNote={request.notes}
                 />
 
                 {/* Each stage shows only its own actions, and only to the

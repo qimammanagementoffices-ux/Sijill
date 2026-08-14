@@ -1184,6 +1184,11 @@ img[data-viewable] {
   font-size: 12px;
   color: var(--slate);
 }
+.request-card-meta-date {
+  padding-inline-start: 14px;
+  border-inline-start: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
 .request-card-chips {
   display: flex;
   gap: 6px;
@@ -1501,6 +1506,11 @@ img[data-viewable] {
   margin: 6px 0 0;
   padding-top: 5px;
   border-top: 1px dashed var(--timeline-line);
+}
+.request-timeline-note {
+  color: var(--ink-soft);
+  font-style: normal;
+  line-height: 1.7;
 }
 .request-timeline-approved, .request-timeline-finished { --timeline-tone: #267a4d; --timeline-bg: #eaf7ef; --timeline-line: #addbbe; }
 .request-timeline-rejected { --timeline-tone: #a13a3a; --timeline-bg: #fceded; --timeline-line: #efb8b8; }

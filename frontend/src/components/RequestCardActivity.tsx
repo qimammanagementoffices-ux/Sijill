@@ -56,6 +56,7 @@ export default function RequestCardActivity({
   attachmentsDict,
   systemActorLabel,
   lineEditNotices,
+  submissionNote,
 }: {
   actions?: RequestAction[];
   attachments?: AttachmentDto[];
@@ -69,6 +70,9 @@ export default function RequestCardActivity({
   // Rendered inside that decision's entry, not loose on the card: a quantity
   // change is something an official did, and it has to read as theirs.
   lineEditNotices?: (edits: RequestActionLineEdit[]) => string[];
+  // The requester's note belongs to the submission event (step 1), rather
+  // than floating separately above the history.
+  submissionNote?: string | null;
 }) {
   return (
     <>
@@ -109,6 +113,9 @@ export default function RequestCardActivity({
                     systemActorLabel && <span className="request-timeline-actor">{systemActorLabel}</span>
                   )}
                   {entry.reason && <p>{entry.reason}</p>}
+                  {entry.action === "SUBMIT" && submissionNote && (
+                    <p className="request-timeline-note">{submissionNote}</p>
+                  )}
                   {(lineEditNotices?.(entry.lineEdits ?? []) ?? []).map((notice, noticeIndex) => (
                     <p key={noticeIndex} className="request-timeline-edit">{notice}</p>
                   ))}

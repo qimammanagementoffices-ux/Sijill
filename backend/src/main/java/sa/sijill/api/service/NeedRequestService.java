@@ -2,6 +2,7 @@ package sa.sijill.api.service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import sa.sijill.api.web.dto.RequestDecisionRequest;
 public class NeedRequestService {
 
     private static final int EDIT_WINDOW_MINUTES = 60;
+    private static final ZoneId SCHOOL_TIME_ZONE = ZoneId.of("Asia/Riyadh");
 
     private final NeedRequestRepository needRequestRepository;
     private final DepartmentRepository departmentRepository;
@@ -72,7 +74,7 @@ public class NeedRequestService {
             boolean underReview,
             Pageable pageable) {
         Page<NeedRequest> page = needRequestRepository.search(
-                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(), pageable);
+                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(SCHOOL_TIME_ZONE), pageable);
         page.getContent().forEach(this::materialiseResurface);
         return page;
     }
@@ -92,10 +94,12 @@ public class NeedRequestService {
      * the request or the history is wrong for exactly the period it matters.
      */
     private void materialiseResurface(NeedRequest request) {
+        LocalDate today = LocalDate.now(SCHOOL_TIME_ZONE);
         if (request.getStatus() != NeedRequestStatus.POSTPONED) return;
-        if (request.getPostponedUntil() == null || request.getPostponedUntil().isAfter(LocalDate.now())) return;
+        if (request.getPostponedUntil() == null || request.getPostponedUntil().isAfter(today)) return;
 
         request.setStatus(NeedRequestStatus.PENDING);
+        request.setSuggestedStartDate(suggestedStartDateCalculator.from(today));
         // Null actor = the system acted, not an employee.
         addAction(request, null, "RESURFACE", null);
         needRequestRepository.save(request);
@@ -109,7 +113,7 @@ public class NeedRequestService {
     public static NeedRequestStatus effectiveStatus(NeedRequest request) {
         if (request.getStatus() == NeedRequestStatus.POSTPONED
                 && request.getPostponedUntil() != null
-                && !request.getPostponedUntil().isAfter(LocalDate.now())) {
+                && !request.getPostponedUntil().isAfter(LocalDate.now(SCHOOL_TIME_ZONE))) {
             return NeedRequestStatus.PENDING;
         }
         return request.getStatus();
@@ -193,7 +197,7 @@ public class NeedRequestService {
         needRequest.setRoom(resolveRoom(request.roomId()));
         needRequest.setNotes(request.notes());
         needRequest.setStatus(NeedRequestStatus.PENDING);
-        needRequest.setSuggestedStartDate(suggestedStartDateCalculator.from(LocalDate.now()));
+        needRequest.setSuggestedStartDate(suggestedStartDateCalculator.from(LocalDate.now(SCHOOL_TIME_ZONE)));
 
         for (NeedRequestLineRequest lineRequest : hasLines ? request.lines() : List.<NeedRequestLineRequest>of()) {
             if (lineRequest.quantityRequested() <= 0) {
@@ -486,7 +490,7 @@ public class NeedRequestService {
         if (until == null) {
             throw RequestWorkflowErrors.postponeDateRequired();
         }
-        if (!until.isAfter(LocalDate.now())) {
+        if (!until.isAfter(LocalDate.now(SCHOOL_TIME_ZONE))) {
             throw ApiException.validation(
                     "The postponement date must be in the future", Map.of("postponedUntil", "must be after today"));
         }
