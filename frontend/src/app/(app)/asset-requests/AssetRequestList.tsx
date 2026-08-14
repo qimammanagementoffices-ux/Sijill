@@ -14,6 +14,7 @@ import RequestActionDialog from "@/components/RequestActionDialog";
 import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
+import SuggestedStartNotice from "@/components/SuggestedStartNotice";
 import type { AssetRequestDetail, AssetRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -30,11 +31,13 @@ export default function AssetRequestList({
   errorsDict,
   commonDict,
   attachmentsDict,
+  locale,
 }: {
   dict: Dictionary["assetRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  locale: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -211,7 +214,7 @@ export default function AssetRequestList({
                 </header>
                 <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}
-                {request.suggestedStartDate && <p className="request-card-banner">{dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b></p>}
+                {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
                 <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
                 <div className="request-card-actions">
                   {(request.status === "PENDING" || request.status === "POSTPONED") && permissions.includes("as.act.approve") && <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => void act(request.id, "approve")}>{dict.approve}</button>}

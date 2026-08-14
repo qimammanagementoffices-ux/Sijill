@@ -305,6 +305,7 @@ export type Dictionary = {
     columnDepartment: string;
     columnStatus: string;
     columnSuggestedStart: string;
+    startWorkNotice: string;
     statusFilterAll: string;
     cardTitle: string;
     cardOpen: string;
@@ -379,6 +380,7 @@ export type Dictionary = {
     columnPriority: string;
     columnStatus: string;
     columnSuggestedStart: string;
+    startWorkNotice: string;
     statusFilterAll: string;
     cardTitle: string;
     cardOpen: string;
@@ -506,6 +508,15 @@ export type Dictionary = {
     reopenAtLabel: string;
     save: string;
     saveSuccess: string;
+    holidaysTitle: string;
+    holidaysHint: string;
+    holidayDateLabel: string;
+    holidayNameLabel: string;
+    holidayNamePlaceholder: string;
+    addHoliday: string;
+    noHolidays: string;
+    removeHoliday: string;
+    holidaySaved: string;
   };
   siteMaintenancePage: {
     title: string;
@@ -609,6 +620,7 @@ export type Dictionary = {
     columnAsset: string;
     columnStatus: string;
     columnSuggestedStart: string;
+    startWorkNotice: string;
     statusFilterAll: string;
     assetLabel: string;
     departmentLabel: string;

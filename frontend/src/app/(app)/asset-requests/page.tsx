@@ -3,6 +3,7 @@ import { getRequestLocale } from "@/i18n/getRequestLocale";
 import AssetRequestList from "./AssetRequestList";
 
 export default async function AssetRequestsPage() {
-  const dict = await getDictionary(await getRequestLocale());
-  return <AssetRequestList dict={dict.assetRequests} errorsDict={dict.errors} commonDict={dict.common} attachmentsDict={dict.attachments} />;
+  const locale = await getRequestLocale();
+  const dict = await getDictionary(locale);
+  return <AssetRequestList dict={dict.assetRequests} errorsDict={dict.errors} commonDict={dict.common} attachmentsDict={dict.attachments} locale={locale} />;
 }

@@ -4,10 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import sa.sijill.api.repository.OfficialHolidayRepository;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SuggestedStartDateCalculatorTest {
 
-    private final SuggestedStartDateCalculator calculator = new SuggestedStartDateCalculator();
+    private final OfficialHolidayRepository holidays = mock(OfficialHolidayRepository.class);
+    private final SuggestedStartDateCalculator calculator = new SuggestedStartDateCalculator(holidays);
 
     @Test
     void normalDayJustAddsOne() {
@@ -27,5 +31,16 @@ class SuggestedStartDateCalculatorTest {
     void fridayReferenceGivesSaturdayDirectly() {
         LocalDate friday = LocalDate.of(2024, 1, 5);
         assertThat(calculator.from(friday)).isEqualTo(LocalDate.of(2024, 1, 6));
+    }
+
+    @Test
+    void skipsConfiguredHolidaysAndFridayUntilAWorkingDay() {
+        LocalDate thursday = LocalDate.of(2024, 4, 4);
+        LocalDate saturday = LocalDate.of(2024, 4, 6);
+        LocalDate sunday = LocalDate.of(2024, 4, 7);
+        when(holidays.existsById(saturday)).thenReturn(true);
+        when(holidays.existsById(sunday)).thenReturn(true);
+
+        assertThat(calculator.from(thursday)).isEqualTo(LocalDate.of(2024, 4, 8));
     }
 }

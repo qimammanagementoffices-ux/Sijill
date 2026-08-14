@@ -14,6 +14,7 @@ import RequestActionDialog from "@/components/RequestActionDialog";
 import RequestCardActivity, { formatActionDate, latestPostponeDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
+import SuggestedStartNotice from "@/components/SuggestedStartNotice";
 import type { MaintenanceRequestDetail, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -31,11 +32,13 @@ export default function MaintenanceRequestList({
   errorsDict,
   commonDict,
   attachmentsDict,
+  locale,
 }: {
   dict: Dictionary["maintenanceRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  locale: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -238,11 +241,7 @@ export default function MaintenanceRequestList({
 
                 {request.description && <p className="request-card-notes">{request.description}</p>}
 
-                {request.suggestedStartDate && (
-                  <p className="request-card-banner">
-                    {dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b>
-                  </p>
-                )}
+                {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
 
                 <RequestCardActivity
                   actions={request.actions}

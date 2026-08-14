@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
-import type { AttachmentDto, MaintenanceDto } from "@/lib/types";
+import type { AttachmentDto, MaintenanceDto, OfficialHolidayDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
@@ -21,7 +21,7 @@ function toDatetimeLocalValue(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteMaintenanceAdmin"] }) {
+export default function SiteMaintenanceAdmin({ dict, locale }: { dict: Dictionary["siteMaintenanceAdmin"]; locale: string }) {
   const router = useRouter();
   const [setting, setSetting] = useState<MaintenanceDto | null>(null);
   const [enabled, setEnabled] = useState(false);
@@ -32,6 +32,10 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [holidays, setHolidays] = useState<OfficialHolidayDto[]>([]);
+  const [holidayDate, setHolidayDate] = useState("");
+  const [holidayName, setHolidayName] = useState("");
+  const [holidayBusy, setHolidayBusy] = useState(false);
 
   function load() {
     apiFetch<MaintenanceDto>("/maintenance")
@@ -44,6 +48,49 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
         setReopenAt(toDatetimeLocalValue(m.reopenAt));
       })
       .catch(() => router.replace("/dashboard"));
+    apiFetch<OfficialHolidayDto[]>("/official-holidays")
+      .then(setHolidays)
+      .catch(() => router.replace("/dashboard"));
+  }
+
+  async function addHoliday() {
+    if (!holidayDate || holidayBusy) return;
+    setError(null);
+    setHolidayBusy(true);
+    try {
+      const saved = await apiFetch<OfficialHolidayDto>(`/official-holidays/${holidayDate}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: holidayName || null }),
+      });
+      setHolidays((current) => [...current.filter((item) => item.date !== saved.date), saved].sort((a, b) => a.date.localeCompare(b.date)));
+      setHolidayDate("");
+      setHolidayName("");
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setHolidayBusy(false);
+    }
+  }
+
+  async function removeHoliday(date: string) {
+    if (holidayBusy) return;
+    setError(null);
+    setHolidayBusy(true);
+    try {
+      await apiFetch(`/official-holidays/${date}`, { method: "DELETE" });
+      setHolidays((current) => current.filter((item) => item.date !== date));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setHolidayBusy(false);
+    }
+  }
+
+  function formatHolidayDate(date: string) {
+    const dateLocale = locale === "ar" ? "ar-EG" : locale === "hi" ? "hi-IN" : "en-GB";
+    return new Intl.DateTimeFormat(dateLocale, { day: "numeric", month: "long", year: "numeric" })
+      .format(new Date(`${date}T12:00:00`));
   }
 
   useEffect(() => {
@@ -187,6 +234,49 @@ export default function SiteMaintenanceAdmin({ dict }: { dict: Dictionary["siteM
           </button>
         </div>
       </div>
+
+      <section className="panel holiday-calendar-panel">
+        <div className="panel-head">
+          <div>
+            <h2>{dict.holidaysTitle}</h2>
+            <p>{dict.holidaysHint}</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div className="holiday-calendar-form">
+            <div className="field">
+              <label>{dict.holidayDateLabel}</label>
+              <input type="date" value={holidayDate} onChange={(event) => setHolidayDate(event.target.value)} />
+            </div>
+            <div className="field holiday-name-field">
+              <label>{dict.holidayNameLabel}</label>
+              <input value={holidayName} onChange={(event) => setHolidayName(event.target.value)} placeholder={dict.holidayNamePlaceholder} />
+            </div>
+            <button type="button" className="btn btn-primary" onClick={() => void addHoliday()} disabled={!holidayDate || holidayBusy}>
+              {holidayBusy ? <span className="spinner" /> : dict.addHoliday}
+            </button>
+          </div>
+
+          {holidays.length === 0 ? (
+            <div className="empty holiday-empty"><b>{dict.noHolidays}</b></div>
+          ) : (
+            <div className="holiday-list">
+              {holidays.map((holiday) => (
+                <article key={holiday.date} className="holiday-item">
+                  <span className="holiday-date-mark" aria-hidden="true">{new Date(`${holiday.date}T12:00:00`).getDate()}</span>
+                  <div>
+                    <strong>{formatHolidayDate(holiday.date)}</strong>
+                    {holiday.name && <span>{holiday.name}</span>}
+                  </div>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => void removeHoliday(holiday.date)} disabled={holidayBusy}>
+                    {dict.removeHoliday}
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </>
   );
 }

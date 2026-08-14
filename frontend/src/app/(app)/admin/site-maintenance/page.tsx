@@ -3,6 +3,7 @@ import { getRequestLocale } from "@/i18n/getRequestLocale";
 import SiteMaintenanceAdmin from "./SiteMaintenanceAdmin";
 
 export default async function SiteMaintenanceAdminPage() {
-  const dict = await getDictionary(await getRequestLocale());
-  return <SiteMaintenanceAdmin dict={dict.siteMaintenanceAdmin} />;
+  const locale = await getRequestLocale();
+  const dict = await getDictionary(locale);
+  return <SiteMaintenanceAdmin dict={dict.siteMaintenanceAdmin} locale={locale} />;
 }

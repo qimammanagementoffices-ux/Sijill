@@ -448,6 +448,11 @@ export type MaintenanceDto = {
   version: number;
 };
 
+export type OfficialHolidayDto = {
+  date: string;
+  name: string | null;
+};
+
 export type AssetRequestDetail = {
   id: string;
   requesterId: string;
