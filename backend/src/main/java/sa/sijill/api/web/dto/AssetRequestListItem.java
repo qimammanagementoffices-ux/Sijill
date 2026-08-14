@@ -12,12 +12,17 @@ public record AssetRequestListItem(
         String assetNumber,
         String assetNameAr,
         String assetNameEn,
+        LocalizedRef department,
         String reason,
         String status,
         LocalDate suggestedStartDate,
         List<AssetRequestActionDto> actions) {
 
     public static AssetRequestListItem from(AssetRequest request) {
+        LocalizedRef department = request.getAsset().getRoom() == null
+                        || request.getAsset().getRoom().getDepartment() == null
+                ? null
+                : LocalizedRef.from(request.getAsset().getRoom().getDepartment());
         return new AssetRequestListItem(
                 request.getId(),
                 request.getRequester().getId(),
@@ -25,6 +30,7 @@ public record AssetRequestListItem(
                 request.getAsset().getAssetNumber(),
                 request.getAsset().getNameAr(),
                 request.getAsset().getNameEn(),
+                department,
                 request.getReason(),
                 request.getStatus().name(),
                 request.getSuggestedStartDate(),

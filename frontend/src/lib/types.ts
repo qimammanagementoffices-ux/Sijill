@@ -358,6 +358,7 @@ export type AssetRequestListItem = {
   assetNumber: string;
   assetNameAr: string;
   assetNameEn: string;
+  department: LocalizedRef | null;
   reason: string | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;
@@ -432,6 +433,7 @@ export type AssetRequestDetail = {
   assetNumber: string;
   assetNameAr: string;
   assetNameEn: string;
+  department: LocalizedRef | null;
   reason: string | null;
   status: "PENDING" | "APPROVED" | "POSTPONED" | "REJECTED" | "CLOSED";
   suggestedStartDate: string | null;

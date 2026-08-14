@@ -13,6 +13,7 @@ public record AssetRequestDetail(
         String assetNumber,
         String assetNameAr,
         String assetNameEn,
+        LocalizedRef department,
         String reason,
         String status,
         LocalDate suggestedStartDate,
@@ -20,6 +21,10 @@ public record AssetRequestDetail(
         int version) {
 
     public static AssetRequestDetail from(AssetRequest request) {
+        LocalizedRef department = request.getAsset().getRoom() == null
+                        || request.getAsset().getRoom().getDepartment() == null
+                ? null
+                : LocalizedRef.from(request.getAsset().getRoom().getDepartment());
         return new AssetRequestDetail(
                 request.getId(),
                 request.getRequester().getId(),
@@ -28,6 +33,7 @@ public record AssetRequestDetail(
                 request.getAsset().getAssetNumber(),
                 request.getAsset().getNameAr(),
                 request.getAsset().getNameEn(),
+                department,
                 request.getReason(),
                 request.getStatus().name(),
                 request.getSuggestedStartDate(),

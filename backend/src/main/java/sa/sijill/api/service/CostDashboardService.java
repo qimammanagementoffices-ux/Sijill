@@ -17,6 +17,7 @@ import sa.sijill.api.repository.MaintenanceRequestRepository;
 import sa.sijill.api.repository.NeedRequestRepository;
 import sa.sijill.api.web.dto.CostBreakdownRow;
 import sa.sijill.api.web.dto.CostDashboardDto;
+import sa.sijill.api.web.dto.LocalizedRef;
 
 @Service
 public class CostDashboardService {
@@ -68,17 +69,19 @@ public class CostDashboardService {
 
     private void add(NeedRequest request, BigDecimal cost, Map<String, NamedTotal> departments, Map<String, NamedTotal> requesters) {
         String departmentId = request.getDepartment() != null ? request.getDepartment().getId().toString() : "none";
+        LocalizedRef department = request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment());
         merge(departments, departmentId,
-                request.getDepartment() != null ? request.getDepartment().getNameAr() : "—",
-                request.getDepartment() != null ? request.getDepartment().getNameEn() : "—", cost);
+                department != null ? department.ar() : "—",
+                department != null ? department.en() : "—", cost);
         merge(requesters, request.getRequester().getId().toString(), request.getRequester().getName(), request.getRequester().getName(), cost);
     }
 
     private void add(MaintenanceRequest request, BigDecimal cost, Map<String, NamedTotal> departments, Map<String, NamedTotal> requesters) {
         String departmentId = request.getDepartment() != null ? request.getDepartment().getId().toString() : "none";
+        LocalizedRef department = request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment());
         merge(departments, departmentId,
-                request.getDepartment() != null ? request.getDepartment().getNameAr() : "—",
-                request.getDepartment() != null ? request.getDepartment().getNameEn() : "—", cost);
+                department != null ? department.ar() : "—",
+                department != null ? department.en() : "—", cost);
         merge(requesters, request.getRequester().getId().toString(), request.getRequester().getName(), request.getRequester().getName(), cost);
     }
 

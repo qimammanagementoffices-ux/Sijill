@@ -26,7 +26,7 @@ public record ItemRequestLineDto(
                         : line.getNeedRequest().getRequester().getName(),
                 line.getNeedRequest().getDepartment() == null
                         ? null
-                        : line.getNeedRequest().getDepartment().getNameAr(),
+                        : LocalizedRef.from(line.getNeedRequest().getDepartment()).ar(),
                 line.getQuantityRequested(),
                 line.getQuantityIssued());
     }

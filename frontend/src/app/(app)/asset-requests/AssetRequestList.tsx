@@ -199,7 +199,7 @@ export default function AssetRequestList({
                   <h3 className="request-card-title">{dict.cardTitle} — {request.assetNameAr}</h3>
                   <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && latestPostponeDate(request.actions) && <time>{formatActionDate(latestPostponeDate(request.actions)!)}</time>}</span>
                 </header>
-                <div className="request-card-meta"><span>{request.requesterName}</span><span className="chip chip-sm">{request.assetNumber}</span></div>
+                <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}<span className="chip chip-sm">{request.assetNumber}</span></div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}
                 {request.suggestedStartDate && <p className="request-card-banner">{dict.columnSuggestedStart}: <b>{request.suggestedStartDate}</b></p>}
                 <RequestCardActivity actions={request.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle} attachmentsDict={attachmentsDict} />
@@ -266,6 +266,7 @@ export default function AssetRequestList({
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
                   { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
                   { label: ["الأصل المطلوب", "Requested Asset", "अनुरोधित संपत्ति"], value: viewRequest.assetNameAr },
                   { label: ["رقم الأصل", "Asset Number", "संपत्ति संख्या"], value: viewRequest.assetNumber },
                   { label: ["تاريخ التقديم", "Submission Date", "प्रस्तुत करने की तिथि"], value: viewRequest.actions.find((a) => a.action === "SUBMIT")?.createdAt?.slice(0, 10) ?? "—" },

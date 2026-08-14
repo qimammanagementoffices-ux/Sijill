@@ -19,6 +19,7 @@ public record RoomDto(
         long assetCount) {
 
     public static RoomDto from(Room room, long assetCount) {
+        LocalizedRef department = room.getDepartment() == null ? null : LocalizedRef.from(room.getDepartment());
         return new RoomDto(
                 room.getId(),
                 room.getRoomNumber(),
@@ -26,8 +27,8 @@ public record RoomDto(
                 room.getNameEn(),
                 room.getNameHi(),
                 room.getDepartment() == null ? null : room.getDepartment().getId(),
-                room.getDepartment() == null ? null : room.getDepartment().getNameAr(),
-                room.getDepartment() == null ? null : room.getDepartment().getNameEn(),
+                department == null ? null : department.ar(),
+                department == null ? null : department.en(),
                 room.getCustodian() == null ? null : room.getCustodian().getId(),
                 room.getCustodian() == null ? null : room.getCustodian().getName(),
                 room.isActive(),
