@@ -1,6 +1,6 @@
 "use client";
 
-import { entityName, useEntityLocale } from "@/i18n/entityName";
+import { useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
@@ -15,6 +15,7 @@ import TableFooter from "@/components/TableFooter";
 import TableSearch from "@/components/TableSearch";
 import { IconTrash } from "@/components/NavIcons";
 import ExportButton from "@/components/ExportButton";
+import { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -277,6 +278,8 @@ export default function RoomAdmin({
 
   const rooms = printRows ?? page.content;
   const filtersActive = appliedQuery !== "" || departmentFilter !== "";
+  const departmentOptions = flattenDepartmentHierarchy(departments ?? [], entityLocale)
+    .map((row) => ({ ...row, path: row.path.replaceAll(" / ", "/") }));
 
   return (
     <>
@@ -303,9 +306,9 @@ export default function RoomAdmin({
               style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
             >
               <option value="">{dict.filterAllDepartments}</option>
-              {(departments ?? []).map((department) => (
-                <option key={department.id} value={department.id}>
-                  {entityName(department, entityLocale)}
+              {departmentOptions.map(({ item, path }) => (
+                <option key={item.id} value={item.id}>
+                  {path}
                 </option>
               ))}
             </select>
@@ -417,9 +420,9 @@ export default function RoomAdmin({
                   <label>{dict.departmentLabel}</label>
                   <select value={newDepartmentId} onChange={(e) => setNewDepartmentId(e.target.value)}>
                     <option value="">—</option>
-                    {(departments ?? []).map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {entityName(d, entityLocale)}
+                    {departmentOptions.map(({ item, path }) => (
+                      <option key={item.id} value={item.id}>
+                        {path}
                       </option>
                     ))}
                   </select>
@@ -474,7 +477,7 @@ export default function RoomAdmin({
                   <label>{dict.departmentLabel}</label>
                   <select value={editDraft.departmentId} onChange={(e) => setEditDraft({ ...editDraft, departmentId: e.target.value })}>
                     <option value="">—</option>
-                    {(departments ?? []).map((department) => <option key={department.id} value={department.id}>{entityName(department, entityLocale)}</option>)}
+                    {departmentOptions.map(({ item, path }) => <option key={item.id} value={item.id}>{path}</option>)}
                   </select>
                 </div>
                 <div aria-hidden="true" />

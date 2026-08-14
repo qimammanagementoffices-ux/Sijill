@@ -11,6 +11,7 @@ import type { EmployeeDetail, EmployeeListItem, LocalizedEntityDto, PagedRespons
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import TableSearch from "@/components/TableSearch";
+import { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 
 export default function EmployeeDirectory({
   dict,
@@ -27,6 +28,7 @@ export default function EmployeeDirectory({
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [page, setPage] = useState<PagedResponse<EmployeeListItem> | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,14 +43,17 @@ export default function EmployeeDirectory({
       router.replace("/login");
       return;
     }
-    load(0, "");
+    load(0, "", "");
+    apiFetch<LocalizedEntityDto[]>("/departments").then(setDepartments).catch(() => setDepartments([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  async function load(pageNumber: number, query: string) {
+  async function load(pageNumber: number, query: string, departmentId = departmentFilter) {
     try {
+      const params = new URLSearchParams({ q: query, page: String(pageNumber) });
+      if (departmentId) params.set("departmentId", departmentId);
       const result = await apiFetch<PagedResponse<EmployeeListItem>>(
-        `/employees?q=${encodeURIComponent(query)}&page=${pageNumber}`
+        `/employees?${params.toString()}`
       );
       setPage(result);
     } catch (err) {
@@ -69,15 +74,18 @@ export default function EmployeeDirectory({
     load(0, q);
   }
 
+  function applyDepartmentFilter(departmentId: string) {
+    setDepartmentFilter(departmentId);
+    load(0, q, departmentId);
+  }
+
   function openAddModal() {
     setShowAddModal(true);
-    if (!departments || !jobTitles || !allPermissions) {
+    if (!jobTitles || !allPermissions) {
       Promise.all([
-        apiFetch<LocalizedEntityDto[]>("/departments"),
         apiFetch<LocalizedEntityDto[]>("/job-titles"),
         apiFetch<PermissionDto[]>("/permissions"),
-      ]).then(([d, j, p]) => {
-        setDepartments(d);
+      ]).then(([j, p]) => {
         setJobTitles(j);
         setAllPermissions(p);
       });
@@ -86,12 +94,14 @@ export default function EmployeeDirectory({
 
   function handleAdded(employee: EmployeeDetail) {
     setShowAddModal(false);
-    load(0, q);
+    load(0, q, departmentFilter);
     setToast(commonDict.actionSuccess);
     void employee;
   }
 
   if (!page) return <SectionLoading />;
+
+  const departmentOptions = flattenDepartmentHierarchy(departments ?? [], locale);
 
   return (
     <>
@@ -102,6 +112,16 @@ export default function EmployeeDirectory({
         <div className="panel-head table-toolbar">
           <form onSubmit={handleSearch} className="filter-row" style={{ flex: 1 }}>
             <TableSearch value={q} onChange={setQ} placeholder={dict.searchPlaceholder} label={dict.search} />
+            <select
+              value={departmentFilter}
+              onChange={(e) => applyDepartmentFilter(e.target.value)}
+              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
+            >
+              <option value="">{dict.filterAllDepartments || dict.columnDepartments}</option>
+              {departmentOptions.map(({ item, path }) => (
+                <option key={item.id} value={item.id}>{path.replaceAll(" / ", "/")}</option>
+              ))}
+            </select>
           </form>
           {canManage && (
             <div className="table-toolbar-actions">
@@ -159,7 +179,7 @@ export default function EmployeeDirectory({
                 key={i}
                 type="button"
                 className={`btn btn-sm ${i === page.page ? "btn-primary" : "btn-outline"}`}
-                onClick={() => load(i, q)}
+                onClick={() => load(i, q, departmentFilter)}
                 disabled={i === page.page}
               >
                 {i + 1}

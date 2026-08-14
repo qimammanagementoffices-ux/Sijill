@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Set;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,12 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
 import sa.sijill.api.web.dto.CreateEmployeeRequest;
 import sa.sijill.api.web.dto.FirstAdminRequest;
+import sa.sijill.api.domain.Department;
+import sa.sijill.api.repository.DepartmentRepository;
 
 @Transactional
 class EmployeeDirectoryTest extends AbstractIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private DepartmentRepository departmentRepository;
 
     private String createAdminAndGetToken(String phone) throws Exception {
         var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
@@ -88,5 +92,30 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/employees").header(HttpHeaders.AUTHORIZATION, "Bearer " + limitedToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void filtersEmployeesByDepartment() throws Exception {
+        String token = createAdminAndGetToken("0565555555");
+        Department department = new Department();
+        department.setNameAr("الشؤون التعليمية");
+        department.setNameEn("Education Affairs");
+        department = departmentRepository.save(department);
+
+        var assigned = new CreateEmployeeRequest(
+                "Assigned Employee", "0566666666", "1234", "1234", null, null, null, null,
+                List.of(department.getId()), Set.of(), null);
+        mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(assigned)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/employees")
+                        .param("departmentId", department.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Assigned Employee"));
     }
 }

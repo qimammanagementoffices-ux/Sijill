@@ -113,6 +113,7 @@ export type Dictionary = {
     title: string;
     searchPlaceholder: string;
     search: string;
+    filterAllDepartments: string;
     addNew: string;
     columnEmployeeNumber: string;
     columnName: string;

@@ -31,8 +31,9 @@ public class EmployeeController {
     @PreAuthorize("hasAuthority('emp.view')")
     public PagedResponse<EmployeeListItem> search(
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) UUID departmentId,
             @PageableDefault(size = 20, sort = "name") Pageable pageable) {
-        Page<Employee> page = employeeService.search(q, pageable);
+        Page<Employee> page = employeeService.search(q, departmentId, pageable);
         return PagedResponse.from(page, EmployeeListItem::from);
     }
 

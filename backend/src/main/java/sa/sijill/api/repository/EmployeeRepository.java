@@ -19,13 +19,18 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     long nextEmployeeNumberSequence();
 
     @Query("""
-            select e from Employee e
-            where (:q is null or :q = ''
+            select distinct e from Employee e
+            left join e.departments d
+            where (:departmentId is null or d.id = :departmentId)
+              and (:q is null or :q = ''
                 or lower(e.name) like lower(concat('%', :q, '%'))
                 or e.phone like concat('%', :q, '%')
                 or lower(e.employeeNumber) like lower(concat('%', :q, '%')))
             """)
-    Page<Employee> search(@Param("q") String q, Pageable pageable);
+    Page<Employee> search(
+            @Param("q") String q,
+            @Param("departmentId") UUID departmentId,
+            Pageable pageable);
 
     long countByActiveTrue();
 }

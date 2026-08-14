@@ -69,8 +69,8 @@ public class EmployeeService {
         this.attachmentService = attachmentService;
     }
 
-    public Page<Employee> search(String q, Pageable pageable) {
-        return employeeRepository.search(q, pageable);
+    public Page<Employee> search(String q, UUID departmentId, Pageable pageable) {
+        return employeeRepository.search(q, departmentId, pageable);
     }
 
     public Employee get(UUID id) {
