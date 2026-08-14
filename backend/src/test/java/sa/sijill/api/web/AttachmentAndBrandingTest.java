@@ -108,6 +108,27 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void warehouseInvoiceAttachmentsUseInvoicePermissions() throws Exception {
+        String adminToken = createAdminAndGetToken("0599900012");
+        String viewToken = createEmployeeAndLogin(adminToken, "0599900013", Set.of("wh.invoices"));
+        var file = new MockMultipartFile("file", "invoice.pdf", "application/pdf", "fake-pdf".getBytes());
+        String invoiceId = UUID.randomUUID().toString();
+
+        mockMvc.perform(get("/api/v1/attachments")
+                        .param("ownerType", "WAREHOUSE_INVOICE")
+                        .param("ownerId", invoiceId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + viewToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(multipart("/api/v1/attachments")
+                        .file(file)
+                        .param("ownerType", "WAREHOUSE_INVOICE")
+                        .param("ownerId", invoiceId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + viewToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void maintenanceRequesterCanListRequestAttachmentsButNotSiteMaintenanceMedia() throws Exception {
         String adminToken = createAdminAndGetToken("0599900010");
         String requesterToken = createEmployeeAndLogin(adminToken, "0599900011", Set.of("mt.request"));

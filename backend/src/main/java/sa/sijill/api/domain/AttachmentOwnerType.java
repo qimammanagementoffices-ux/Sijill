@@ -8,5 +8,6 @@ public enum AttachmentOwnerType {
     MAINTENANCE,
     EMPLOYEE,
     NEED_REQUEST,
-    ASSET_ACQUISITION
+    ASSET_ACQUISITION,
+    WAREHOUSE_INVOICE
 }

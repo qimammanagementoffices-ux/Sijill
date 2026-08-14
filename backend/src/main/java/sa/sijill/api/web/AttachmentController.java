@@ -79,6 +79,7 @@ public class AttachmentController {
     private List<String> viewPermissionFor(AttachmentOwnerType ownerType, UUID ownerId) {
         return switch (ownerType) {
             case INVENTORY_ITEM -> List.of("wh.view");
+            case WAREHOUSE_INVOICE -> List.of("wh.invoices");
             case ROOM, ASSET, ASSET_ACQUISITION -> List.of("as.view");
             case BRANDING -> List.of("sys.branding");
             case MAINTENANCE -> isMaintenanceSetting(ownerId)
@@ -92,6 +93,7 @@ public class AttachmentController {
     private List<String> managePermissionFor(AttachmentOwnerType ownerType, UUID ownerId) {
         return switch (ownerType) {
             case INVENTORY_ITEM -> List.of("wh.items");
+            case WAREHOUSE_INVOICE -> List.of("wh.invoices.edit");
             case ROOM, ASSET, ASSET_ACQUISITION -> List.of("as.manage");
             case BRANDING -> List.of("sys.branding");
             case MAINTENANCE -> isMaintenanceSetting(ownerId)

@@ -13,6 +13,8 @@ import Toast from "@/components/Toast";
 import TableFooter from "@/components/TableFooter";
 import type { InvoiceDetail, PagedResponse } from "@/lib/types";
 import ExportButton from "@/components/ExportButton";
+import AttachmentUploader from "@/components/AttachmentUploader";
+import type { AttachmentOwnerType } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Sort = { field: string; dir: "asc" | "desc" };
@@ -24,12 +26,16 @@ export default function InvoiceList({
   commonDict,
   basePath,
   itemsPath,
+  attachmentsDict,
+  attachmentOwnerType,
 }: {
   dict: Dictionary["warehouseInvoices"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   basePath: string;
   itemsPath: string;
+  attachmentsDict?: Dictionary["attachments"];
+  attachmentOwnerType?: AttachmentOwnerType;
 }) {
   const router = useRouter();
   const [page, setPage] = useState<PagedResponse<InvoiceDetail> | null>(null);
@@ -323,6 +329,8 @@ export default function InvoiceList({
                 onSubmitted={handleAdded}
                 formId="invoice-add-form"
                 onSubmittingChange={setAddSubmitting}
+                attachmentsDict={attachmentsDict}
+                attachmentOwnerType={attachmentOwnerType}
               />
             </div>
             <div className="modal-foot">
@@ -409,6 +417,15 @@ export default function InvoiceList({
                   </b>
                 </dd>
               </dl>
+              {attachmentsDict && attachmentOwnerType && (
+                <AttachmentUploader
+                  ownerType={attachmentOwnerType}
+                  ownerId={viewInvoice.id}
+                  dict={attachmentsDict}
+                  canManage={canPost}
+                  onAction={() => setToast(commonDict.actionSuccess)}
+                />
+              )}
             </div>
             <div className="modal-foot">
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setViewInvoice(null)}>

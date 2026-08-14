@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { apiFetch, ApiError } from "@/lib/apiClient";
-import type { InventoryItemListItem, InvoiceDetail, PagedResponse } from "@/lib/types";
+import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import type { AttachmentOwnerType, InventoryItemListItem, InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
+const MAX_ATTACHMENT_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 function localToday() {
   const today = new Date();
@@ -25,6 +27,8 @@ export default function NewInvoiceView({
   onSubmitted,
   formId,
   onSubmittingChange,
+  attachmentsDict,
+  attachmentOwnerType,
 }: {
   dict: Dictionary["warehouseInvoices"];
   errorsDict: Dictionary["errors"];
@@ -36,6 +40,8 @@ export default function NewInvoiceView({
   // same pattern as EmployeeForm.
   formId?: string;
   onSubmittingChange?: (submitting: boolean) => void;
+  attachmentsDict?: Dictionary["attachments"];
+  attachmentOwnerType?: AttachmentOwnerType;
 }) {
   const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -45,6 +51,7 @@ export default function NewInvoiceView({
   const [lines, setLines] = useState<LineDraft[]>([{ inventoryItemId: "", quantity: "1", unitPrice: "0" }]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   useEffect(() => {
     apiFetch<PagedResponse<InventoryItemListItem>>(`${itemsPath}?size=100`).then((page) => setItems(page.content));
@@ -73,6 +80,14 @@ export default function NewInvoiceView({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (attachmentsDict && pendingFiles.some((file) => file.size > MAX_ATTACHMENT_SIZE_BYTES)) {
+      setError(attachmentsDict.tooLarge);
+      return;
+    }
+    if (attachmentsDict && pendingFiles.some((file) => !ALLOWED_ATTACHMENT_TYPES.has(file.type))) {
+      setError(attachmentsDict.unsupportedType);
+      return;
+    }
     // Posting an invoice moves stock and sets each item's last purchase
     // price, and invoices are immutable -- there is no edit or delete to
     // fall back on, so the warning is a hard confirm rather than a note.
@@ -96,7 +111,22 @@ export default function NewInvoiceView({
             })),
         }),
       });
+      let uploadFailed = false;
+      if (attachmentOwnerType) {
+        for (const file of pendingFiles) {
+          try {
+            const formData = new FormData();
+            formData.append("ownerType", attachmentOwnerType);
+            formData.append("ownerId", created.id);
+            formData.append("file", file);
+            await apiUpload(`/attachments?ownerType=${attachmentOwnerType}&ownerId=${created.id}`, formData);
+          } catch {
+            uploadFailed = true;
+          }
+        }
+      }
       onSubmitted(created);
+      if (uploadFailed) window.alert(dict.attachmentsFailed);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : errorsDict.generic);
       setSubmitting(false);
@@ -212,6 +242,33 @@ export default function NewInvoiceView({
             </div>
           </div>
         </div>
+
+        {attachmentOwnerType && attachmentsDict && (
+          <div className="panel">
+            <div className="panel-body">
+              <div className="field">
+                <label>{attachmentsDict.title}</label>
+                <label className="acquisition-filebox">
+                  <b>{attachmentsDict.upload}</b>
+                  <small>{dict.attachmentsHint}</small>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(e) => setPendingFiles(Array.from(e.target.files ?? []))}
+                  />
+                </label>
+                {pendingFiles.length > 0 && (
+                  <div className="request-card-chips">
+                    {pendingFiles.map((file) => (
+                      <span className="chip chip-sm" key={`${file.name}-${file.size}`}>{file.name}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>

@@ -9,6 +9,8 @@ export default async function WarehouseInvoicesPage() {
       dict={dict.warehouseInvoices}
       errorsDict={dict.errors}
       commonDict={dict.common}
+      attachmentsDict={dict.attachments}
+      attachmentOwnerType="WAREHOUSE_INVOICE"
       basePath="/warehouse/invoices"
       itemsPath="/warehouse/items"
     />

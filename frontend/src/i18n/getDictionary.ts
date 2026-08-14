@@ -288,6 +288,8 @@ export type Dictionary = {
     subtotalLabel: string;
     taxTotalLabel: string;
     totalLabel: string;
+    attachmentsHint: string;
+    attachmentsFailed: string;
     submit: string;
   };
   warehouseRequests: {
