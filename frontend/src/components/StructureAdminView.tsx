@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
@@ -9,6 +9,10 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "./SectionLoading";
 import Toast from "./Toast";
 import TrilingualNameFields from "./TrilingualNameFields";
+import DepartmentHierarchyPicker, {
+  departmentDescendantIds,
+  flattenDepartmentHierarchy,
+} from "./DepartmentHierarchyPicker";
 
 // Shared by /departments and /job-titles — same CRUD shape (localized
 // nameAr/nameEn/nameHi, no delete, version-checked updates) for both.
@@ -19,6 +23,7 @@ export default function StructureAdminView({
   errorsDict,
   entity,
   title,
+  locale,
 }: {
   dict: Dictionary["structure"];
   commonDict: Dictionary["common"];
@@ -26,21 +31,29 @@ export default function StructureAdminView({
   errorsDict: Dictionary["errors"];
   entity: "departments" | "job-titles";
   title: string;
+  locale: string;
 }) {
   const router = useRouter();
   const [items, setItems] = useState<LocalizedEntityDto[] | null>(null);
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
   const [newNameHi, setNewNameHi] = useState("");
+  const [newParentId, setNewParentId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<LocalizedEntityDto | null>(null);
   const [editNameAr, setEditNameAr] = useState("");
   const [editNameEn, setEditNameEn] = useState("");
   const [editNameHi, setEditNameHi] = useState("");
+  const [editParentId, setEditParentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const isDepartments = entity === "departments";
+  const hierarchyRows = useMemo(
+    () => isDepartments ? flattenDepartmentHierarchy(items ?? [], locale) : [],
+    [isDepartments, items, locale]
+  );
 
   function load() {
     apiFetch<LocalizedEntityDto[]>(`/${entity}`)
@@ -64,11 +77,18 @@ export default function StructureAdminView({
     try {
       await apiFetch(`/${entity}`, {
         method: "POST",
-        body: JSON.stringify({ nameAr: newNameAr, nameEn: newNameEn, nameHi: newNameHi || null, version: null }),
+        body: JSON.stringify({
+          nameAr: newNameAr,
+          nameEn: newNameEn,
+          nameHi: newNameHi || null,
+          version: null,
+          parentId: isDepartments ? newParentId : null,
+        }),
       });
       setNewNameAr("");
       setNewNameEn("");
       setNewNameHi("");
+      setNewParentId(null);
       setShowAddModal(false);
       load();
       setToast(commonDict.actionSuccess);
@@ -84,6 +104,7 @@ export default function StructureAdminView({
     setEditNameAr(item.nameAr);
     setEditNameEn(item.nameEn);
     setEditNameHi(item.nameHi ?? "");
+    setEditParentId(item.parentId);
     setError(null);
   }
 
@@ -100,6 +121,7 @@ export default function StructureAdminView({
           nameEn: editNameEn,
           nameHi: editNameHi || null,
           version: editingItem.version,
+          parentId: isDepartments ? editParentId : null,
         }),
       });
       setEditingItem(null);
@@ -146,9 +168,14 @@ export default function StructureAdminView({
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {(isDepartments ? hierarchyRows.map(({ item, depth, path }) => ({ item, depth, path })) : items.map((item) => ({ item, depth: 0, path: "" }))).map(({ item, depth, path }) => (
                   <tr key={item.id} className="clickable" onClick={() => openEdit(item)}>
-                    <td>{item.nameAr}</td>
+                    <td>
+                      <span className="structure-tree-name" style={{ paddingInlineStart: depth * 18 }}>
+                        {depth > 0 && <span aria-hidden="true">↳</span>}{item.nameAr}
+                      </span>
+                      {isDepartments && depth > 0 && <small className="structure-tree-path">{path}</small>}
+                    </td>
                     <td>{item.nameHi || "—"}</td>
                     <td dir="ltr">{item.nameEn}</td>
                   </tr>
@@ -187,6 +214,18 @@ export default function StructureAdminView({
                   dict={categoriesModalDict}
                   errorsDict={errorsDict}
                 />
+                {isDepartments && (
+                  <div className="field span2">
+                    <label>{locale === "ar" ? "القسم الأعلى (اختياري)" : locale === "hi" ? "मूल विभाग (वैकल्पिक)" : "Parent department (optional)"}</label>
+                    <DepartmentHierarchyPicker
+                      departments={items}
+                      selectedIds={newParentId ? new Set([newParentId]) : new Set()}
+                      onChange={(ids) => setNewParentId(ids.values().next().value ?? null)}
+                      locale={locale}
+                      multiple={false}
+                    />
+                  </div>
+                )}
               </form>
             </div>
             <div className="modal-foot">
@@ -221,6 +260,19 @@ export default function StructureAdminView({
                   dict={categoriesModalDict}
                   errorsDict={errorsDict}
                 />
+                {isDepartments && (
+                  <div className="field span2">
+                    <label>{locale === "ar" ? "القسم الأعلى (اختياري)" : locale === "hi" ? "मूल विभाग (वैकल्पिक)" : "Parent department (optional)"}</label>
+                    <DepartmentHierarchyPicker
+                      departments={items}
+                      selectedIds={editParentId ? new Set([editParentId]) : new Set()}
+                      onChange={(ids) => setEditParentId(ids.values().next().value ?? null)}
+                      locale={locale}
+                      multiple={false}
+                      excludedIds={departmentDescendantIds(items, editingItem.id)}
+                    />
+                  </div>
+                )}
               </form>
             </div>
             <div className="modal-foot">

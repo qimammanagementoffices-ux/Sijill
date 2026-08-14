@@ -1518,6 +1518,92 @@ img[data-viewable] {
   font-size: 13px;
 }
 
+.department-picker {
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.department-picker-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px 11px 0;
+}
+.department-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #b8d5c9;
+  border-radius: 999px;
+  background: #edf7f2;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.department-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.department-chip b { color: var(--seal); font-size: 15px; line-height: 1; }
+.department-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px;
+  padding-inline: 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--slate);
+}
+.department-picker-search input {
+  min-width: 0;
+  height: 39px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.department-picker-options {
+  max-height: 230px;
+  overflow: auto;
+  padding: 0 8px 8px;
+}
+.department-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.department-picker-row:hover { background: var(--paper); }
+.department-picker-row.selected { background: #edf7f2; }
+.department-picker-row input { accent-color: var(--ink); flex: none; }
+.department-tree-indent { flex: none; border-inline-end: 1px solid var(--line-soft); height: 20px; }
+.department-picker-name { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.department-picker-row small {
+  min-width: 0;
+  margin-inline-start: auto;
+  color: var(--slate);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.department-picker-empty { padding: 18px 10px; text-align: center; color: var(--slate); font-size: 12px; }
+.structure-tree-name { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; }
+.structure-tree-name > span { color: var(--gold); }
+.structure-tree-path { display: block; margin-top: 3px; color: var(--slate); font-size: 10px; font-weight: 400; }
+
 .pill-select {
   display: flex;
   flex-wrap: wrap;

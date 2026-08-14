@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import PermissionGrid from "@/components/PermissionGrid";
+import DepartmentHierarchyPicker from "@/components/DepartmentHierarchyPicker";
 import type {
   AttachmentDto,
   EmployeeDetail,
@@ -139,13 +140,6 @@ export default function EmployeeForm({
     } finally {
       setPhotoUploading(false);
     }
-  }
-
-  function toggleDepartment(id: string) {
-    const next = new Set(departmentIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setDepartmentIds(next);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -357,14 +351,12 @@ export default function EmployeeForm({
             <p className="panel-note" style={{ padding: 0, margin: "-4px 0 8px" }}>
               {dict.departmentsHint}
             </p>
-            <div className="check-list">
-              {departments.map((d) => (
-                <label key={d.id} className="check-row">
-                  <input type="checkbox" checked={departmentIds.has(d.id)} onChange={() => toggleDepartment(d.id)} />
-                  {localizedName(d)}
-                </label>
-              ))}
-            </div>
+            <DepartmentHierarchyPicker
+              departments={departments}
+              selectedIds={departmentIds}
+              onChange={setDepartmentIds}
+              locale={locale}
+            />
           </div>
         </div>
       </div>

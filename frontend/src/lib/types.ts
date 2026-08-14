@@ -73,6 +73,7 @@ export type LocalizedEntityDto = {
   nameEn: string;
   nameHi: string | null;
   version: number;
+  parentId: string | null;
 };
 
 // --- Warehouse (Phase 3a) ---

@@ -45,6 +45,7 @@ public class StructureService {
         department.setNameAr(request.nameAr());
         department.setNameEn(request.nameEn());
         department.setNameHi(request.nameHi());
+        department.setParent(resolveParent(request.parentId(), null));
         return departmentRepository.save(department);
     }
 
@@ -59,6 +60,7 @@ public class StructureService {
         department.setNameAr(request.nameAr());
         department.setNameEn(request.nameEn());
         department.setNameHi(request.nameHi());
+        department.setParent(resolveParent(request.parentId(), department.getId()));
         return departmentRepository.save(department);
     }
 
@@ -93,5 +95,30 @@ public class StructureService {
         if (request.nameEn() == null || request.nameEn().isBlank()) {
             throw ApiException.validation("English name is required", Map.of("nameEn", "must not be blank"));
         }
+    }
+
+    private Department resolveParent(UUID parentId, UUID departmentId) {
+        if (parentId == null) {
+            return null;
+        }
+        if (parentId.equals(departmentId)) {
+            throw ApiException.validation(
+                    "A department cannot be its own parent", Map.of("parentId", "must not reference itself"));
+        }
+
+        Department parent = departmentRepository
+                .findById(parentId)
+                .orElseThrow(() -> ApiException.validation(
+                        "Parent department not found", Map.of("parentId", "does not exist")));
+
+        Department ancestor = parent;
+        while (ancestor != null) {
+            if (ancestor.getId().equals(departmentId)) {
+                throw ApiException.validation(
+                        "Department hierarchy cannot contain a cycle", Map.of("parentId", "would create a cycle"));
+            }
+            ancestor = ancestor.getParent();
+        }
+        return parent;
     }
 }

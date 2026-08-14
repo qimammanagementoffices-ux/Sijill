@@ -27,6 +27,10 @@ public class Department {
     @Column(name = "name_hi")
     private String nameHi;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "parent_department_id")
+    private Department parent;
+
     @Version
     private Integer version;
 

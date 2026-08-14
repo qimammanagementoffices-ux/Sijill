@@ -7,7 +7,7 @@ import sa.sijill.api.domain.JobTitle;
 // Flat nameAr/nameEn/nameHi (not the nested {ar,en} shape used elsewhere) so
 // this matches UpsertLocalizedEntityRequest field-for-field on admin CRUD
 // forms.
-public record LocalizedEntityDto(UUID id, String nameAr, String nameEn, String nameHi, int version) {
+public record LocalizedEntityDto(UUID id, String nameAr, String nameEn, String nameHi, int version, UUID parentId) {
 
     public static LocalizedEntityDto from(Department department) {
         return new LocalizedEntityDto(
@@ -15,11 +15,17 @@ public record LocalizedEntityDto(UUID id, String nameAr, String nameEn, String n
                 department.getNameAr(),
                 department.getNameEn(),
                 department.getNameHi(),
-                department.getVersion());
+                department.getVersion(),
+                department.getParent() == null ? null : department.getParent().getId());
     }
 
     public static LocalizedEntityDto from(JobTitle jobTitle) {
         return new LocalizedEntityDto(
-                jobTitle.getId(), jobTitle.getNameAr(), jobTitle.getNameEn(), jobTitle.getNameHi(), jobTitle.getVersion());
+                jobTitle.getId(),
+                jobTitle.getNameAr(),
+                jobTitle.getNameEn(),
+                jobTitle.getNameHi(),
+                jobTitle.getVersion(),
+                null);
     }
 }

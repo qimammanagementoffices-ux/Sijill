@@ -40,7 +40,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
     void departmentReadsAreOpenToAnyAuthenticatedUserWritesRequireEmpStructure() throws Exception {
         String token = createAdminAndGetToken("0581111111");
 
-        var create = new UpsertLocalizedEntityRequest("العلوم", "Science", null, null);
+        var create = new UpsertLocalizedEntityRequest("العلوم", "Science", null, null, null);
         String createBody = mockMvc.perform(post("/api/v1/departments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +57,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/departments")).andExpect(status().isUnauthorized());
 
-        var badVersionUpdate = new UpsertLocalizedEntityRequest("العلوم والتقنية", "Science & Tech", 999, null);
+        var badVersionUpdate = new UpsertLocalizedEntityRequest("العلوم والتقنية", "Science & Tech", 999, null, null);
         mockMvc.perform(put("/api/v1/departments/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,11 +87,41 @@ class StructureCrudTest extends AbstractIntegrationTest {
                 .getContentAsString();
         String limitedToken = objectMapper.readTree(loginBody).get("token").asText();
 
-        var request = new UpsertLocalizedEntityRequest("معلم", "Teacher", null, null);
+        var request = new UpsertLocalizedEntityRequest("معلم", "Teacher", null, null, null);
         mockMvc.perform(post("/api/v1/job-titles")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + limitedToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void departmentHierarchySupportsParentsAndRejectsCycles() throws Exception {
+        String token = createAdminAndGetToken("0584444444");
+
+        JsonNode parent = objectMapper.readTree(mockMvc.perform(post("/api/v1/departments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpsertLocalizedEntityRequest("الإدارة", "Administration", null, null, null))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        JsonNode child = objectMapper.readTree(mockMvc.perform(post("/api/v1/departments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpsertLocalizedEntityRequest(
+                                "المشتريات", "Procurement", null, null, java.util.UUID.fromString(parent.get("id").asText())))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.parentId").value(parent.get("id").asText()))
+                .andReturn().getResponse().getContentAsString());
+
+        mockMvc.perform(put("/api/v1/departments/" + parent.get("id").asText())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpsertLocalizedEntityRequest(
+                                "الإدارة", "Administration", parent.get("version").asInt(), null,
+                                java.util.UUID.fromString(child.get("id").asText())))))
+                .andExpect(status().isBadRequest());
     }
 }

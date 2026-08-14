@@ -95,7 +95,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String token = objectMapper.readTree(onboardBody).get("token").asText();
 
         // Employee with a job title (the association that broke first).
-        var jobTitle = new UpsertLocalizedEntityRequest("معلم", "Teacher", null, null);
+        var jobTitle = new UpsertLocalizedEntityRequest("معلم", "Teacher", null, null, null);
         String jobTitleBody = mockMvc.perform(post("/api/v1/job-titles")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -3,7 +3,8 @@ import { getRequestLocale } from "@/i18n/getRequestLocale";
 import StructureAdminView from "@/components/StructureAdminView";
 
 export default async function JobTitlesPage() {
-  const dict = await getDictionary(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const dict = await getDictionary(locale);
   return (
     <StructureAdminView
       dict={dict.structure}
@@ -12,6 +13,7 @@ export default async function JobTitlesPage() {
       errorsDict={dict.errors}
       entity="job-titles"
       title={dict.structure.jobTitlesTitle}
+      locale={locale}
     />
   );
 }
