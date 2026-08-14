@@ -3006,6 +3006,10 @@ body.lang-en .modal-head h3 {
 .request-department-section .department-picker-search {
   background: #fff;
 }
+.required-mark {
+  color: var(--seal);
+  font-weight: 800;
+}
 .maintenance-request-form .request-department-section {
   grid-column: 1 / -1;
   margin-bottom: 2px;

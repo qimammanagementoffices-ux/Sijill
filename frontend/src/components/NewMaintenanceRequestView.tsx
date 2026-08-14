@@ -78,6 +78,14 @@ export default function NewMaintenanceRequestView({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!departmentId) {
+      setError(entityLocale === "ar"
+        ? "اختيار القسم مطلوب."
+        : entityLocale === "hi"
+          ? "विभाग चुनना आवश्यक है।"
+          : "Department selection is required.");
+      return;
+    }
     setSubmitting(true);
     try {
       const selectedRoom = rooms?.find((room) => room.id === roomId);
@@ -129,7 +137,9 @@ export default function NewMaintenanceRequestView({
     <form id={formId} onSubmit={handleSubmit} className="maintenance-request-form">
       <div className="form-grid">
         <div className={assignedDepartments.length === 1 ? "readonly-box request-department-section span2" : "field request-department-section span2"}>
-          <label className={assignedDepartments.length === 1 ? "readonly-box-label" : undefined}>{dict.departmentLabel}</label>
+          <label className={assignedDepartments.length === 1 ? "readonly-box-label" : undefined}>
+            {dict.departmentLabel} <span className="required-mark" aria-hidden="true">*</span>
+          </label>
           {assignedDepartments.length === 1 ? (
             <span className="readonly-box-value">{assignedDepartments[0]!.path}</span>
           ) : (

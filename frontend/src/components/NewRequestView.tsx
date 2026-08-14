@@ -188,7 +188,7 @@ export default function NewRequestView({
               deliberately not repeated in the entry form. */}
           <div className={departmentOptions.length === 1 ? "readonly-box request-department-section" : "field request-department-section"}>
             <label className={departmentOptions.length === 1 ? "readonly-box-label" : undefined}>
-              {dict.columnDepartment}
+              {dict.columnDepartment} <span className="required-mark" aria-hidden="true">*</span>
             </label>
             {departmentOptions.length > 1 ? (
               <DepartmentHierarchyPicker
@@ -244,7 +244,7 @@ export default function NewRequestView({
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={!categoryId || (departmentOptions.length > 1 && !departmentId)}
+              disabled={!categoryId || !departmentId}
               onClick={() => setStep(2)}
             >
               {dict.nextStep}
