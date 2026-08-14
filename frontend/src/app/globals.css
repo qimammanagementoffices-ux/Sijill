@@ -1372,6 +1372,11 @@ img[data-viewable] {
 .legacy-form-signatures { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:28px; text-align:center; color:var(--slate); font-size:11px; }
 .legacy-form-signatures > div { border-top:1.3px solid #999; padding-top:6px; }
 .legacy-form-footer { margin-top:14px; padding-top:7px; border-top:1px solid var(--line-soft); text-align:center; color:var(--slate); font-size:9.5px; }
+.legacy-attachment-page { display:flex; flex-direction:column; }
+.legacy-attachment-header { display:flex; align-items:center; justify-content:space-between; gap:14px; padding-bottom:9px; border-bottom:2px solid var(--ink); color:var(--slate); }
+.legacy-attachment-frame { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:12mm 0; }
+.legacy-attachment-frame img { display:block; max-width:100%; max-height:245mm; width:auto; height:auto; object-fit:contain; }
+.legacy-attachment-caption { padding-top:8px; border-top:1px solid var(--line-soft); text-align:center; color:var(--slate); font-size:11px; overflow-wrap:anywhere; }
 @media (max-width:700px) { .legacy-form-grid { grid-template-columns:1fr; } .legacy-form-cell { border-inline-start:0; } .legacy-form-header { align-items:flex-start; } .legacy-form-brand h2 { font-size:15px; } }
 .request-view-summary {
   display: grid;

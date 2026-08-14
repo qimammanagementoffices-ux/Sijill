@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { apiFetch } from "@/lib/apiClient";
-import type { BrandingDto } from "@/lib/types";
+import type { AttachmentDto, BrandingDto } from "@/lib/types";
 
 type FormCell = { label: [string, string, string]; value: ReactNode };
 type FormAction = { actorName: string | null; action: string; reason: string | null; createdAt: string };
@@ -31,6 +31,7 @@ export default function LegacyRequestForm({
   sectionTitle,
   children,
   actions = [],
+  attachments = [],
 }: {
   title: [string, string, string];
   subtitle: [string, string, string];
@@ -41,12 +42,16 @@ export default function LegacyRequestForm({
   sectionTitle?: [string, string, string];
   children?: ReactNode;
   actions?: FormAction[];
+  attachments?: AttachmentDto[];
 }) {
   const [branding, setBranding] = useState<BrandingDto | null>(null);
   useEffect(() => { apiFetch<BrandingDto>("/branding").then(setBranding).catch(() => {}); }, []);
   const issueDate = actions.find((entry) => entry.action === "SUBMIT")?.createdAt ?? actions.at(-1)?.createdAt ?? new Date().toISOString();
 
+  const imageAttachments = attachments.filter((attachment) => attachment.contentType.startsWith("image/"));
+
   return (
+    <>
     <article className="print-page request-form-sheet legacy-request-form">
       <header className="legacy-form-header">
         <div className="legacy-form-brand">
@@ -75,6 +80,19 @@ export default function LegacyRequestForm({
       <div className="legacy-form-signatures"><div>توقيع مقدّم الطلب<br /><small>Requester signature</small></div><div>توقيع جهة الاعتماد<br /><small>Approver signature</small></div><div>توقيع المسؤول<br /><small>Officer signature</small></div></div>
       <footer className="legacy-form-footer">مستند صادر آليًا من منصة سِجِلّ لإدارة المستودع والصيانة المدرسية</footer>
     </article>
+    {imageAttachments.map((attachment, index) => (
+      <article className="print-page legacy-attachment-page" key={attachment.id}>
+        <header className="legacy-attachment-header">
+          <TriLabel text={["مرفق الطلب", "Request attachment", "अनुरोध संलग्नक"]} />
+          <span>{index + 1} / {imageAttachments.length}</span>
+        </header>
+        <div className="legacy-attachment-frame">
+          <img src={attachment.url} alt={attachment.filename} />
+        </div>
+        <footer className="legacy-attachment-caption">{attachment.filename}</footer>
+      </article>
+    ))}
+    </>
   );
 }
 
