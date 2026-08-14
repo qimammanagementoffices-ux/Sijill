@@ -1940,6 +1940,35 @@ img[data-viewable] {
 .asset-request-description textarea { min-height: 92px; }
 .legacy-asset-request-form .form-error { margin: 0; color: var(--seal); font-size: 12.5px; }
 
+.form-error-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--seal) 28%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--seal) 7%, white);
+  color: var(--seal);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.65;
+}
+
+.form-error-alert-icon {
+  display: inline-grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--seal);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .step-track {
   display: flex;
   align-items: center;

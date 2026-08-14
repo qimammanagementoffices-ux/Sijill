@@ -44,11 +44,13 @@ class PhoneNormalizerTest {
     void rejectsInvalidPhone() {
         assertThatThrownBy(() -> normalizer.normalize("12345"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Invalid");
+                .hasMessage("رقم الجوال غير صحيح. أدخل رقمًا سعوديًا يبدأ بـ 05 ويتكوّن من 10 أرقام.");
     }
 
     @Test
     void rejectsBlankPhone() {
-        assertThatThrownBy(() -> normalizer.normalize(" ")).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> normalizer.normalize(" "))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("رقم الجوال مطلوب.");
     }
 }

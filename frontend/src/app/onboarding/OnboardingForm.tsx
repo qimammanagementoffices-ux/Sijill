@@ -88,7 +88,12 @@ export default function OnboardingForm({
           required
         />
       </label>
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="form-error-alert">
+          <span aria-hidden="true" className="form-error-alert-icon">!</span>
+          {error}
+        </p>
+      )}
       <button type="submit" disabled={submitting}>
         {dict.submit}
       </button>

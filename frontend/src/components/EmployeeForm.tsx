@@ -385,7 +385,8 @@ export default function EmployeeForm({
       </div>
 
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error-alert">
+          <span aria-hidden="true" className="form-error-alert-icon">!</span>
           {error}
         </p>
       )}

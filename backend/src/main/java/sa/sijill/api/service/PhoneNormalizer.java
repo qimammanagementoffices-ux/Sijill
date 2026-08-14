@@ -15,7 +15,7 @@ public class PhoneNormalizer {
     public String normalize(String rawPhone) {
         if (rawPhone == null || rawPhone.isBlank()) {
             throw ApiException.validation(
-                    "Phone number is required", Map.of("phone", "must not be blank"));
+                    "رقم الجوال مطلوب.", Map.of("phone", "رقم الجوال مطلوب"));
         }
 
         String digits = toWesternDigits(rawPhone).replaceAll("[^0-9]", "");
@@ -32,7 +32,8 @@ public class PhoneNormalizer {
 
         if (!digits.matches("05\\d{8}")) {
             throw ApiException.validation(
-                    "Invalid Saudi phone number", Map.of("phone", "must be a valid Saudi mobile number"));
+                    "رقم الجوال غير صحيح. أدخل رقمًا سعوديًا يبدأ بـ 05 ويتكوّن من 10 أرقام.",
+                    Map.of("phone", "يجب إدخال رقم جوال سعودي صحيح"));
         }
 
         return digits;
