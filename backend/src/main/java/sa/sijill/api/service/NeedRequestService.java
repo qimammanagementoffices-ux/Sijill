@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.domain.*;
 import sa.sijill.api.error.ApiException;
+import sa.sijill.api.error.RequestWorkflowErrors;
 import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.CreateNeedRequestRequest;
 import sa.sijill.api.web.dto.FinishNeedRequestRequest;
@@ -106,7 +107,7 @@ public class NeedRequestService {
     public NeedRequest update(UUID id, CreateNeedRequestRequest update, Employee actor) {
         NeedRequest request = openRequest(id);
         if (!canEdit(request, actor)) {
-            throw ApiException.conflict("This request can no longer be edited");
+            throw RequestWorkflowErrors.editWindowClosed();
         }
 
         request.setDepartment(resolveRequesterDepartment(update.departmentId(), request.getRequester()));
@@ -253,13 +254,13 @@ public class NeedRequestService {
         boolean wasApproval = request.getStatus() == NeedRequestStatus.APPROVED_UNDER_REVIEW;
         OverturnRequest.Outcome outcome = overturn == null ? null : overturn.outcome();
         if (outcome == null) {
-            throw ApiException.validation("An overturn needs an outcome", Map.of("outcome", "is required"));
+            throw RequestWorkflowErrors.outcomeRequired();
         }
         if (wasApproval && outcome == OverturnRequest.Outcome.APPROVE) {
-            throw ApiException.conflict("This request is already approved at the first level");
+            throw RequestWorkflowErrors.alreadyApproved();
         }
         if (!wasApproval && outcome == OverturnRequest.Outcome.REJECT) {
-            throw ApiException.conflict("This request is already rejected at the first level");
+            throw RequestWorkflowErrors.alreadyRejected();
         }
 
         RequestDecisionRequest decision = overturn.asDecision();
@@ -312,16 +313,12 @@ public class NeedRequestService {
             // Capped against the approved quantity, not the requested one:
             // a line trimmed from 10 to 5 must not be deliverable at 10.
             if (quantityIssued < 0 || quantityIssued > approved) {
-                throw ApiException.validation(
-                        "Issued quantity must be between 0 and the approved quantity",
-                        Map.of("quantityIssued", "out of range"));
+                throw RequestWorkflowErrors.issuedOutOfRange();
             }
 
             InventoryItem item = line.getInventoryItem();
             if (item.getQuantity() < quantityIssued) {
-                throw ApiException.validation(
-                        "Insufficient stock for item " + item.getCode(),
-                        Map.of("quantityIssued", "exceeds on-hand quantity"));
+                throw RequestWorkflowErrors.insufficientStock(item.getCode());
             }
             item.setQuantity(item.getQuantity() - quantityIssued);
             inventoryItemRepository.save(item);
@@ -334,8 +331,7 @@ public class NeedRequestService {
         // tracked nowhere. A request with no lines is described in notes only
         // and has nothing to count.
         if (totalIssued == 0 && !needRequest.getLines().isEmpty()) {
-            throw ApiException.validation(
-                    "Record at least one delivered item", Map.of("lines", "at least one quantity must be positive"));
+            throw RequestWorkflowErrors.nothingDelivered();
         }
 
         needRequest.setStatus(NeedRequestStatus.DELIVERED);
@@ -385,7 +381,7 @@ public class NeedRequestService {
     public NeedRequest archive(UUID id, Employee actor) {
         NeedRequest request = get(id);
         if (request.getArchivedAt() != null) {
-            throw ApiException.conflict("Request is already archived");
+            throw RequestWorkflowErrors.alreadyArchived();
         }
         request.setArchivedAt(Instant.now());
         request.setArchivedBy(actor);
@@ -397,7 +393,7 @@ public class NeedRequestService {
     public NeedRequest restore(UUID id, Employee actor) {
         NeedRequest request = get(id);
         if (request.getArchivedAt() == null) {
-            throw ApiException.conflict("Request is not archived");
+            throw RequestWorkflowErrors.notArchived();
         }
         request.setArchivedAt(null);
         request.setArchivedBy(null);
@@ -410,7 +406,7 @@ public class NeedRequestService {
     private NeedRequest openRequest(UUID id) {
         NeedRequest request = get(id);
         if (request.getArchivedAt() != null) {
-            throw ApiException.conflict("Request is archived");
+            throw RequestWorkflowErrors.archived();
         }
         return request;
     }
@@ -425,7 +421,7 @@ public class NeedRequestService {
             NeedRequest request, Employee actor, String action, RequestDecisionRequest decision) {
         LocalDate until = decision == null ? null : decision.postponedUntil();
         if (until == null) {
-            throw ApiException.validation("A postponement needs a date", Map.of("postponedUntil", "is required"));
+            throw RequestWorkflowErrors.postponeDateRequired();
         }
         if (!until.isAfter(LocalDate.now())) {
             throw ApiException.validation(
@@ -451,7 +447,7 @@ public class NeedRequestService {
         for (RequestDecisionRequest.DecisionLine edit : decision.linesOrEmpty()) {
             NeedRequestLine line = byId.get(edit.lineId());
             if (line == null) {
-                throw ApiException.validation("Unknown line", Map.of("lineId", "does not belong to this request"));
+                throw RequestWorkflowErrors.unknownLine();
             }
             if (line.isRemoved()) continue;
 
@@ -463,9 +459,7 @@ public class NeedRequestService {
             }
             if (edit.quantity() == null || edit.quantity() == before) continue;
             if (edit.quantity() <= 0) {
-                throw ApiException.validation(
-                        "An approved quantity must be positive — drop the line instead",
-                        Map.of("quantity", "must be > 0"));
+                throw RequestWorkflowErrors.quantityMustBePositive();
             }
             line.setQuantityApproved(edit.quantity());
             recordLineEdit(action, line, before, edit.quantity(), false);
@@ -474,8 +468,7 @@ public class NeedRequestService {
         // Only meaningful for requests that have lines at all: submit accepts a
         // notes-only request, and that shape has nothing to keep.
         if (!request.getLines().isEmpty() && request.getLines().stream().allMatch(NeedRequestLine::isRemoved)) {
-            throw ApiException.validation(
-                    "At least one item must remain on the request", Map.of("lines", "cannot all be removed"));
+            throw RequestWorkflowErrors.noLinesLeft();
         }
     }
 
@@ -512,14 +505,14 @@ public class NeedRequestService {
      */
     private void requireDistinctFromFirstLevel(NeedRequest request, Employee actor) {
         if (request.getRequester().getId().equals(actor.getId())) {
-            throw ApiException.forbidden("You cannot review your own request");
+            throw RequestWorkflowErrors.selfReview();
         }
         request.getActions().stream()
                 .filter(entry -> "APPROVE".equals(entry.getAction()) || "REJECT".equals(entry.getAction()))
                 .reduce((first, second) -> second)
                 .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
                 .ifPresent(entry -> {
-                    throw ApiException.forbidden("The first-level decision was yours — another official must review it");
+                    throw RequestWorkflowErrors.sameOfficial();
                 });
     }
 
@@ -541,7 +534,7 @@ public class NeedRequestService {
 
     private void requireReason(RequestDecisionRequest decision) {
         if (decision == null || decision.comment() == null || decision.comment().isBlank()) {
-            throw ApiException.validation("A reason is required", Map.of("comment", "must not be blank"));
+            throw RequestWorkflowErrors.reasonRequired();
         }
     }
 

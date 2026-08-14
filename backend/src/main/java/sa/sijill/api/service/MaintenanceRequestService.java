@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.domain.*;
 import sa.sijill.api.error.ApiException;
+import sa.sijill.api.error.RequestWorkflowErrors;
 import sa.sijill.api.repository.*;
 import sa.sijill.api.web.dto.FinishMaintenanceRequestRequest;
 import sa.sijill.api.web.dto.OverturnRequest;
@@ -160,13 +161,13 @@ public class MaintenanceRequestService {
         boolean wasApproval = request.getStatus() == MaintenanceRequestStatus.APPROVED_UNDER_REVIEW;
         OverturnRequest.Outcome outcome = overturn == null ? null : overturn.outcome();
         if (outcome == null) {
-            throw ApiException.validation("An overturn needs an outcome", Map.of("outcome", "is required"));
+            throw RequestWorkflowErrors.outcomeRequired();
         }
         if (wasApproval && outcome == OverturnRequest.Outcome.APPROVE) {
-            throw ApiException.conflict("This request is already approved at the first level");
+            throw RequestWorkflowErrors.alreadyApproved();
         }
         if (!wasApproval && outcome == OverturnRequest.Outcome.REJECT) {
-            throw ApiException.conflict("This request is already rejected at the first level");
+            throw RequestWorkflowErrors.alreadyRejected();
         }
 
         RequestDecisionRequest decision = overturn.asDecision();
@@ -221,8 +222,7 @@ public class MaintenanceRequestService {
                             "Item is not a maintenance part", Map.of("inventoryItemId", "wrong domain"));
                 }
                 if (item.getQuantity() < partUsedRequest.quantity()) {
-                    throw ApiException.validation(
-                            "Insufficient stock for part " + item.getCode(), Map.of("quantity", "exceeds on-hand quantity"));
+                    throw RequestWorkflowErrors.insufficientStock(item.getCode());
                 }
                 item.setQuantity(item.getQuantity() - partUsedRequest.quantity());
                 inventoryItemRepository.save(item);
@@ -281,7 +281,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest archive(UUID id, Employee actor) {
         MaintenanceRequest request = get(id);
         if (request.getArchivedAt() != null) {
-            throw ApiException.conflict("Request is already archived");
+            throw RequestWorkflowErrors.alreadyArchived();
         }
         request.setArchivedAt(Instant.now());
         request.setArchivedBy(actor);
@@ -293,7 +293,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest restore(UUID id, Employee actor) {
         MaintenanceRequest request = get(id);
         if (request.getArchivedAt() == null) {
-            throw ApiException.conflict("Request is not archived");
+            throw RequestWorkflowErrors.notArchived();
         }
         request.setArchivedAt(null);
         request.setArchivedBy(null);
@@ -306,7 +306,7 @@ public class MaintenanceRequestService {
     private MaintenanceRequest openRequest(UUID id) {
         MaintenanceRequest request = get(id);
         if (request.getArchivedAt() != null) {
-            throw ApiException.conflict("Request is archived");
+            throw RequestWorkflowErrors.archived();
         }
         return request;
     }
@@ -321,7 +321,7 @@ public class MaintenanceRequestService {
             MaintenanceRequest request, Employee actor, String action, RequestDecisionRequest decision) {
         LocalDate until = decision == null ? null : decision.postponedUntil();
         if (until == null) {
-            throw ApiException.validation("A postponement needs a date", Map.of("postponedUntil", "is required"));
+            throw RequestWorkflowErrors.postponeDateRequired();
         }
         if (!until.isAfter(LocalDate.now())) {
             throw ApiException.validation(
@@ -337,7 +337,7 @@ public class MaintenanceRequestService {
         for (MaintenanceRequestStatus status : allowed) {
             if (current == status) return;
         }
-        throw ApiException.conflict("Request is not in a state that allows this action (current: " + current + ")");
+        throw RequestWorkflowErrors.wrongStatus(current.name());
     }
 
     private void requireRequester(MaintenanceRequest request, Employee actor) {
@@ -348,14 +348,14 @@ public class MaintenanceRequestService {
 
     private void requireDistinctFromFirstLevel(MaintenanceRequest request, Employee actor) {
         if (request.getRequester().getId().equals(actor.getId())) {
-            throw ApiException.forbidden("You cannot review your own request");
+            throw RequestWorkflowErrors.selfReview();
         }
         request.getActions().stream()
                 .filter(entry -> "APPROVE".equals(entry.getAction()) || "REJECT".equals(entry.getAction()))
                 .reduce((first, second) -> second)
                 .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
                 .ifPresent(entry -> {
-                    throw ApiException.forbidden("The first-level decision was yours — another official must review it");
+                    throw RequestWorkflowErrors.sameOfficial();
                 });
     }
 
@@ -366,13 +366,13 @@ public class MaintenanceRequestService {
                 .reduce((first, second) -> second)
                 .filter(entry -> entry.getActor() != null && entry.getActor().getId().equals(actor.getId()))
                 .ifPresent(entry -> {
-                    throw ApiException.forbidden("This decision was overturned — another official must take it");
+                    throw RequestWorkflowErrors.decisionOverturned();
                 });
     }
 
     private void requireReason(RequestDecisionRequest decision) {
         if (decision == null || decision.comment() == null || decision.comment().isBlank()) {
-            throw ApiException.validation("A reason is required", Map.of("comment", "must not be blank"));
+            throw RequestWorkflowErrors.reasonRequired();
         }
     }
 

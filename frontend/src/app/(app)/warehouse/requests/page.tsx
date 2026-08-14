@@ -16,6 +16,7 @@ export default async function WarehouseRequestsPage() {
       modalsDict={dict.requestModals}
       cardDict={dict.requestCard}
       deliveryDict={dict.requestDelivery}
+      requestErrorsDict={dict.requestErrors}
       locale={locale}
     />
   );

@@ -10,6 +10,7 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewRequestView from "@/components/NewRequestView";
+import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestDeliveryDialog from "@/components/RequestDeliveryDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
@@ -69,12 +70,14 @@ export default function RequestList({
   modalsDict,
   cardDict,
   deliveryDict,
+  requestErrorsDict,
   locale,
 }: {
   dict: Dictionary["warehouseRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  requestErrorsDict: Dictionary["requestErrors"];
   statusDict: Dictionary["requestStatus"];
   actionsDict: Dictionary["requestActions"];
   modalsDict: Dictionary["requestModals"];
@@ -227,7 +230,7 @@ export default function RequestList({
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
-      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
     } finally {
       setBusyAction(null);
     }
@@ -275,7 +278,7 @@ export default function RequestList({
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
-      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
     } finally {
       setBusyAction(null);
     }

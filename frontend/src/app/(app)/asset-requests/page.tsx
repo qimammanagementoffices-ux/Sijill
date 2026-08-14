@@ -15,6 +15,7 @@ export default async function AssetRequestsPage() {
       actionsDict={dict.requestActions}
       modalsDict={dict.requestModals}
       cardDict={dict.requestCard}
+      requestErrorsDict={dict.requestErrors}
       locale={locale}
     />
   );

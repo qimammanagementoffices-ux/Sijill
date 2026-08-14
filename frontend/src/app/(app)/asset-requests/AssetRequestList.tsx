@@ -10,6 +10,7 @@ import LegacyRequestForm from "@/components/LegacyRequestForm";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
+import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
@@ -56,12 +57,14 @@ export default function AssetRequestList({
   actionsDict,
   modalsDict,
   cardDict,
+  requestErrorsDict,
   locale,
 }: {
   dict: Dictionary["assetRequests"];
   errorsDict: Dictionary["errors"];
   commonDict: Dictionary["common"];
   attachmentsDict: Dictionary["attachments"];
+  requestErrorsDict: Dictionary["requestErrors"];
   statusDict: Dictionary["requestStatus"];
   actionsDict: Dictionary["requestActions"];
   modalsDict: Dictionary["requestModals"];
@@ -196,7 +199,7 @@ export default function AssetRequestList({
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
-      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
     } finally {
       setBusyAction(null);
     }
@@ -214,7 +217,7 @@ export default function AssetRequestList({
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
-      setToast(error instanceof ApiError ? error.message : errorsDict.generic);
+      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
     } finally {
       setBusyAction(null);
     }

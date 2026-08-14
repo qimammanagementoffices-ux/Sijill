@@ -360,6 +360,10 @@ export type Dictionary = {
     reviewTab: string;
     archiveTab: string;
   };
+  // Keyed by the error code the backend sends (RequestWorkflowErrors), so a
+  // refusal reads in the interface language instead of the developer English.
+  // Indexed by string because the set grows server-side.
+  requestErrors: Record<string, string>;
   requestDelivery: {
     title: string;
     description: string;
