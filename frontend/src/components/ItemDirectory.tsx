@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import { usePermissions } from "@/lib/session";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import { fetchAllPaged } from "@/lib/fetchAllPaged";
@@ -57,7 +58,8 @@ export default function ItemDirectory({
   const [appliedQuery, setAppliedQuery] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState<PagedResponse<InventoryItemListItem> | null>(null);
-  const [canManage, setCanManage] = useState(false);
+  // From AppShell's /auth/me, not a second call of our own.
+  const canManage = usePermissions().includes("wh.items");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -181,9 +183,6 @@ export default function ItemDirectory({
     }
     load(0, "", false);
     apiFetch<CategoryDto[]>(categoriesPath).then(setCategories).catch(() => {});
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setCanManage(me.permissions.includes("wh.items")))
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 

@@ -11,6 +11,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewRequestView from "@/components/NewRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
+import { useSession } from "@/lib/session";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestDeliveryDialog from "@/components/RequestDeliveryDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
@@ -100,8 +101,8 @@ export default function RequestList({
   const [showAddModal, setShowAddModal] = useState(false);
   const [, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
-  const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
+  // From AppShell's /auth/me, not a second call of our own.
+  const { id: currentEmployeeId, permissions } = useSession();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: NeedRequestListItem; kind: DecisionKind } | null>(null);
   const [delivering, setDelivering] = useState<NeedRequestListItem | null>(null);
@@ -142,12 +143,6 @@ export default function RequestList({
       return;
     }
     load("PENDING", "", false);
-    apiFetch<{ id: string; permissions: string[] }>("/auth/me")
-      .then((me) => {
-        setPermissions(me.permissions);
-        setCurrentEmployeeId(me.id);
-      })
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 

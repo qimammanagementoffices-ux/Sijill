@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import { usePermissions } from "@/lib/session";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import { fetchAllPaged } from "@/lib/fetchAllPaged";
@@ -57,7 +58,8 @@ export default function AssetDirectory({
   const [rooms, setRooms] = useState<RoomDto[]>([]);
   const requestSequence = useRef(0);
   const [page, setPage] = useState<PagedResponse<AssetListItem> | null>(null);
-  const [canManage, setCanManage] = useState(false);
+  // From AppShell's /auth/me, not a second call of our own.
+  const canManage = usePermissions().includes("as.manage");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
@@ -99,9 +101,6 @@ export default function AssetDirectory({
       return;
     }
     load(0, "", "", "", "");
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setCanManage(me.permissions.includes("as.manage")))
-      .catch(() => {});
     Promise.all([apiFetch<CategoryDto[]>("/assets/categories"), apiFetch<RoomDto[]>("/rooms")])
       .then(([nextCategories, nextRooms]) => {
         setCategories(nextCategories);

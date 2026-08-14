@@ -11,6 +11,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
+import { usePermissions } from "@/lib/session";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
@@ -83,7 +84,8 @@ export default function AssetRequestList({
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
+  // From AppShell's /auth/me, not a second call of our own.
+  const permissions = usePermissions();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: AssetRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
@@ -122,9 +124,6 @@ export default function AssetRequestList({
       return;
     }
     load("pending", "");
-    apiFetch<{ id: string; permissions: string[] }>("/auth/me")
-      .then((me) => setPermissions(me.permissions))
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 

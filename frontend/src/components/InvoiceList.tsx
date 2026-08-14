@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import { usePermissions } from "@/lib/session";
 import { getToken } from "@/lib/auth";
 import { exportToXlsx } from "@/lib/exportXlsx";
 import { fetchAllPaged } from "@/lib/fetchAllPaged";
@@ -39,7 +40,8 @@ export default function InvoiceList({
 }) {
   const router = useRouter();
   const [page, setPage] = useState<PagedResponse<InvoiceDetail> | null>(null);
-  const [canPost, setCanPost] = useState(false);
+  // From AppShell's /auth/me, not a second call of our own.
+  const canPost = usePermissions().includes("wh.invoices.edit");
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -106,9 +108,6 @@ export default function InvoiceList({
       return;
     }
     load();
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setCanPost(me.permissions.includes("wh.invoices.edit")))
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 

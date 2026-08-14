@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import { usePermissions } from "@/lib/session";
 import { getToken } from "@/lib/auth";
 import { fetchAllPaged } from "@/lib/fetchAllPaged";
 import AttachmentUploader from "@/components/AttachmentUploader";
@@ -33,7 +34,8 @@ export default function AssetAcquisitionList({ dict, commonDict, attachmentsDict
   const [dateTo, setDateTo] = useState("");
   const [size, setSize] = useState(10);
   const [loadingPage, setLoadingPage] = useState<number | null>(null);
-  const [canManage, setCanManage] = useState(false);
+  // From AppShell's /auth/me, not a second call of our own.
+  const canManage = usePermissions().includes("as.manage");
   const [editing, setEditing] = useState<AssetAcquisitionDto | null | undefined>(undefined);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saving, setSaving] = useState(false);
@@ -65,7 +67,6 @@ export default function AssetAcquisitionList({ dict, commonDict, attachmentsDict
   useEffect(() => {
     if (!getToken()) { router.replace("/login"); return; }
     load();
-    apiFetch<{ permissions: string[] }>("/auth/me").then((me) => setCanManage(me.permissions.includes("as.manage"))).catch(() => {});
     fetchAllPaged<AssetListItem>((pageNumber) => `/assets?page=${pageNumber}&size=100&sort=assetNumber,asc`).then(setAssets).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);

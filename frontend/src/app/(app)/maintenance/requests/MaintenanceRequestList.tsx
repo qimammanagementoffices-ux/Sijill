@@ -11,6 +11,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
+import { useSession } from "@/lib/session";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
@@ -89,11 +90,11 @@ export default function MaintenanceRequestList({
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
+  // From AppShell's /auth/me, not a second call of our own.
+  const { id: currentEmployeeId, permissions } = useSession();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: MaintenanceRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<MaintenanceRequestListItem | null>(null);
-  const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
   const [archived, setArchived] = useState(false);
 
   function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
@@ -129,12 +130,6 @@ export default function MaintenanceRequestList({
       return;
     }
     load("PENDING", "", false);
-    apiFetch<{ id: string; permissions: string[] }>("/auth/me")
-      .then((me) => {
-        setPermissions(me.permissions);
-        setCurrentEmployeeId(me.id);
-      })
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 

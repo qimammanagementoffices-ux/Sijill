@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { clearToken, getToken } from "@/lib/auth";
+import { SessionProvider } from "@/lib/session";
 import type { Dictionary } from "@/i18n/getDictionary";
 import type { LocaleInfo } from "@/i18n/locales";
 import type { BrandingDto } from "@/lib/types";
@@ -364,7 +365,11 @@ export default function AppShell({
               )}
             </nav>
           )}
-          {children}
+          {/* Every page below already has the signed-in employee here, so
+              none of them needs its own /auth/me round trip. */}
+          <SessionProvider value={{ id: employee.id, name: employee.name, permissions: employee.permissions }}>
+            {children}
+          </SessionProvider>
         </main>
       </div>
 

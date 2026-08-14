@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import { usePermissions } from "@/lib/session";
 import { getToken } from "@/lib/auth";
 import EmployeeForm from "@/components/EmployeeForm";
 import Toast from "@/components/Toast";
@@ -30,7 +31,8 @@ export default function EmployeeDirectory({
   const [q, setQ] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [page, setPage] = useState<PagedResponse<EmployeeListItem> | null>(null);
-  const [canManage, setCanManage] = useState(false);
+  // From AppShell's /auth/me, not a second call of our own.
+  const canManage = usePermissions().includes("emp.manage");
   const [showAddModal, setShowAddModal] = useState(false);
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [jobTitles, setJobTitles] = useState<LocalizedEntityDto[] | null>(null);
@@ -64,9 +66,6 @@ export default function EmployeeDirectory({
   }
 
   useEffect(() => {
-    apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setCanManage(me.permissions.includes("emp.manage")))
-      .catch(() => {});
   }, []);
 
   function handleSearch(e: FormEvent) {
