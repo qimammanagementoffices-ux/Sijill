@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/apiClient";
+import { apiFetch, ApiError } from "@/lib/apiClient";
 import { clearToken, getToken } from "@/lib/auth";
 import type { Dictionary } from "@/i18n/getDictionary";
 import type { LocaleInfo } from "@/i18n/locales";
@@ -56,15 +56,32 @@ export default function AppShell({
   const [userToggledGroup, setUserToggledGroup] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
+  // Bumped to retry /auth/me without a full reload.
+  const [authAttempt, setAuthAttempt] = useState(0);
+  const [authFailed, setAuthFailed] = useState(false);
+
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
       return;
     }
+    setAuthFailed(false);
     apiFetch<EmployeeSummary>("/auth/me")
       .then(setEmployee)
-      .catch(() => router.replace("/login"));
-  }, [router]);
+      .catch((error) => {
+        // Only the server saying "not you" ends the session. A network blip,
+        // a 429, or a gateway error while the API restarts used to land here
+        // too and throw the user out of the app mid-task — and because a
+        // response without CORS headers surfaces as a failed fetch rather
+        // than a status code, that was every transient failure.
+        // (apiFetch already clears the token and redirects on a real 401.)
+        if (error instanceof ApiError && error.status === 403) {
+          router.replace("/login");
+          return;
+        }
+        setAuthFailed(true);
+      });
+  }, [router, authAttempt]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -91,6 +108,25 @@ export default function AppShell({
   function handleLogout() {
     clearToken();
     router.push("/login");
+  }
+
+  // The session is intact; the request simply did not get through. Offer a
+  // retry instead of a spinner that never resolves or a silent logout.
+  if (!employee && authFailed) {
+    return (
+      <div className="full-page-loading">
+        <div className="empty">
+          <b>{errorsDict.generic}</b>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setAuthAttempt((attempt) => attempt + 1)}
+          >
+            {commonDict.retry}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // A blank page while /auth/me is in flight (which can take a few seconds

@@ -19,6 +19,7 @@ export type Dictionary = {
     generatedAt: string;
     actionSuccess: string;
     search: string;
+    retry: string;
   };
   onboarding: {
     welcomeTitle: string;
