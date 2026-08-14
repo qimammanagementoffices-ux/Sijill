@@ -198,6 +198,7 @@ export type Dictionary = {
     columnDateAdded: string;
     columnLastPurchase: string;
     columnQuantity: string;
+    columnQuantityRequested: string;
     columnUnit: string;
     columnMinQuantity: string;
     columnStatus: string;

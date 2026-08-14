@@ -12,6 +12,7 @@ public record InventoryItemListItem(
         String nameEn,
         LocalizedRef category,
         int quantity,
+        long quantityRequested,
         int minQuantity,
         boolean lowStock,
         String unit,
@@ -22,7 +23,7 @@ public record InventoryItemListItem(
 
     // imageUrl comes from the attachments table, so it is looked up in bulk
     // by the caller (one query per page) rather than per row.
-    public static InventoryItemListItem from(InventoryItem item, String imageUrl) {
+    public static InventoryItemListItem from(InventoryItem item, String imageUrl, long quantityRequested) {
         InventoryItemListItem base = from(item);
         return new InventoryItemListItem(
                 base.id(),
@@ -31,6 +32,7 @@ public record InventoryItemListItem(
                 base.nameEn(),
                 base.category(),
                 base.quantity(),
+                quantityRequested,
                 base.minQuantity(),
                 base.lowStock(),
                 base.unit(),
@@ -51,6 +53,7 @@ public record InventoryItemListItem(
                         : new LocalizedRef(
                                 item.getCategory().getId(), item.getCategory().getNameAr(), item.getCategory().getNameEn()),
                 item.getQuantity(),
+                0,
                 item.getMinQuantity(),
                 item.isLowStock(),
                 item.getUnit(),

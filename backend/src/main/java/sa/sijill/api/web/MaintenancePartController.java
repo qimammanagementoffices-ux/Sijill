@@ -49,7 +49,7 @@ public class MaintenancePartController {
         Page<InventoryItem> page = inventoryItemService.search(
                 Domain.MAINTENANCE, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
         Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
-        return PagedResponse.from(page, item -> InventoryItemListItem.from(item, images.get(item.getId())));
+        return PagedResponse.from(page, item -> InventoryItemListItem.from(item, images.get(item.getId()), 0));
     }
 
     @GetMapping("/{id}")

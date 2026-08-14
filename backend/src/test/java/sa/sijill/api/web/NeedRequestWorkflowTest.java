@@ -101,6 +101,12 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         String requestId = created.get("id").asText();
         String lineId = created.get("lines").get(0).get("id").asText();
 
+        mockMvc.perform(get("/api/v1/warehouse/items").param("size", "200")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(itemId))
+                .andExpect(jsonPath("$.content[0].quantityRequested").value(5));
+
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isOk())
@@ -114,6 +120,12 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CLOSED"))
                 .andExpect(jsonPath("$.lines[0].quantityIssued").value(3));
+
+        mockMvc.perform(get("/api/v1/warehouse/items").param("size", "200")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(itemId))
+                .andExpect(jsonPath("$.content[0].quantityRequested").value(0));
 
         String itemBody = mockMvc.perform(get("/api/v1/warehouse/items/" + itemId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))

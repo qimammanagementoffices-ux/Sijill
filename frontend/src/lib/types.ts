@@ -95,6 +95,7 @@ export type InventoryItemListItem = {
   nameEn: string;
   category: LocalizedRef | null;
   quantity: number;
+  quantityRequested: number;
   minQuantity: number;
   lowStock: boolean;
   unit: string | null;

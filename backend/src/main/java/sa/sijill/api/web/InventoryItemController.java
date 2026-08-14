@@ -1,9 +1,11 @@
 package sa.sijill.api.web;
 
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Domain;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.InventoryItem;
+import sa.sijill.api.domain.NeedRequestStatus;
 import sa.sijill.api.repository.AttachmentRepository;
 import sa.sijill.api.repository.ItemHistoryRepository;
 import sa.sijill.api.service.InventoryItemService;
@@ -49,7 +52,24 @@ public class InventoryItemController {
         Page<InventoryItem> page =
                 inventoryItemService.search(Domain.WAREHOUSE, q, lowStockOnly, categoryId, dateFrom, dateTo, pageable);
         Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
-        return PagedResponse.from(page, item -> InventoryItemListItem.from(item, images.get(item.getId())));
+        List<UUID> itemIds = page.getContent().stream().map(InventoryItem::getId).toList();
+        Map<UUID, Long> requestedQuantities = itemIds.isEmpty()
+                ? Map.of()
+                : itemHistoryRepository
+                        .sumActiveRequestedQuantities(
+                                itemIds,
+                                EnumSet.of(
+                                        NeedRequestStatus.PENDING,
+                                        NeedRequestStatus.APPROVED,
+                                        NeedRequestStatus.POSTPONED))
+                        .stream()
+                        .collect(Collectors.toMap(
+                                ItemHistoryRepository.RequestedQuantityTotal::getItemId,
+                                ItemHistoryRepository.RequestedQuantityTotal::getQuantityRequested));
+        return PagedResponse.from(
+                page,
+                item -> InventoryItemListItem.from(
+                        item, images.get(item.getId()), requestedQuantities.getOrDefault(item.getId(), 0L)));
     }
 
     @GetMapping("/{id}")

@@ -81,6 +81,7 @@ export default function ItemDirectory({
   const [size, setSize] = useState(10);
   const [printRows, setPrintRows] = useState<InventoryItemListItem[] | null>(null);
   const requestSequence = useRef(0);
+  const showRequestedQuantity = basePath === "/warehouse/items";
 
   const filtersActive =
     filters.categoryId !== "" || filters.dateFrom !== "" || filters.dateTo !== "" || lowStockOnly || appliedQuery !== "";
@@ -220,6 +221,9 @@ export default function ItemDirectory({
         { header: dict.columnDateAdded, value: (i: InventoryItemListItem) => i.dateAdded ?? "" },
         { header: dict.columnLastPurchase, value: (i: InventoryItemListItem) => i.lastPurchasePrice ?? "" },
         { header: dict.columnQuantity, value: (i: InventoryItemListItem) => i.quantity },
+        ...(showRequestedQuantity
+          ? [{ header: dict.columnQuantityRequested, value: (i: InventoryItemListItem) => i.quantityRequested }]
+          : []),
         { header: dict.columnUnit, value: (i: InventoryItemListItem) => i.unit ?? "" },
         { header: dict.columnMinQuantity, value: (i: InventoryItemListItem) => i.minQuantity },
       ],
@@ -349,25 +353,30 @@ export default function ItemDirectory({
                   {/* Not sortable -- the image is an attachment, not a
                       column on the item row. */}
                   <th>{dict.columnImage}</th>
-                  {(
-                    [
-                      ["code", dict.columnCode],
-                      ["nameAr", dict.columnName],
-                      ["category.nameAr", dict.columnCategory],
-                      ["dateAdded", dict.columnDateAdded],
-                      ["lastPurchasePrice", dict.columnLastPurchase],
-                      ["quantity", dict.columnQuantity],
-                      ["unit", dict.columnUnit],
-                      ["minQuantity", dict.columnMinQuantity],
-                    ] as const
-                  ).map(([field, label]) => (
+                  {[
+                    ["code", dict.columnCode, true] as const,
+                    ["nameAr", dict.columnName, true] as const,
+                    ["category.nameAr", dict.columnCategory, true] as const,
+                    ["dateAdded", dict.columnDateAdded, true] as const,
+                    ["lastPurchasePrice", dict.columnLastPurchase, true] as const,
+                    ["quantity", dict.columnQuantity, true] as const,
+                    ...(showRequestedQuantity
+                      ? [["quantityRequested", dict.columnQuantityRequested, false] as const]
+                      : []),
+                    ["unit", dict.columnUnit, true] as const,
+                    ["minQuantity", dict.columnMinQuantity, true] as const,
+                  ].map(([field, label, sortable]) => (
                     <th key={field}>
-                      <button type="button" className="th-sort" onClick={() => toggleSort(field)}>
-                        {label}
-                        <span className="th-sort-arrow">
-                          {sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}
-                        </span>
-                      </button>
+                      {sortable ? (
+                        <button type="button" className="th-sort" onClick={() => toggleSort(field)}>
+                          {label}
+                          <span className="th-sort-arrow">
+                            {sort.field === field ? (sort.dir === "asc" ? "▲" : "▼") : ""}
+                          </span>
+                        </button>
+                      ) : (
+                        label
+                      )}
                     </th>
                   ))}
                   {/* Not sortable: lowStock is computed in Java (quantity vs
@@ -406,6 +415,7 @@ export default function ItemDirectory({
                     <td className="mono">{item.dateAdded ?? "—"}</td>
                     <td className="qty-num">{item.lastPurchasePrice ?? "—"}</td>
                     <td className="qty-num">{item.quantity}</td>
+                    {showRequestedQuantity && <td className="qty-num">{item.quantityRequested}</td>}
                     <td>{item.unit ?? "—"}</td>
                     <td className="qty-num">{item.minQuantity}</td>
                     <td>

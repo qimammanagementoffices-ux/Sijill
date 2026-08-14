@@ -1,16 +1,24 @@
 package sa.sijill.api.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import sa.sijill.api.domain.NeedRequestStatus;
 import sa.sijill.api.domain.PurchaseInvoiceLine;
 
 // Backs the item card's two history sections. Lines are queried directly
 // rather than through their invoice/request aggregates: the card wants
 // "every purchase of this one item", not whole invoices.
 public interface ItemHistoryRepository extends JpaRepository<PurchaseInvoiceLine, UUID> {
+
+    interface RequestedQuantityTotal {
+        UUID getItemId();
+
+        Long getQuantityRequested();
+    }
 
     @Query("""
             select l from PurchaseInvoiceLine l
@@ -27,4 +35,15 @@ public interface ItemHistoryRepository extends JpaRepository<PurchaseInvoiceLine
             order by r.createdAt desc
             """)
     List<sa.sijill.api.domain.NeedRequestLine> findRequestsByItem(@Param("itemId") UUID itemId);
+
+    @Query("""
+            select l.inventoryItem.id as itemId,
+                   sum(l.quantityRequested) as quantityRequested
+            from NeedRequestLine l
+            where l.inventoryItem.id in :itemIds
+              and l.needRequest.status in :statuses
+            group by l.inventoryItem.id
+            """)
+    List<RequestedQuantityTotal> sumActiveRequestedQuantities(
+            @Param("itemIds") List<UUID> itemIds, @Param("statuses") Collection<NeedRequestStatus> statuses);
 }
