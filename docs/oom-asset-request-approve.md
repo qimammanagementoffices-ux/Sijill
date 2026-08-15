@@ -1,6 +1,7 @@
 # OOM on asset request approval — investigation handoff
 
-**Status:** unresolved. A candidate fix is deployed (`85b0965`) but is **not verified**.
+**Status:** unresolved. A candidate fix is committed (`85b0965`) but production
+verification is pending.
 
 ## Symptom
 
@@ -17,7 +18,9 @@
 - Single VPS, 5 containers (`infra/vps/docker-compose.yml`), 7.8 GB RAM, ~6 GB free
 - `spring.jpa.open-in-view: false` — DTO mapping happens in controllers, **after** the transaction closes
 - `hibernate.default_batch_fetch_size: 32`
-- JVM: `-XX:+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=35 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp`
+- JVM: `-XX:+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=35 -XX:+HeapDumpOnOutOfMemoryError`
+- Heap dumps use timestamped files under `/heap-dumps`, backed by the
+  `api-heap-dumps` Docker volume so API recreation cannot delete them.
 
 ## Established facts
 
@@ -98,7 +101,12 @@ Making either lazy trades the OOM for `LazyInitializationException` in productio
 
 ## Artifacts
 
-- **Heap dump: `/tmp/java_pid1.hprof` inside the `sijill-api-1` container, 3.5 GB.** Taken at the moment of the OOM. This is the definitive evidence and has not been analysed. Copy out with `docker compose cp api:/tmp/java_pid1.hprof ./oom-heap.hprof`, open in Eclipse MAT, run the Leak Suspects report. **Lost on container recreate.**
+- The original 3.5 GB `/tmp/java_pid1.hprof` was lost when its API container
+  was recreated on 2026-08-16; no old API container remained.
+- Future dumps survive in the `api-heap-dumps` Docker volume as
+  `/heap-dumps/java_pid1_<UTC timestamp>.hprof`. List them with
+  `docker compose exec api ls -lh /heap-dumps` and copy one with
+  `docker compose cp api:/heap-dumps/<filename> ./oom-heap.hprof`.
 - Caddy access log: `/data/access.log` in the `sijill-caddy-1` container — the `status: 0` entries.
 
 ## Recommended next steps

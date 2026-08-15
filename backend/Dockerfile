@@ -18,9 +18,11 @@ WORKDIR /app
 # via ProcessBuilder rather than a JDBC-based dump implementation.
 RUN apk add --no-cache postgresql-client
 RUN addgroup -S sijill && adduser -S sijill -G sijill
+RUN mkdir -p /heap-dumps && chown sijill:sijill /heap-dumps
 COPY --from=build /home/gradle/src/build/libs/*.jar app.jar
 USER sijill
 EXPOSE 8080
 # Via sh so JAVA_OPTS from compose is expanded; exec so the JVM stays PID 1
-# and still receives Docker's stop signal.
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+# and still receives Docker's stop signal. The timestamp keeps a later OOM
+# from colliding with an earlier java_pid1.hprof in the persistent volume.
+ENTRYPOINT ["sh", "-c", "HEAP_DUMP_PATH=/heap-dumps/java_pid1_$(date -u +%Y%m%dT%H%M%SZ).hprof; exec java $JAVA_OPTS -XX:HeapDumpPath=$HEAP_DUMP_PATH -jar /app/app.jar"]

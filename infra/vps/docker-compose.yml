@@ -71,7 +71,9 @@ services:
       # on OOM turns that into a restart measured in seconds.
       # MaxRAMPercentage replaces the default quarter-of-the-box heap: this
       # container is one of five on an 8GB host.
-      JAVA_OPTS: "-XX:+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=35 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
+      # Dockerfile gives each dump a unique timestamped name in this persistent
+      # directory, so a container recreation cannot erase the evidence again.
+      JAVA_OPTS: "-XX:+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=35 -XX:+HeapDumpOnOutOfMemoryError"
       PGHOST: postgres
       PGPORT: "5432"
       PGDATABASE: ${PGDATABASE}
@@ -96,6 +98,8 @@ services:
       TRANSLATION_PROVIDER: ${TRANSLATION_PROVIDER:-anthropic}
       TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - api-heap-dumps:/heap-dumps
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
@@ -139,5 +143,6 @@ services:
 volumes:
   postgres-data:
   minio-data:
+  api-heap-dumps:
   caddy-data:
   caddy-config:
