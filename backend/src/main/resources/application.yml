@@ -30,6 +30,15 @@ spring:
         # restructuring the entity graph and its serialisation contract.
         default_batch_fetch_size: 32
 
+  servlet:
+    multipart:
+      # Spring's own default is 1MB, which silently overrode the 2MB contract
+      # AttachmentService enforces: anything the browser compressed to between
+      # 1MB and 2MB was rejected by the framework before reaching that check.
+      # Left with headroom so the service's message is the one users see.
+      max-file-size: 4MB
+      max-request-size: 8MB
+
   flyway:
     enabled: true
     locations: classpath:db/migration

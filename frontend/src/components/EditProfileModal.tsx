@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 import type { AttachmentDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -38,8 +39,7 @@ export default function EditProfileModal({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handlePhotoUpload(file: File | undefined) {
     if (!file) return;
     setError(null);
     setPhotoUploading(true);
@@ -122,17 +122,16 @@ export default function EditProfileModal({
           <form id="edit-profile-form" onSubmit={handleSubmit}>
             <div className="field" style={{ marginBottom: 18 }}>
               <label>{dict.photoLabel}</label>
-              <div className="filebox">
-                <label className="upl">
-                  {dict.photoLabel}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handlePhotoUpload}
-                    disabled={photoUploading}
-                  />
-                </label>
-              </div>
+              <PendingAttachmentPicker
+                files={[]}
+                uploadLabel={dict.photoLabel}
+                emptyLabel=""
+                accept="image/jpeg,image/png,image/webp"
+                multiple={false}
+                disabled={photoUploading}
+                onSelect={(selected) => void handlePhotoUpload(selected[0])}
+                onRemove={() => {}}
+              />
               {(photoUrl || photoUploading) && (
                 <div className="thumb-strip" style={{ marginTop: 10, alignItems: "flex-start" }}>
                   <div

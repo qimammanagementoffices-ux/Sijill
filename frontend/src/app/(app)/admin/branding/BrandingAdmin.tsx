@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 import { getToken } from "@/lib/auth";
 import type { AttachmentDto, BrandingDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -124,8 +125,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
     }
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleLogoUpload(file: File | undefined) {
     if (!file || !branding) return;
     setError(null);
     setUploading(true);
@@ -224,10 +224,16 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
               </div>
             )}
             <div className="filebox" style={{ flex: 1 }}>
-              <label className="upl">
-                {dict.uploadLogo}
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} disabled={uploading} />
-              </label>
+              <PendingAttachmentPicker
+                files={[]}
+                uploadLabel={dict.uploadLogo}
+                emptyLabel=""
+                accept="image/jpeg,image/png,image/webp"
+                multiple={false}
+                disabled={uploading}
+                onSelect={(selected) => void handleLogoUpload(selected[0])}
+                onRemove={() => {}}
+              />
               {branding.logoUrl && (
                 <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogoRemove} disabled={uploading}>
                   {dict.removeLogo}

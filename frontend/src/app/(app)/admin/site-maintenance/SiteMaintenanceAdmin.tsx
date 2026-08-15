@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 import { getToken } from "@/lib/auth";
 import type { AttachmentDto, MaintenanceDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -81,8 +82,7 @@ export default function SiteMaintenanceAdmin({ dict, locale }: { dict: Dictionar
     }
   }
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleImageUpload(file: File | undefined) {
     if (!file || !setting) return;
     setError(null);
     setUploading(true);
@@ -161,10 +161,16 @@ export default function SiteMaintenanceAdmin({ dict, locale }: { dict: Dictionar
           <div className="field" style={{ marginBottom: 18 }}>
             <label>{dict.imageLabel}</label>
             <div className="filebox">
-              <label className="upl">
-                {dict.imageLabel}
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} disabled={uploading} />
-              </label>
+              <PendingAttachmentPicker
+                files={[]}
+                uploadLabel={dict.imageLabel}
+                emptyLabel=""
+                accept="image/jpeg,image/png,image/webp"
+                multiple={false}
+                disabled={uploading}
+                onSelect={(selected) => void handleImageUpload(selected[0])}
+                onRemove={() => {}}
+              />
               {uploading && <span className="spinner" />}
             </div>
             {setting.imageUrl && (

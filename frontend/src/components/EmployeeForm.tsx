@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
+import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 import PermissionGrid from "@/components/PermissionGrid";
 import DepartmentHierarchyPicker, { isValidEmployeeDepartmentSelection } from "@/components/DepartmentHierarchyPicker";
 import type {
@@ -83,8 +84,7 @@ export default function EmployeeForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitting]);
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handlePhotoUpload(file: File | undefined) {
     if (!file) return;
     setError(null);
     setPhotoUploading(true);
@@ -224,12 +224,16 @@ export default function EmployeeForm({
         <div className="panel-body">
           <div className="field" style={{ marginBottom: 18 }}>
             <label>{dict.photoLabel}</label>
-            <div className="filebox">
-              <label className="upl">
-                {dict.photoLabel}
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} disabled={photoUploading} />
-              </label>
-            </div>
+            <PendingAttachmentPicker
+              files={[]}
+              uploadLabel={dict.photoLabel}
+              emptyLabel=""
+              accept="image/jpeg,image/png,image/webp"
+              multiple={false}
+              disabled={photoUploading}
+              onSelect={(selected) => void handlePhotoUpload(selected[0])}
+              onRemove={() => {}}
+            />
             {(photoUrl || photoUploading) && (
               <div className="thumb-strip" style={{ marginTop: 10, alignItems: "flex-start" }}>
                 <div
