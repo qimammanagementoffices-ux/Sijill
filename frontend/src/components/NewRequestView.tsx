@@ -102,10 +102,22 @@ export default function NewRequestView({
 
   const filledLines = lines.filter((l) => l.inventoryItemId);
   const hasContent = customMode ? customText.trim().length > 0 : filledLines.length > 0;
+  // Reaching the attachments step is not the same as being ready to send.
+  // Someone describing an item the warehouse does not stock often wants to
+  // attach a photo first and write the description with it in front of them,
+  // so the step is open; the submit still asks for a description.
+  const canProceed = customMode || filledLines.length > 0;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    // Says why rather than leaving a dead button: the attachments step is
+    // reachable with nothing written, so this is where the description is
+    // asked for.
+    if (!hasContent) {
+      setError(dict.describeCustomRequest);
+      return;
+    }
     setSubmitting(true);
     try {
       const created = await apiFetch<NeedRequestDetail>("/warehouse/requests", {
@@ -348,7 +360,7 @@ export default function NewRequestView({
             <button type="button" className="btn btn-outline btn-sm" onClick={() => setStep(1)}>
               {dict.prevStep}
             </button>
-            <button type="button" className="btn btn-primary btn-sm" disabled={!hasContent} onClick={() => setStep(3)}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={!canProceed} onClick={() => setStep(3)}>
               {dict.nextStep}
             </button>
           </div>
@@ -379,7 +391,9 @@ export default function NewRequestView({
             <button type="button" className="btn btn-outline btn-sm" onClick={() => setStep(2)} disabled={submitting}>
               {dict.prevStep}
             </button>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !hasContent}>
+            {/* Enabled even with nothing written: handleSubmit explains what
+                is missing, which a greyed-out button cannot. */}
+            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
               {submitting && <span className="spinner" />}
               {dict.submit}
             </button>
