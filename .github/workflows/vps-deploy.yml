@@ -57,6 +57,12 @@ jobs:
             git reset --hard origin/main
             cd infra/vps
             docker compose up -d --build
+            # Caddy resolves api:8080 and holds on to the address. Rebuilding
+            # the API gives it a new container IP, and Caddy keeps proxying to
+            # the old one -- a healthy app behind a 502/503 until Caddy is
+            # restarted. Cheap to do every time; the certificates live in a
+            # volume and survive it.
+            docker compose restart caddy
             # Old image layers accumulate fast under a JVM base image.
             docker image prune -f
           REMOTE

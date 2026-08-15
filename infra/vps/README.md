@@ -331,7 +331,11 @@ docker compose exec postgres dropdb -U sijill restore_test
 
 - `docker compose ps` — what is running
 - `docker compose logs -f api` — application logs
-- `docker compose down && docker compose up -d --build` — deploy a new version
+- `docker compose up -d --build && docker compose restart caddy` — deploy a new
+  version. The Caddy restart matters: it resolves `api:8080` once and keeps the
+  address, so a rebuilt API gets a new container IP while Caddy still proxies
+  to the old one — a healthy app behind a 502/503. Certificates live in a
+  volume and survive the restart.
 - `docker compose exec postgres psql -U sijill -d sijill` — a database shell
 
 Two things Render used to do that are now yours: the **daily backup** (the app
