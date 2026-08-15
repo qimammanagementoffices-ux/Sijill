@@ -157,6 +157,77 @@ secrets exist. Test it with **Actions → vps-deploy → Run workflow**.
 Once the VPS is serving real traffic, remove the `deploy` job from
 `backend-ci.yml` and `frontend-ci.yml` so pushes stop deploying to Render too.
 
+## 8. Move object storage off Supabase
+
+Only do this once the site is working. Attachment URLs are stored **absolute**
+in `attachment.url` — `StorageService` saves the full
+`<public-url-base>/<bucket>/<key>` at upload time — so switching the settings
+alone would break every existing attachment while new uploads worked.
+
+Order matters: mirror the objects **before** changing anything, because the
+copy reads from Supabase using the settings currently in `.env`.
+
+**Set the MinIO credentials** and start it:
+
+```bash
+sed -i "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)|" .env
+```
+
+```bash
+set -a; . ./.env; set +a && docker compose up -d minio
+```
+
+**Copy every object across**, create the buckets under the same names, and make
+only the attachment bucket publicly readable:
+
+```bash
+docker run --rm --network sijill_default --entrypoint sh minio/mc -c "mc alias set src '$OBJECT_STORAGE_ENDPOINT' '$OBJECT_STORAGE_ACCESS_KEY' '$OBJECT_STORAGE_SECRET_KEY' && mc alias set dst http://minio:9000 '$MINIO_ROOT_USER' '$MINIO_ROOT_PASSWORD' && mc mb -p dst/$OBJECT_STORAGE_BUCKET dst/$OBJECT_STORAGE_BACKUP_BUCKET && mc mirror --overwrite src/$OBJECT_STORAGE_BUCKET dst/$OBJECT_STORAGE_BUCKET && mc anonymous set download dst/$OBJECT_STORAGE_BUCKET && mc ls --recursive dst/$OBJECT_STORAGE_BUCKET | wc -l"
+```
+
+The last number is how many objects arrived. Compare it with Supabase before
+continuing — this is the only point where a miscount is cheap to fix.
+
+**Rewrite the stored URLs.** Check what it will change first:
+
+```bash
+docker compose exec postgres psql -U sijill -d sijill -c "select count(*) from attachment where url like '$OBJECT_STORAGE_PUBLIC_URL_BASE%';"
+```
+
+```bash
+docker compose exec postgres psql -U sijill -d sijill -c "update attachment set url = replace(url, '$OBJECT_STORAGE_PUBLIC_URL_BASE', 'https://$SIJILL_DOMAIN/files') where url like '$OBJECT_STORAGE_PUBLIC_URL_BASE%';"
+```
+
+The two counts must match. This is done as a one-time statement rather than a
+Flyway migration because the replacement is specific to this deployment's
+domain, and a migration is immutable once applied.
+
+**Switch the settings:**
+
+```bash
+sed -i "s|^OBJECT_STORAGE_ENDPOINT=.*|OBJECT_STORAGE_ENDPOINT=http://minio:9000|" .env
+sed -i "s|^OBJECT_STORAGE_PUBLIC_URL_BASE=.*|OBJECT_STORAGE_PUBLIC_URL_BASE=https://$SIJILL_DOMAIN/files|" .env
+sed -i "s|^OBJECT_STORAGE_ACCESS_KEY=.*|OBJECT_STORAGE_ACCESS_KEY=$MINIO_ROOT_USER|" .env
+sed -i "s|^OBJECT_STORAGE_SECRET_KEY=.*|OBJECT_STORAGE_SECRET_KEY=$MINIO_ROOT_PASSWORD|" .env
+```
+
+```bash
+set -a; . ./.env; set +a && docker compose up -d --build
+```
+
+**Verify all four:** an old attachment still opens, a new upload works, the
+backup bucket refuses anonymous access, and a manual backup succeeds.
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" "https://$SIJILL_DOMAIN/files/$OBJECT_STORAGE_BACKUP_BUCKET/"
+```
+
+That must **not** be 200. Anything other than a listing means the private
+bucket stayed private.
+
+Leave the Supabase buckets untouched for a couple of weeks. They cost nothing
+and they are the rollback: putting the old values back in `.env` and reversing
+the `replace()` restores the previous state exactly.
+
 ## Afterwards
 
 - `docker compose ps` — what is running

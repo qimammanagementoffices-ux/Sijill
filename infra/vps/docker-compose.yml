@@ -34,6 +34,25 @@ services:
     # containers and from nothing else. Use `docker compose exec postgres psql`
     # rather than opening 5432 to the internet.
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    # No ports: the API reaches it over the compose network, and the public
+    # read path goes through Caddy. Only the attachment bucket is given
+    # anonymous read; the backup bucket stays private and is reached solely by
+    # the API with credentials.
+
   api:
     build:
       context: ../../backend
@@ -41,6 +60,8 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       PGHOST: postgres
@@ -53,8 +74,9 @@ services:
       FRONTEND_ORIGIN: https://${SIJILL_DOMAIN}
       JWT_SIGNING_SECRET: ${JWT_SIGNING_SECRET}
       JWT_ACCESS_TOKEN_EXPIRY_MINUTES: "60"
-      # Object storage stays on Supabase: the attachment URLs already stored in
-      # the database point there, so moving buckets would mean rewriting them.
+      # Object storage: MinIO on this machine once the objects have been
+      # mirrored and the stored URLs rewritten (see README step 8). Until then
+      # these still point at Supabase, and both work with forcePathStyle.
       OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT}
       OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
       OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET}
@@ -108,5 +130,6 @@ services:
 
 volumes:
   postgres-data:
+  minio-data:
   caddy-data:
   caddy-config:
