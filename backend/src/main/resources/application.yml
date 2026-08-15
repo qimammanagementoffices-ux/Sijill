@@ -57,6 +57,17 @@ app:
     storage-location: ${BACKUP_STORAGE_LOCATION:}
     retention-days: ${BACKUP_RETENTION_DAYS:30}
 
+management:
+  health:
+    # Render's health check gives /actuator/health a fixed 5s budget. Spring's
+    # default DB indicator borrows a Hikari connection and runs a validation
+    # query -- when the pool is saturated it blocks up to connectionTimeout
+    # (30s), so a busy-but-healthy instance gets killed and restarted. Health
+    # here answers "is this process serving HTTP", which is the only question
+    # a restart can fix; a database outage is not cured by bouncing the app.
+    db:
+      enabled: false
+
 logging:
   level:
     root: INFO
