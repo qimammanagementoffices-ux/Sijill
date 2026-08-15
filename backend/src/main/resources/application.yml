@@ -7,6 +7,14 @@ spring:
     url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+    hikari:
+      # A request that hangs for a minute and then fails leaves nothing in the
+      # log to explain itself. These two make the next one say why:
+      # leak-detection logs the stack trace of whoever held a connection too
+      # long, and the shorter timeout turns a starved pool into a prompt error
+      # instead of a 30s stall the user reads as a broken page.
+      leak-detection-threshold: 20000
+      connection-timeout: 15000
 
   jpa:
     hibernate:
