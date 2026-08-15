@@ -25,10 +25,29 @@ public class NeedRequestActionLine {
     @JoinColumn(name = "need_request_action_id")
     private NeedRequestAction action;
 
-    // EAGER: the DTO reads the line id after the transaction closes.
-    @ManyToOne(fetch = FetchType.EAGER)
+    // Written when an official trims or drops a line. LAZY: nothing reads the
+    // line through this association.
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "need_request_line_id")
     private NeedRequestLine line;
+
+    // The DTO needs the line's id after the transaction closes, and the id is
+    // this row's own foreign key. Reading it through the association instead
+    // meant loading the whole line -- and its inventory item -- once per edit,
+    // per action, per request on every list page. Mapped read-only; `line`
+    // above stays the writable side.
+    @Column(name = "need_request_line_id", insertable = false, updatable = false)
+    private UUID lineId;
+
+    /**
+     * Sets both sides. The read-only mirror is only populated by the database
+     * on load, so a decision's own response would carry a null line id if the
+     * association were set on its own.
+     */
+    public void assignLine(NeedRequestLine line) {
+        this.line = line;
+        this.lineId = line == null ? null : line.getId();
+    }
 
     @Column(name = "quantity_before", nullable = false)
     private int quantityBefore;

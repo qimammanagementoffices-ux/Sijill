@@ -15,7 +15,9 @@ public record NeedRequestActionDto(
 
         static LineEdit from(NeedRequestActionLine edit) {
             return new LineEdit(
-                    edit.getLine() == null ? null : edit.getLine().getId(),
+                    // The row's own foreign key -- reading it through the
+                    // association would load the whole line and its item.
+                    edit.getLineId(),
                     edit.getQuantityBefore(),
                     edit.getQuantityAfter(),
                     edit.isRemoved());

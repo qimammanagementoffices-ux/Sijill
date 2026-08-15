@@ -550,7 +550,7 @@ public class NeedRequestService {
             NeedRequestAction action, NeedRequestLine line, int before, Integer after, boolean removed) {
         NeedRequestActionLine edit = new NeedRequestActionLine();
         edit.setAction(action);
-        edit.setLine(line);
+        edit.assignLine(line);
         edit.setQuantityBefore(before);
         edit.setQuantityAfter(after);
         edit.setRemoved(removed);
