@@ -19,6 +19,9 @@ public record NeedRequestListItem(
         UUID id,
         UUID requesterId,
         String requesterName,
+        // For the printed form's "المسمى الوظيفي" cell, which had no source
+        // and always printed a dash.
+        String requesterJobTitle,
         LocalizedRef department,
         LocalizedRef category,
         String status,
@@ -54,6 +57,9 @@ public record NeedRequestListItem(
                 request.getId(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
+                request.getRequester().getJobTitle() == null
+                        ? null
+                        : request.getRequester().getJobTitle().getNameAr(),
                 request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment()),
                 category == null ? null : LocalizedRef.from(category),
                 // Effective, not stored: a postponed request whose date has

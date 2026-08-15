@@ -213,6 +213,7 @@ export type NeedRequestListItem = {
   id: string;
   requesterId: string;
   requesterName: string;
+  requesterJobTitle: string | null;
   department: LocalizedRef | null;
   category: LocalizedRef | null;
   status: NeedRequestStatusValue;

@@ -792,7 +792,7 @@ export default function RequestList({
                 attachments={viewRequest.attachments}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
-                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: viewRequest.requesterJobTitle ?? "—" },
                   { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
                   { label: ["نوع الاحتياج", "Need Type", "आवश्यकता प्रकार"], value: viewRequest.category?.ar ?? "—" },
                   { label: ["تاريخ التقديم", "Submission Date", "प्रस्तुत करने की तिथि"], value: viewRequest.actions.find((a) => a.action === "SUBMIT")?.createdAt?.slice(0, 10) ?? "—" },
