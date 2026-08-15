@@ -17,6 +17,15 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
      * arrived — resurfacing is a query condition, not a scheduled job, so the
      * queue and its badge count cannot drift apart. {@code underReview}
      * overrides {@code status} and returns both under-review states.
+     *
+     * <p>Department scope: {@code unscoped} short-circuits it for anyone who
+     * covers the whole school, and a request is always visible to whoever
+     * raised it — being outside an official's branch must not hide a request
+     * from its own requester. See DepartmentScopeService.
+     *
+     * <p>Comments belong here and not inside the query below: HQL rejects
+     * SQL's {@code --} line comments, and the failure is a startup crash
+     * rather than a compile error.
      */
     @Query("""
             select r from NeedRequest r
@@ -31,10 +40,6 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
                     and r.status = sa.sijill.api.domain.NeedRequestStatus.POSTPONED
                     and r.postponedUntil is not null and r.postponedUntil <= :today))
               and (:requesterId is null or r.requester.id = :requesterId)
-              -- Department scope. :unscoped short-circuits it for anyone who
-              -- covers the whole school. Own requests are always visible:
-              -- being outside an official's branch must not hide a request
-              -- from the person who raised it.
               and (:unscoped = true
                 or r.department.id in :departmentIds
                 or r.requester.id = :actorId)
