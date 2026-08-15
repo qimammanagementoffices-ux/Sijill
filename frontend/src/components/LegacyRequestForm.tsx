@@ -62,6 +62,9 @@ export default function LegacyRequestForm({
     actions.find((entry) => entry.action === "COUNTERSIGN_APPROVE")?.actorName ??
     actions.find((entry) => entry.action === "APPROVE")?.actorName ??
     null;
+  // Whoever confirmed receipt signs as the purchasing officer: they are the
+  // one who took delivery of the goods.
+  const receivedByName = actions.find((entry) => entry.action === "RECEIVE")?.actorName ?? null;
 
   return (
     <>
@@ -133,6 +136,7 @@ export default function LegacyRequestForm({
         </div>
         <div>
           توقيع مسؤول المشتريات<br /><small>Purchasing officer signature</small>
+          {receivedByName && <em className="legacy-signature-name">{receivedByName}</em>}
         </div>
       </div>
       <footer className="legacy-form-footer">مستند صادر آليًا من منصة سِجِلّ لإدارة المستودع والصيانة المدرسية</footer>

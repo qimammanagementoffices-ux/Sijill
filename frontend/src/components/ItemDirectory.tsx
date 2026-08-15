@@ -61,6 +61,10 @@ export default function ItemDirectory({
   const [page, setPage] = useState<PagedResponse<InventoryItemListItem> | null>(null);
   // From AppShell's /auth/me, not a second call of our own.
   const canManage = usePermissions().includes("wh.items");
+  // Correcting a stock count is its own act, permissioned separately from
+  // describing the item. wh.qty covers both domains, the same way wh.items
+  // above gates the maintenance parts screen as well.
+  const canAdjustQuantity = usePermissions().includes("wh.qty");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
@@ -524,6 +528,7 @@ export default function ItemDirectory({
                   categoriesModalDict={categoriesModalDict}
                   attachmentsDict={attachmentsDict}
                   mode="edit"
+                  canAdjustQuantity={canAdjustQuantity}
                   initial={editItem}
                   categories={categories}
                   basePath={basePath}

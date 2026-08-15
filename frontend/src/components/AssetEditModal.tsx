@@ -137,7 +137,9 @@ export default function AssetEditModal({
       <div className="modal wide">
         <button type="button" className="modal-close" onClick={onClose} aria-label="close">×</button>
         <div className="modal-head">
-          <h3>{dict.editAsset}{asset ? ` — ${asset.assetNumber}` : ""}</h3>
+          {/* Parenthesised, matching the item edit modal — the same kind of
+              title should not be punctuated two different ways. */}
+          <h3>{dict.editAsset}{asset ? ` (${asset.assetNumber})` : ""}</h3>
         </div>
         <div className="modal-body">
           {!asset || !categories ? (

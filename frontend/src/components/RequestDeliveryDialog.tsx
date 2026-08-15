@@ -39,7 +39,6 @@ export default function RequestDeliveryDialog({
     [lines]
   );
 
-  const [search, setSearch] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [issued, setIssued] = useState<Record<string, number>>(() =>
@@ -54,15 +53,6 @@ export default function RequestDeliveryDialog({
   );
   const [error, setError] = useState<string | null>(null);
 
-  const visible = deliverable.filter(({ line }) => {
-    const needle = search.trim().toLowerCase();
-    if (!needle) return true;
-    return (
-      line.itemNameAr.toLowerCase().includes(needle) ||
-      line.itemNameEn.toLowerCase().includes(needle) ||
-      line.itemCode.toLowerCase().includes(needle)
-    );
-  });
   const selectedCount = deliverable.filter(({ line }) => (issued[line.id] ?? 0) > 0).length;
 
   function submit() {
@@ -98,19 +88,13 @@ export default function RequestDeliveryDialog({
             </div>
           ) : (
             <>
-              <div className="field">
-                <input
-                  type="search"
-                  value={search}
-                  placeholder={dict.searchPlaceholder}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-              </div>
-
+              {/* No search box: a request carries a handful of lines and they
+                  are all on screen, so filtering only hid rows the storekeeper
+                  still had to fill in. */}
               <span className="chip chip-sm">{dict.selectedCount.replace("{n}", String(selectedCount))}</span>
 
               <ul className="delivery-lines">
-                {visible.map(({ line, approved }) => {
+                {deliverable.map(({ line, approved }) => {
                   // Stock is the only ceiling: the approved figure is a
                   // decision, what is on the shelf is a fact.
                   const cap = line.itemQuantity;

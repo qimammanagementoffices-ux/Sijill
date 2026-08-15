@@ -27,6 +27,11 @@ type Props = {
   // same pattern as EmployeeForm.
   formId?: string;
   onSubmittingChange?: (submitting: boolean) => void;
+  // Editing an item's stock is a manual correction of the warehouse count,
+  // not part of describing the item -- so it carries its own permission
+  // (wh.qty / mt.qty). Without it the field shows the current figure and
+  // refuses to change it.
+  canAdjustQuantity?: boolean;
 };
 
 export default function ItemForm({
@@ -41,6 +46,7 @@ export default function ItemForm({
   onSubmitted,
   formId,
   onSubmittingChange,
+  canAdjustQuantity = true,
 }: Props) {
   const entityLocale = useEntityLocale();
   // No code field: the server assigns WH-/MN- codes from a sequence on
@@ -195,9 +201,20 @@ export default function ItemForm({
             <div className="field">
               <label>
                 {mode === "create" ? dict.initialQuantityLabel : dict.columnQuantity}{" "}
-                {mode === "edit" && <span className="panel-note">{dict.quantityManualHint}</span>}
+                {mode === "edit" && canAdjustQuantity && <span className="panel-note">{dict.quantityManualHint}</span>}
               </label>
-              <input type="number" min={0} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+              <input
+                type="number"
+                min={0}
+                value={quantity}
+                // An edit without the permission still shows the count -- it
+                // is part of the item -- but cannot change it. Creating an
+                // item sets its opening balance, which is a different act.
+                readOnly={mode === "edit" && !canAdjustQuantity}
+                disabled={mode === "edit" && !canAdjustQuantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                required
+              />
             </div>
             <div className="field">
               <label>{dict.minQuantityLabel}</label>
