@@ -254,9 +254,12 @@ export default function RequestList({
     return notices;
   }
 
-  // A line whose approved quantity no action row accounts for. Still shown,
-  // unattributed, so the card can never display a quantity that silently
-  // disagrees with what the requester submitted.
+  // A line whose approved quantity no action row accounts for: requests
+  // decided before V109 created need_request_action_line carry the trimmed
+  // quantity but no record of who trimmed it. Shown unattributed rather than
+  // hidden, so the card never displays a quantity that silently disagrees
+  // with what the requester submitted. Not a fallback for a write that might
+  // fail -- verified 2026-08-15 that the edit rows do persist.
   function unattributedEdits(request: NeedRequestListItem) {
     const accountedFor = new Set(
       request.actions.flatMap((action) => (action.lineEdits ?? []).map((edit) => edit.lineId))
