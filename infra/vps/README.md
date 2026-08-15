@@ -228,6 +228,49 @@ Leave the Supabase buckets untouched for a couple of weeks. They cost nothing
 and they are the rollback: putting the old values back in `.env` and reversing
 the `replace()` restores the previous state exactly.
 
+## 9. Get the backups off this machine
+
+Do this in the same sitting as step 8, because step 8 is what creates the
+problem: with storage on MinIO, the database dumps `BackupService` writes and
+every attachment file both live on **this disk**, next to the database they
+exist to protect. That covers a dropped table or a bad migration. It does not
+cover the disk, the machine, or a mistyped `docker compose down -v`.
+
+Nothing ever backed up the attachment files, on Supabase either — this closes
+both gaps at once.
+
+Fill the `OFFSITE_*` values in `.env` (the old Supabase project is a fine
+target — it is off this server, which is the whole requirement), then:
+
+```bash
+chmod +x offsite-backup.sh && ./offsite-backup.sh
+```
+
+Once it works, schedule it nightly, an hour after the app's own 02:00 UTC
+database backup so it has something fresh to copy:
+
+```bash
+(crontab -l 2>/dev/null; echo "0 3 * * * $PWD/offsite-backup.sh >> /var/log/sijill-offsite.log 2>&1") | crontab -
+```
+
+The script never passes `--remove`: a file deleted here should not disappear
+from the copy that exists to survive mistakes made here.
+
+**A backup you have not restored is not a backup.** Once a month, restore the
+newest dump into a scratch database and count some rows:
+
+```bash
+docker compose exec postgres createdb -U sijill restore_test
+```
+
+```bash
+docker compose exec postgres psql -U sijill -d restore_test -c "select count(*) from need_request;"
+```
+
+```bash
+docker compose exec postgres dropdb -U sijill restore_test
+```
+
 ## Afterwards
 
 - `docker compose ps` — what is running
