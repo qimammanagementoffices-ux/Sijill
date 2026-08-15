@@ -230,6 +230,7 @@ public class NeedRequestService {
         }
 
         NeedRequest needRequest = new NeedRequest();
+        needRequest.setRequestNumber(needRequestRepository.nextRequestNumber());
         needRequest.setRequester(requester);
         needRequest.setDepartment(resolveRequesterDepartment(request.departmentId(), requester));
         needRequest.setCategory(resolveCategory(request.categoryId()));

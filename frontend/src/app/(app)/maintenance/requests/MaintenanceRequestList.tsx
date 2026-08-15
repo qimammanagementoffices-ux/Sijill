@@ -371,6 +371,7 @@ export default function MaintenanceRequestList({
                 </header>
 
                 <div className="request-card-meta">
+                  <span className="chip chip-sm">MT-{String(request.requestNumber).padStart(4, "0")}</span>
                   <span>{request.requesterName}</span>
                   {request.department && <span>{request.department.ar}</span>}
                   {request.location && <span>{request.location}</span>}
@@ -548,7 +549,7 @@ export default function MaintenanceRequestList({
               <div className="print-pages"><LegacyRequestForm
                 title={["نموذج بلاغ صيانة", "Maintenance Ticket Form", "रखरखाव शिकायत फ़ॉर्म"]}
                 subtitle={[viewRequest.faultType?.ar ?? "—", viewRequest.faultType?.en ?? "—", "—"]}
-                documentNumber={`MT-${viewRequest.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`}
+                documentNumber={`MT-${String(viewRequest.requestNumber).padStart(4, "0")}`}
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}

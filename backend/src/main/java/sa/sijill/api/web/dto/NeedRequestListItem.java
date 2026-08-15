@@ -17,6 +17,7 @@ import sa.sijill.api.service.NeedRequestService;
 // no query.
 public record NeedRequestListItem(
         UUID id,
+        long requestNumber,
         UUID requesterId,
         String requesterName,
         // For the printed form's "المسمى الوظيفي" cell, which had no source
@@ -55,6 +56,7 @@ public record NeedRequestListItem(
 
         return new NeedRequestListItem(
                 request.getId(),
+                request.getRequestNumber(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
                 request.getRequester().getJobTitle() == null

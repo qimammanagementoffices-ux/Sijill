@@ -12,6 +12,9 @@ import sa.sijill.api.domain.NeedRequestStatus;
 
 public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> {
 
+    @Query(value = "select nextval('need_request_number_seq')", nativeQuery = true)
+    long nextRequestNumber();
+
     /**
      * Asking for PENDING also returns postponed requests whose date has
      * arrived — resurfacing is a query condition, not a scheduled job, so the

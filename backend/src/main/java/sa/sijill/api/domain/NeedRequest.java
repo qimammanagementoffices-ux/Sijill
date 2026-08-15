@@ -21,6 +21,9 @@ public class NeedRequest {
     @GeneratedValue
     private UUID id;
 
+    @Column(name = "request_number", nullable = false, unique = true)
+    private Long requestNumber;
+
     // EAGER on all three: see Employee.jobTitle for why (DTO mapping for
     // list/detail happens in the controller after the transaction closes).
     @ManyToOne(fetch = FetchType.EAGER)

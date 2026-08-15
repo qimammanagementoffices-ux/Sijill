@@ -12,6 +12,9 @@ import sa.sijill.api.domain.AssetRequestStatus;
 
 public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID> {
 
+    @Query(value = "select nextval('asset_request_number_seq')", nativeQuery = true)
+    long nextRequestNumber();
+
     @Query("""
             select r from AssetRequest r
             left join r.asset legacyAsset

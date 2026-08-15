@@ -3429,6 +3429,11 @@ body.lang-en .modal-head h3 {
   body:has(.request-view-modal .print-page) .request-directory-panel {
     display: none !important;
   }
+  /* The request form owns its legacy header. Hide the list report header
+     behind the modal so only one school masthead reaches the printout. */
+  body:has(.request-view-modal .print-page) .print-only {
+    display: none !important;
+  }
   .overlay:has(.print-page) {
     position: static !important;
     background: none !important;

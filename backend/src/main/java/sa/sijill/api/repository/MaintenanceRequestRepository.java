@@ -13,6 +13,9 @@ import sa.sijill.api.domain.MaintenanceRequestStatus;
 
 public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceRequest, UUID> {
 
+    @Query(value = "select nextval('maintenance_request_number_seq')", nativeQuery = true)
+    long nextRequestNumber();
+
     /** Asking for PENDING also returns postponed requests whose date has arrived. */
     @Query("""
             select r from MaintenanceRequest r

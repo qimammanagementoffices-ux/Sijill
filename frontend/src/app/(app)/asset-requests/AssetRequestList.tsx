@@ -344,7 +344,7 @@ export default function AssetRequestList({
                   <h3 className="request-card-title">{purposeLabel(request.purpose)} — {request.assetNameAr}</h3>
                   <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && request.postponedUntil && <time>{request.postponedUntil}</time>}</span>
                 </header>
-                <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
+                <div className="request-card-meta"><span className="chip chip-sm">AS-{String(request.requestNumber).padStart(4, "0")}</span><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
                 {/* The reason moved into the submission entry below: it is
                     something the requester said when they raised this, not a
                     loose fact about the request. */}
@@ -503,7 +503,7 @@ export default function AssetRequestList({
               <div className="print-pages"><LegacyRequestForm
                 title={["نموذج طلب أصل", "Asset Request Form", "संपत्ति अनुरोध फ़ॉर्म"]}
                 subtitle={[viewRequest.assetNameAr, viewRequest.assetNameEn, "—"]}
-                documentNumber={`AS-${viewRequest.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`}
+                documentNumber={`AS-${String(viewRequest.requestNumber).padStart(4, "0")}`}
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}

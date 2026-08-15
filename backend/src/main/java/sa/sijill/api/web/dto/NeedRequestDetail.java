@@ -10,6 +10,7 @@ import sa.sijill.api.service.NeedRequestService;
 
 public record NeedRequestDetail(
         UUID id,
+        long requestNumber,
         UUID requesterId,
         String requesterName,
         LocalizedRef department,
@@ -30,6 +31,7 @@ public record NeedRequestDetail(
     public static NeedRequestDetail from(NeedRequest request, Employee actor) {
         return new NeedRequestDetail(
                 request.getId(),
+                request.getRequestNumber(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
                 request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment()),

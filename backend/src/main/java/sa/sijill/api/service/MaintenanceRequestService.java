@@ -123,6 +123,7 @@ public class MaintenanceRequestService {
         }
 
         MaintenanceRequest maintenanceRequest = new MaintenanceRequest();
+        maintenanceRequest.setRequestNumber(maintenanceRequestRepository.nextRequestNumber());
         maintenanceRequest.setRequester(requester);
         maintenanceRequest.setDepartment(resolveRequesterDepartment(request.departmentId(), requester));
         maintenanceRequest.setFaultType(resolveFaultType(request.faultTypeId()));

@@ -23,6 +23,9 @@ public class AssetRequest {
     @GeneratedValue
     private UUID id;
 
+    @Column(name = "request_number", nullable = false, unique = true)
+    private Long requestNumber;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "requester_employee_id")
     private Employee requester;

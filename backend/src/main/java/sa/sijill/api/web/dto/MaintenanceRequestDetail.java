@@ -9,6 +9,7 @@ import sa.sijill.api.service.MaintenanceRequestService;
 
 public record MaintenanceRequestDetail(
         UUID id,
+        long requestNumber,
         UUID requesterId,
         String requesterName,
         LocalizedRef department,
@@ -28,6 +29,7 @@ public record MaintenanceRequestDetail(
     public static MaintenanceRequestDetail from(MaintenanceRequest request) {
         return new MaintenanceRequestDetail(
                 request.getId(),
+                request.getRequestNumber(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
                 request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment()),

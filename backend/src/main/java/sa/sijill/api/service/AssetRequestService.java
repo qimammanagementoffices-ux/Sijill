@@ -141,6 +141,7 @@ public class AssetRequestService {
                 .orElseThrow(() -> ApiException.validation("Asset not found", Map.of("assetId", "does not exist")));
 
         AssetRequest assetRequest = new AssetRequest();
+        assetRequest.setRequestNumber(assetRequestRepository.nextRequestNumber());
         assetRequest.setRequester(requester);
         assetRequest.setAsset(asset);
         assetRequest.setReason(request.reason());
@@ -155,6 +156,7 @@ public class AssetRequestService {
 
     private AssetRequest submitLegacyStyle(SubmitAssetRequestRequest request, Employee requester) {
         AssetRequest assetRequest = new AssetRequest();
+        assetRequest.setRequestNumber(assetRequestRepository.nextRequestNumber());
         assetRequest.setRequester(requester);
         assetRequest.setStatus(AssetRequestStatus.PENDING);
         assetRequest.setSuggestedStartDate(suggestedStartDateCalculator.from(LocalDate.now()));

@@ -211,6 +211,7 @@ export type NeedRequestStatusValue =
 
 export type NeedRequestListItem = {
   id: string;
+  requestNumber: number;
   requesterId: string;
   requesterName: string;
   requesterJobTitle: string | null;
@@ -234,6 +235,7 @@ export type NeedRequestListItem = {
 
 export type NeedRequestDetail = {
   id: string;
+  requestNumber: number;
   requesterId: string;
   requesterName: string;
   department: LocalizedRef | null;
@@ -300,6 +302,7 @@ export type MaintenanceRequestActionDto = {
 
 export type MaintenanceRequestListItem = {
   id: string;
+  requestNumber: number;
   requesterId: string;
   requesterName: string;
   department: LocalizedRef | null;
@@ -318,6 +321,7 @@ export type MaintenanceRequestListItem = {
 
 export type MaintenanceRequestDetail = {
   id: string;
+  requestNumber: number;
   requesterId: string;
   requesterName: string;
   department: LocalizedRef | null;
@@ -436,6 +440,7 @@ export type AssetRequestLineDto = {
 
 export type AssetRequestListItem = AssetRequestEditFields & {
   id: string;
+  requestNumber: number;
   requesterId: string;
   requesterName: string;
   assetNumber: string;
@@ -544,6 +549,7 @@ export type OfficialHolidayDto = {
 
 export type AssetRequestDetail = {
   id: string;
+  requestNumber: number;
   requesterId: string;
   requesterName: string;
   assetId: string | null;

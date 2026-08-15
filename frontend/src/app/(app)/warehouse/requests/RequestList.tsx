@@ -503,6 +503,7 @@ export default function RequestList({
                 </header>
 
                 <div className="request-card-meta">
+                  <span className="chip chip-sm">NR-{String(request.requestNumber).padStart(4, "0")}</span>
                   <span>{request.requesterName}</span>
                   {request.department && <span>{request.department.ar}</span>}
                   {formatCardDate(request.actions.find((entry) => entry.action === "SUBMIT")?.createdAt, locale) && (
@@ -769,7 +770,7 @@ export default function RequestList({
               <div className="print-pages"><LegacyRequestForm
                 title={["نموذج طلب احتياج", "Need Request Form", "आवश्यकता अनुरोध फ़ॉर्म"]}
                 subtitle={[viewRequest.category?.ar ?? "—", viewRequest.category?.en ?? "—", "—"]}
-                documentNumber={`NR-${viewRequest.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`}
+                documentNumber={`NR-${String(viewRequest.requestNumber).padStart(4, "0")}`}
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}

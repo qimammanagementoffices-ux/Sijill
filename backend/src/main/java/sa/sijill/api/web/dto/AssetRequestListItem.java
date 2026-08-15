@@ -9,6 +9,7 @@ import sa.sijill.api.service.AssetRequestService;
 
 public record AssetRequestListItem(
         UUID id,
+        long requestNumber,
         UUID requesterId,
         String requesterName,
         String assetNumber,
@@ -70,6 +71,7 @@ public record AssetRequestListItem(
         }
         return new AssetRequestListItem(
                 request.getId(),
+                request.getRequestNumber(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
                 assetNumber.isBlank() ? "—" : assetNumber,
