@@ -14,6 +14,7 @@ export default function RequestDecisionDialog({
   requireComment,
   needsDate,
   lines,
+  canEditLines = true,
   submitting,
   dict,
   commonDict,
@@ -27,6 +28,10 @@ export default function RequestDecisionDialog({
   // Passing lines turns on the line editor. Approvers may trim quantities or
   // drop lines, as long as one line with a positive quantity survives.
   lines?: NeedRequestLineDto[];
+  // Without wh.act.edit.lines the lines still show — an approver should see
+  // what they are agreeing to — but nothing about them can be changed. The
+  // server enforces it too; this only keeps the UI honest about it.
+  canEditLines?: boolean;
   submitting: boolean;
   dict: Dictionary["requestModals"];
   commonDict: Dictionary["common"];
@@ -132,20 +137,23 @@ export default function RequestDecisionDialog({
                         min={1}
                         max={line.quantityRequested}
                         value={edit.quantity}
-                        disabled={edit.removed}
+                        readOnly={!canEditLines}
+                        disabled={edit.removed || !canEditLines}
                         onChange={(event) =>
                           setLine(line.id, {
                             quantity: Math.min(line.quantityRequested, Math.max(0, Number(event.target.value))),
                           })
                         }
                       />
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
-                        onClick={() => setLine(line.id, { removed: !edit.removed })}
-                      >
-                        {edit.removed ? dict.restoreLine : dict.removeLine}
-                      </button>
+                      {canEditLines && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setLine(line.id, { removed: !edit.removed })}
+                        >
+                          {edit.removed ? dict.restoreLine : dict.removeLine}
+                        </button>
+                      )}
                     </li>
                   );
                 })}

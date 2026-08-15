@@ -38,6 +38,7 @@ import sa.sijill.api.web.dto.RequestDecisionRequest;
 public class NeedRequestService {
 
     private static final int EDIT_WINDOW_MINUTES = 60;
+    private static final String EDIT_LINES_PERMISSION = "wh.act.edit.lines";
     private static final ZoneId SCHOOL_TIME_ZONE = ZoneId.of("Asia/Riyadh");
 
     private final NeedRequestRepository needRequestRepository;
@@ -130,6 +131,17 @@ public class NeedRequestService {
             return Instant.now().isBefore(editableUntil(request));
         }
         return actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals);
+    }
+
+    /**
+     * Trimming or dropping a line changes what the requester asked for, which
+     * is a separate act from agreeing to it — so it is a separate permission.
+     * Everyone who can decide still sees the lines; only a holder of this may
+     * alter them.
+     */
+    public static boolean canEditLines(Employee actor) {
+        return actor != null
+                && actor.getPermissions().stream().map(Permission::getKey).anyMatch(EDIT_LINES_PERMISSION::equals);
     }
 
     public static Instant editableUntil(NeedRequest request) {
@@ -230,7 +242,7 @@ public class NeedRequestService {
         requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
 
         NeedRequestAction action = addAction(request, actor, "APPROVE", comment(decision));
-        applyLineEdits(request, action, decision);
+        applyLineEdits(request, action, decision, actor);
         request.setStatus(NeedRequestStatus.APPROVED_UNDER_REVIEW);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
@@ -272,7 +284,7 @@ public class NeedRequestService {
         NeedRequestAction action =
                 addAction(request, actor, approving ? "COUNTERSIGN_APPROVE" : "COUNTERSIGN_REJECT", comment(decision));
         if (approving) {
-            applyLineEdits(request, action, decision);
+            applyLineEdits(request, action, decision, actor);
         }
         request.setStatus(approving ? NeedRequestStatus.APPROVED : NeedRequestStatus.REJECTED);
         return save(request, actor, approving ? "NEED_REQUEST_COUNTERSIGNED" : "NEED_REQUEST_REJECTION_CONFIRMED");
@@ -305,7 +317,7 @@ public class NeedRequestService {
             }
             case APPROVE -> {
                 NeedRequestAction action = addAction(request, actor, "OVERTURN_APPROVE", comment(decision));
-                applyLineEdits(request, action, decision);
+                applyLineEdits(request, action, decision, actor);
                 request.setStatus(NeedRequestStatus.APPROVED);
                 request.setPostponedUntil(null);
             }
@@ -504,7 +516,8 @@ public class NeedRequestService {
      * is recorded on the action that made it, so a first-level trim and a
      * later counter-sign trim stay separately attributable.
      */
-    private void applyLineEdits(NeedRequest request, NeedRequestAction action, RequestDecisionRequest decision) {
+    private void applyLineEdits(
+            NeedRequest request, NeedRequestAction action, RequestDecisionRequest decision, Employee actor) {
         if (decision == null) return;
         Map<UUID, NeedRequestLine> byId = new HashMap<>();
         for (NeedRequestLine line : request.getLines()) {
@@ -519,6 +532,13 @@ public class NeedRequestService {
             if (line.isRemoved()) continue;
 
             int before = line.effectiveQuantity();
+            // Checked here rather than on the whole payload: a decision that
+            // sends the lines back unchanged is not an edit, and refusing it
+            // would block approving from anyone without this permission.
+            boolean changesSomething = edit.removed() || (edit.quantity() != null && edit.quantity() != before);
+            if (changesSomething && !canEditLines(actor)) {
+                throw RequestWorkflowErrors.lineEditNotPermitted();
+            }
             if (edit.removed()) {
                 line.setRemoved(true);
                 recordLineEdit(action, line, before, null, true);

@@ -721,6 +721,7 @@ export default function RequestList({
           requireComment={REQUIRES_REASON.includes(decision.kind)}
           needsDate={decision.kind === "postpone" || decision.kind === "overturn-postpone"}
           lines={editableLines(decision.kind, decision.request)}
+          canEditLines={permissions.includes("wh.act.edit.lines")}
           submitting={busyAction !== null}
           dict={modalsDict}
           commonDict={commonDict}

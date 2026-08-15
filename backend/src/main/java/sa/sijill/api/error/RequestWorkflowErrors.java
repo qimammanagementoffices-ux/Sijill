@@ -109,6 +109,13 @@ public final class RequestWorkflowErrors {
                 Map.of("quantity", "must be > 0"));
     }
 
+    public static ApiException lineEditNotPermitted() {
+        return validation(
+                "LINE_EDIT_NOT_PERMITTED",
+                "Changing requested quantities requires its own permission",
+                Map.of("lines", "requires wh.act.edit.lines"));
+    }
+
     public static ApiException quantityAboveRequested() {
         return validation(
                 "QUANTITY_ABOVE_REQUESTED",
