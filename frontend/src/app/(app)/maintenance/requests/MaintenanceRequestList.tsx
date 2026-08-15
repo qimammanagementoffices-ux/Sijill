@@ -387,7 +387,11 @@ export default function MaintenanceRequestList({
                 {request.returnedBySenior && <p className="request-card-notice">{cardDict.returnedBySenior}</p>}
                 {request.archivedAt && <p className="request-card-notice">{cardDict.archivedNote}</p>}
 
-                {request.suggestedStartDate && request.status !== "POSTPONED" && (
+                {/* Only while the request is still waiting: once it is
+                    approved, refused or postponed, a date predicting when work
+                    would start describes a future that has already been
+                    decided. */}
+                {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
                   <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
                 )}
 

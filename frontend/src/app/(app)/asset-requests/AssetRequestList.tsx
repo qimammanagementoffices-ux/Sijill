@@ -343,7 +343,11 @@ export default function AssetRequestList({
                 </header>
                 <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
                 {request.reason && <p className="request-card-notes">{request.reason}</p>}
-                {request.suggestedStartDate && <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />}
+                {/* Only while the request is still waiting -- see the same
+                    guard on the warehouse and maintenance cards. */}
+                {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
+                  <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
+                )}
                 <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle}
                   systemActorLabel={cardDict.systemActor} attachmentsDict={attachmentsDict} />
                 <div className="request-card-actions">
