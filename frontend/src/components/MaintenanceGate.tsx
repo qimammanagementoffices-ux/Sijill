@@ -61,9 +61,18 @@ export default function MaintenanceGate({
     return <>{children}</>;
   }
   if (!bypassChecked) {
-    // Brief window while the bypass check is in flight — show the
-    // maintenance page rather than a flash of protected content.
-    return <MaintenancePage status={status} dict={dict} />;
+    // The bypass check is in flight, so neither answer is known yet. Showing
+    // the maintenance page here claimed the site was down to an admin who
+    // could see it perfectly well a moment later -- a visible flash on every
+    // reload. A spinner withholds the protected content just as effectively
+    // without asserting something untrue.
+    return (
+      <div className="maintenance-gate-checking">
+        {/* spinner-lg, not spinner: the base one is white, for use inside a
+            filled button, and is invisible on the page's own surface. */}
+        <span className="spinner spinner-lg" />
+      </div>
+    );
   }
   return canBypass ? <>{children}</> : <MaintenancePage status={status} dict={dict} />;
 }

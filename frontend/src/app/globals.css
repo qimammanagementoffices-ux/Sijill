@@ -558,6 +558,15 @@ body.lang-en .section-title {
   border-color: rgba(27, 42, 74, 0.25);
   border-top-color: var(--seal);
 }
+/* Shown while the maintenance bypass check is in flight — holds the page
+   without claiming the site is down. */
+.maintenance-gate-checking {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  background: var(--paper);
+}
+
 .spinner-lg {
   width: 32px;
   height: 32px;
