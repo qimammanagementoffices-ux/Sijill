@@ -52,6 +52,8 @@ export default function ItemPicker({
           setQuery("");
           setOpen(true);
         }}
+        // Still needed for clicking away or tabbing out; the options prevent
+        // their own mousedown, so this no longer races the selection.
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -71,6 +73,11 @@ export default function ItemPicker({
                 type="button"
                 role="option"
                 aria-selected={item.id === value}
+                // The input's blur closes this list, and blur fires on
+                // mousedown -- before the click ever lands. Preventing the
+                // default keeps focus on the input so the click arrives at a
+                // button that still exists.
+                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(item)}
               >
                 <span className="item-picker-thumb">

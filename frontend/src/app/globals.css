@@ -3597,6 +3597,16 @@ body.lang-en .modal-head h3 {
 }
 /* The expired notice stays on the card rather than vanishing: a control that
    silently disappears reads as a bug. */
+/* The edit button lives inside the note that explains the deadline, so the
+   two always appear and disappear together. */
+.edit-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .edit-note.expired {
   background: var(--slate-soft);
   color: var(--slate);

@@ -10,6 +10,7 @@ import type {
   LocalizedEntityDto,
   LocalizedRef,
   NeedRequestDetail,
+  NeedRequestListItem,
   PagedResponse,
   RoomDto,
 } from "@/lib/types";
@@ -29,6 +30,7 @@ export default function NewRequestView({
   onSubmitted,
   onSubmittingChange,
   onCancel,
+  editing,
 }: {
   dict: Dictionary["warehouseRequests"];
   commonDict: Dictionary["common"];
@@ -36,6 +38,10 @@ export default function NewRequestView({
   onSubmitted: (request: NeedRequestDetail) => void;
   onSubmittingChange?: (submitting: boolean) => void;
   onCancel?: () => void;
+  // The requester correcting their own request inside the edit window. Same
+  // form, PUT instead of POST -- a second, near-identical form would drift
+  // from this one the first time either changed.
+  editing?: NeedRequestListItem;
 }) {
   const [me, setMe] = useState<MeData | null>(null);
   const entityLocale = useEntityLocale();
@@ -46,13 +52,22 @@ export default function NewRequestView({
   const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
 
   const [step, setStep] = useState(1);
-  const [departmentId, setDepartmentId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [departmentId, setDepartmentId] = useState(editing?.department?.id ?? "");
+  const [categoryId, setCategoryId] = useState(editing?.category?.id ?? "");
   const [roomId, setRoomId] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(editing?.notes ?? "");
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
-  const [lines, setLines] = useState<LineDraft[]>([{ inventoryItemId: "", quantityRequested: "1" }]);
+  const [lines, setLines] = useState<LineDraft[]>(
+    editing && editing.lines.length > 0
+      ? editing.lines
+          .filter((line) => !line.removed)
+          .map((line) => ({
+            inventoryItemId: line.inventoryItemId,
+            quantityRequested: String(line.quantityRequested),
+          }))
+      : [{ inventoryItemId: "", quantityRequested: "1" }]
+  );
   // Attachments can only be uploaded once the request exists (the upload
   // endpoint needs an ownerId), so step 3 queues Files in memory and posts
   // them right after the create call returns an id.
@@ -121,8 +136,10 @@ export default function NewRequestView({
     }
     setSubmitting(true);
     try {
-      const created = await apiFetch<NeedRequestDetail>("/warehouse/requests", {
-        method: "POST",
+      const created = await apiFetch<NeedRequestDetail>(
+        editing ? `/warehouse/requests/${editing.id}` : "/warehouse/requests",
+        {
+        method: editing ? "PUT" : "POST",
         body: JSON.stringify({
           departmentId: departmentId || null,
           categoryId: categoryId || null,
@@ -135,7 +152,8 @@ export default function NewRequestView({
                 quantityRequested: Number(l.quantityRequested),
               })),
         }),
-      });
+        }
+      );
 
       // The request is already saved at this point -- a failed upload must
       // not look like a failed submit, so surface it and still close out.

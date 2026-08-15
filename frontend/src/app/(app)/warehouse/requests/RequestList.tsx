@@ -148,6 +148,7 @@ export default function RequestList({
   const [decision, setDecision] = useState<{ request: NeedRequestListItem; kind: DecisionKind } | null>(null);
   const [delivering, setDelivering] = useState<NeedRequestListItem | null>(null);
   const [viewRequest, setViewRequest] = useState<NeedRequestListItem | null>(null);
+  const [editRequest, setEditRequest] = useState<NeedRequestListItem | null>(null);
   const [archived, setArchived] = useState(false);
 
   function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
@@ -544,13 +545,21 @@ export default function RequestList({
                   <p key={index} className="request-card-notice">{notice}</p>
                 ))}
 
+                {/* The window and the button appear and disappear together.
+                    Once it closes there is nothing to say: a note explaining
+                    that editing is no longer possible is only useful to
+                    someone looking for a button that is already gone. */}
                 {request.canEdit && (
                   <p className="edit-note">
                     {cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setEditRequest(request)}
+                    >
+                      {actionsDict.edit}
+                    </button>
                   </p>
-                )}
-                {!request.canEdit && request.status === "PENDING" && request.requesterId === currentEmployeeId && (
-                  <p className="edit-note expired">{cardDict.editNoteExpired}</p>
                 )}
                 {request.status === "POSTPONED" && request.postponedUntil && (
                   <p className="request-card-notice">
@@ -690,6 +699,36 @@ export default function RequestList({
                 onSubmitted={handleAdded}
                 onSubmittingChange={setAddSubmitting}
                 onCancel={() => setShowAddModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Same form, loaded with the request. The server re-checks the edit
+          window, so a card left open past the hour cannot save. */}
+      {editRequest && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{actionsDict.edit}</h3>
+              <button type="button" className="modal-close" onClick={() => setEditRequest(null)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <NewRequestView
+                key={editRequest.id}
+                dict={dict}
+                commonDict={commonDict}
+                errorsDict={errorsDict}
+                editing={editRequest}
+                onSubmitted={() => {
+                  setEditRequest(null);
+                  load();
+                  setToast(commonDict.actionSuccess);
+                }}
+                onCancel={() => setEditRequest(null)}
               />
             </div>
           </div>
