@@ -49,7 +49,12 @@ openssl rand -base64 48
 ## 4. Move the data
 
 Get the **External Database URL** from the Render dashboard (`sijill-postgres`
-→ Connections). Then, from `infra/vps`:
+→ Connections). Then, from `infra/vps`, load the settings into your shell —
+the restore command below reads them, and a fresh session does not have them:
+
+```bash
+set -a; . ./.env; set +a
+```
 
 ```bash
 docker compose up -d postgres
