@@ -1,0 +1,30 @@
+# Caddy obtains and renews the TLS certificate on its own; there is nothing to
+# configure for HTTPS beyond pointing the domain at this server first.
+
+{$SIJILL_DOMAIN} {
+	encode zstd gzip
+
+	# The API under the same origin as the site. This is what removes CORS
+	# from the picture entirely -- no preflight, and a stalled response can
+	# no longer disguise itself as a CORS failure in the browser console.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	# Attachments and PDF uploads: the app's own limit is 2MB per file, so
+	# this only stops something pathological from reaching the JVM.
+	request_body {
+		max_size 20MB
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+	}
+}

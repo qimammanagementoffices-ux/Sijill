@@ -1,0 +1,109 @@
+# Production stack for a single VPS: Postgres, the API, the frontend, and
+# Caddy terminating TLS in front of both.
+#
+# Caddy serves the API and the site from ONE origin (/api/* to the API,
+# everything else to Next.js). That is not cosmetic: on Render they were two
+# origins, which is why every stalled response showed up in the browser as a
+# CORS error. Same origin, no preflight, no CORS.
+#
+# Run from this directory:  docker compose up -d --build
+
+name: sijill
+
+services:
+  postgres:
+    # 18 to match Render's server version -- pg_restore refuses a dump made by
+    # a newer pg_dump than the target, and the old database reports 18.4.
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${PGDATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    # Deliberately no `ports:` -- the database is reachable from the other
+    # containers and from nothing else. Use `docker compose exec postgres psql`
+    # rather than opening 5432 to the internet.
+
+  api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${PGDATABASE}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      PORT: "8080"
+      SPRING_PROFILES_ACTIVE: production
+      FRONTEND_ORIGIN: https://${SIJILL_DOMAIN}
+      JWT_SIGNING_SECRET: ${JWT_SIGNING_SECRET}
+      JWT_ACCESS_TOKEN_EXPIRY_MINUTES: "60"
+      # Object storage stays on Supabase: the attachment URLs already stored in
+      # the database point there, so moving buckets would mean rewriting them.
+      OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET}
+      OBJECT_STORAGE_BACKUP_BUCKET: ${OBJECT_STORAGE_BACKUP_BUCKET}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY}
+      OBJECT_STORAGE_PUBLIC_URL_BASE: ${OBJECT_STORAGE_PUBLIC_URL_BASE}
+      TRANSLATION_HELPER_ENABLED: ${TRANSLATION_HELPER_ENABLED:-false}
+      TRANSLATION_PROVIDER: ${TRANSLATION_PROVIDER:-anthropic}
+      TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      # Generous: the JVM starts in well under a minute here, but a start
+      # period that is too tight is what turned a slow boot into a restart
+      # loop on the old host.
+      start_period: 120s
+      retries: 3
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        # Same origin as the site itself -- see the Caddy note above.
+        NEXT_PUBLIC_API_URL: https://${SIJILL_DOMAIN}/api/v1
+        NEXT_PUBLIC_QR_BASE_URL: https://${SIJILL_DOMAIN}/public/assets
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SIJILL_DOMAIN: ${SIJILL_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live here. Losing this volume means re-issuing them, and
+      # Let's Encrypt rate-limits that.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - frontend
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
