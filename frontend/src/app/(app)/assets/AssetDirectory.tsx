@@ -12,6 +12,7 @@ import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetView from "@/components/NewAssetView";
+import Lightbox from "@/components/Lightbox";
 import Toast from "@/components/Toast";
 import CategoriesModal from "@/components/CategoriesModal";
 import AssetViewModal from "@/components/AssetViewModal";
@@ -66,6 +67,7 @@ export default function AssetDirectory({
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [viewAssetId, setViewAssetId] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
   const [editAssetId, setEditAssetId] = useState<string | null>(null);
 
   function queryString(pageNumber: number, query: string, categoryId: string, roomId: string, status: string, sortBy: Sort, perPage: number) {
@@ -258,14 +260,22 @@ export default function AssetDirectory({
                 {assets.map((asset) => (
                   <tr key={asset.id} className="clickable" onClick={() => setViewAssetId(asset.id)}>
                     <td>
+                      {/* stopPropagation: the row opens the asset card, and a
+                          click on the picture means "show me this image", not
+                          "open the card behind it" -- same as the warehouse
+                          table. */}
                       {asset.thumbnailUrl ? (
                         <img
                           src={asset.thumbnailUrl}
                           alt=""
-                          style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6, display: "block" }}
+                          className="row-thumb"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightbox({ url: asset.thumbnailUrl as string, filename: asset.nameAr });
+                          }}
                         />
                       ) : (
-                        <span style={{ display: "inline-block", width: 40, height: 40, borderRadius: 6, background: "var(--paper-dim)" }} />
+                        <span className="row-thumb row-thumb-empty" />
                       )}
                     </td>
                     <td className="mono">
@@ -375,6 +385,17 @@ export default function AssetDirectory({
             load(0);
             setToast(commonDict.actionSuccess);
           }}
+        />
+      )}
+
+      {lightbox && (
+        <Lightbox
+          url={lightbox.url}
+          filename={lightbox.filename}
+          title={attachmentsDict.viewImage}
+          downloadLabel={attachmentsDict.download}
+          closeLabel={commonDict.cancel}
+          onClose={() => setLightbox(null)}
         />
       )}
 
