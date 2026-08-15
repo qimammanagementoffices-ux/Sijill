@@ -78,6 +78,7 @@ export type Dictionary = {
     brandingNav: string;
     backupsNav: string;
     siteMaintenanceNav: string;
+    reviewPolicyNav: string;
     officialHolidaysNav: string;
     languagesNav: string;
     permissionsOverviewNav: string;
@@ -185,6 +186,14 @@ export type Dictionary = {
   permissionsOverview: {
     title: string;
     nav: string;
+  };
+  reviewPolicy: {
+    title: string;
+    description: string;
+    warehouse: string;
+    maintenance: string;
+    asset: string;
+    openRequestsNote: string;
   };
   warehouseItems: {
     title: string;

@@ -48,6 +48,7 @@ public class NeedRequestService {
     private final RoomRepository roomRepository;
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
+    private final ReviewPolicyService reviewPolicyService;
 
     public NeedRequestService(
             NeedRequestRepository needRequestRepository,
@@ -56,7 +57,8 @@ public class NeedRequestService {
             InventoryItemRepository inventoryItemRepository,
             RoomRepository roomRepository,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
-            AuditService auditService) {
+            AuditService auditService,
+            ReviewPolicyService reviewPolicyService) {
         this.needRequestRepository = needRequestRepository;
         this.departmentRepository = departmentRepository;
         this.categoryRepository = categoryRepository;
@@ -64,6 +66,7 @@ public class NeedRequestService {
         this.roomRepository = roomRepository;
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
+        this.reviewPolicyService = reviewPolicyService;
     }
 
     @Transactional
@@ -243,7 +246,13 @@ public class NeedRequestService {
 
         NeedRequestAction action = addAction(request, actor, "APPROVE", comment(decision));
         applyLineEdits(request, action, decision, actor);
-        request.setStatus(NeedRequestStatus.APPROVED_UNDER_REVIEW);
+        // One level or two, per the school's setting for this system. With one
+        // level the decision settles the request outright; with two it parks
+        // until a different official counter-signs.
+        request.setStatus(
+                reviewPolicyService.warehouseTwoLevel()
+                        ? NeedRequestStatus.APPROVED_UNDER_REVIEW
+                        : NeedRequestStatus.APPROVED);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
         return save(request, actor, "NEED_REQUEST_APPROVED");
@@ -257,7 +266,10 @@ public class NeedRequestService {
         requireReason(decision);
 
         addAction(request, actor, "REJECT", comment(decision));
-        request.setStatus(NeedRequestStatus.REJECTED_UNDER_REVIEW);
+        request.setStatus(
+                reviewPolicyService.warehouseTwoLevel()
+                        ? NeedRequestStatus.REJECTED_UNDER_REVIEW
+                        : NeedRequestStatus.REJECTED);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
         return save(request, actor, "NEED_REQUEST_REJECTED");

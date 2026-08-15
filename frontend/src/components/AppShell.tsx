@@ -233,6 +233,9 @@ export default function AppShell({
     ...(canManageBackups ? [{ href: "/admin/backups", label: dict.backupsNav }] : []),
     ...(canManageSiteMaintenance ? [{ href: "/admin/official-holidays", label: officialHolidaysLabel }] : []),
     ...(canManageSiteMaintenance ? [{ href: "/admin/site-maintenance", label: dict.siteMaintenanceNav }] : []),
+    ...(employee.permissions.includes("sys.review.policy")
+      ? [{ href: "/admin/review-policy", label: dict.reviewPolicyNav }]
+      : []),
   ];
 
   // Pick the single longest href that matches the current path (e.g. on

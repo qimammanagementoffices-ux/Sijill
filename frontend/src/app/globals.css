@@ -558,6 +558,34 @@ body.lang-en .section-title {
   border-color: rgba(27, 42, 74, 0.25);
   border-top-color: var(--seal);
 }
+.review-policy-list {
+  margin: 14px 0 18px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.review-policy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-dim);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-policy-row input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  cursor: pointer;
+}
+
 /* Shown while the maintenance bypass check is in flight — holds the page
    without claiming the site is down. */
 .maintenance-gate-checking {

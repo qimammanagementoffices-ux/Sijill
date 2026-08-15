@@ -39,6 +39,7 @@ public class AssetRequestService {
     private final AssetTransferService assetTransferService;
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
+    private final ReviewPolicyService reviewPolicyService;
 
     public AssetRequestService(
             AssetRequestRepository assetRequestRepository,
@@ -48,7 +49,8 @@ public class AssetRequestService {
             RoomRepository roomRepository,
             AssetTransferService assetTransferService,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
-            AuditService auditService) {
+            AuditService auditService,
+            ReviewPolicyService reviewPolicyService) {
         this.assetRequestRepository = assetRequestRepository;
         this.assetRepository = assetRepository;
         this.categoryRepository = categoryRepository;
@@ -57,6 +59,7 @@ public class AssetRequestService {
         this.assetTransferService = assetTransferService;
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
+        this.reviewPolicyService = reviewPolicyService;
     }
 
     @Transactional
@@ -210,7 +213,11 @@ public class AssetRequestService {
         requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
 
         addAction(request, actor, "APPROVE", comment(decision));
-        request.setStatus(AssetRequestStatus.APPROVED_UNDER_REVIEW);
+        // One level or two, per the school's setting for this system.
+        request.setStatus(
+                reviewPolicyService.assetTwoLevel()
+                        ? AssetRequestStatus.APPROVED_UNDER_REVIEW
+                        : AssetRequestStatus.APPROVED);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
         return save(request, actor, "ASSET_REQUEST_APPROVED");
@@ -224,7 +231,10 @@ public class AssetRequestService {
         requireReason(decision);
 
         addAction(request, actor, "REJECT", comment(decision));
-        request.setStatus(AssetRequestStatus.REJECTED_UNDER_REVIEW);
+        request.setStatus(
+                reviewPolicyService.assetTwoLevel()
+                        ? AssetRequestStatus.REJECTED_UNDER_REVIEW
+                        : AssetRequestStatus.REJECTED);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
         return save(request, actor, "ASSET_REQUEST_REJECTED");

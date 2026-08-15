@@ -36,6 +36,7 @@ public class MaintenanceRequestService {
     private final InventoryItemRepository inventoryItemRepository;
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
+    private final ReviewPolicyService reviewPolicyService;
 
     public MaintenanceRequestService(
             MaintenanceRequestRepository maintenanceRequestRepository,
@@ -43,13 +44,15 @@ public class MaintenanceRequestService {
             FaultTypeRepository faultTypeRepository,
             InventoryItemRepository inventoryItemRepository,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
-            AuditService auditService) {
+            AuditService auditService,
+            ReviewPolicyService reviewPolicyService) {
         this.maintenanceRequestRepository = maintenanceRequestRepository;
         this.departmentRepository = departmentRepository;
         this.faultTypeRepository = faultTypeRepository;
         this.inventoryItemRepository = inventoryItemRepository;
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
+        this.reviewPolicyService = reviewPolicyService;
     }
 
     @Transactional
@@ -121,7 +124,11 @@ public class MaintenanceRequestService {
         requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
 
         addAction(request, actor, "APPROVE", comment(decision));
-        request.setStatus(MaintenanceRequestStatus.APPROVED_UNDER_REVIEW);
+        // One level or two, per the school's setting for this system.
+        request.setStatus(
+                reviewPolicyService.maintenanceTwoLevel()
+                        ? MaintenanceRequestStatus.APPROVED_UNDER_REVIEW
+                        : MaintenanceRequestStatus.APPROVED);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
         return save(request, actor, "MAINTENANCE_REQUEST_APPROVED");
@@ -135,7 +142,10 @@ public class MaintenanceRequestService {
         requireReason(decision);
 
         addAction(request, actor, "REJECT", comment(decision));
-        request.setStatus(MaintenanceRequestStatus.REJECTED_UNDER_REVIEW);
+        request.setStatus(
+                reviewPolicyService.maintenanceTwoLevel()
+                        ? MaintenanceRequestStatus.REJECTED_UNDER_REVIEW
+                        : MaintenanceRequestStatus.REJECTED);
         request.setPostponedUntil(null);
         request.setReturnedBySenior(false);
         return save(request, actor, "MAINTENANCE_REQUEST_REJECTED");

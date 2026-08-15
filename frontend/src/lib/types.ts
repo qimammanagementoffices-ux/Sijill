@@ -510,6 +510,14 @@ export type BrandingDto = {
   version: number;
 };
 
+// Whether a first-level decision parks the request for a counter-signature,
+// chosen per system.
+export type ReviewPolicyDto = {
+  warehouseTwoLevel: boolean;
+  maintenanceTwoLevel: boolean;
+  assetTwoLevel: boolean;
+};
+
 export type MaintenanceDto = {
   enabled: boolean;
   messageAr: string | null;
