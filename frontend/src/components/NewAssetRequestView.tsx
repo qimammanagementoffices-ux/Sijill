@@ -323,7 +323,11 @@ export default function NewAssetRequestView({
               {matchingAssets.length === 0 ? (
                 <div className="asset-autocomplete-empty">{dict.noMatchingAssets}</div>
               ) : matchingAssets.slice(0, 12).map((asset) => (
-                <button key={asset.id} type="button" role="option" aria-selected="false" onClick={() => chooseAsset(asset.id)}>
+                // The input's blur closes this list, and blur fires on
+                // mousedown -- before the click lands. Preventing the default
+                // keeps focus on the input so the option still exists when the
+                // click arrives.
+                <button key={asset.id} type="button" role="option" aria-selected="false" onMouseDown={(event) => event.preventDefault()} onClick={() => chooseAsset(asset.id)}>
                   <b>{entityName(asset, entityLocale)}</b>
                   <span>{asset.assetNumber}{asset.category ? ` — ${entityLocale === "ar" ? asset.category.ar : asset.category.en}` : ""}</span>
                 </button>

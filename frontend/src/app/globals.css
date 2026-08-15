@@ -1113,8 +1113,8 @@ img[data-viewable] {
 .field input[type="datetime-local"],
 /* Autocomplete inputs carry no type attribute, and [type="text"] does not
    match an absent attribute -- so they rendered unstyled next to every other
-   field on the form. */
-.field .asset-autocomplete > input,
+   field on the form. Not scoped to .field: the asset picker sits outside one. */
+.asset-autocomplete > input,
 .field select,
 .field textarea {
   border: 1.5px solid var(--line);
@@ -1136,6 +1136,7 @@ img[data-viewable] {
   -moz-appearance: number-input;
 }
 .field input:focus,
+.asset-autocomplete > input:focus,
 .field select:focus,
 .field textarea:focus {
   border-color: var(--ink-soft);
@@ -2083,7 +2084,32 @@ img[data-viewable] {
   font-size: 12.5px;
   font-weight: 700;
 }
-.asset-category-quantity-row input { width: 72px; padding: 7px; text-align: center; }
+/* Outside .field, so it inherits none of the form styling — same treatment as
+   the decision and delivery quantity inputs. */
+.asset-category-quantity-row input {
+  width: 82px;
+  flex: none;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.asset-category-quantity-row input:focus {
+  border-color: var(--ink-soft);
+  box-shadow: 0 0 0 3px rgba(46, 66, 114, 0.1);
+}
+.asset-category-quantity-row input::-webkit-inner-spin-button,
+.asset-category-quantity-row input::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 20px;
+}
 .asset-autocomplete { position: relative; }
 .asset-autocomplete > input { width: 100%; }
 .asset-autocomplete-selected { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
