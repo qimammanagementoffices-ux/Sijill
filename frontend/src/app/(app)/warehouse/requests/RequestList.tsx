@@ -236,13 +236,22 @@ export default function RequestList({
     const nameOf = (lineId: string | null) =>
       request.lines.find((line) => line.id === lineId)?.itemNameAr ?? "—";
     const notices = edits
-      .filter((edit) => !edit.removed)
+      // before === after is how the server records putting a dropped line
+      // back: the line returns at the quantity it already carried, so there
+      // is no quantity change to report — only the restore.
+      .filter((edit) => !edit.removed && edit.quantityAfter !== edit.quantityBefore)
       .map((edit) =>
         cardDict.lineQuantityChanged
           .replace("{item}", nameOf(edit.lineId))
           .replace("{before}", String(edit.quantityBefore))
           .replace("{after}", String(edit.quantityAfter ?? 0))
       );
+    const restored = edits
+      .filter((edit) => !edit.removed && edit.quantityAfter === edit.quantityBefore)
+      .map((edit) => nameOf(edit.lineId));
+    if (restored.length > 0) {
+      notices.push(cardDict.linesRestored.replace("{items}", restored.join("، ")));
+    }
     const dropped = edits.filter((edit) => edit.removed).map((edit) => nameOf(edit.lineId));
     if (dropped.length > 0) {
       notices.push(cardDict.linesRemoved.replace("{items}", dropped.join("، ")));

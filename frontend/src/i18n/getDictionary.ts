@@ -368,6 +368,7 @@ export type Dictionary = {
     lineQuantityChanged: string;
     lineQuantityChangedNoActor: string;
     linesRemoved: string;
+    linesRestored: string;
     deliveryAttachments: string;
     systemActor: string;
     archivedNote: string;

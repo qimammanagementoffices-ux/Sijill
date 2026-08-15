@@ -39,13 +39,20 @@ export default function RequestDecisionDialog({
   onCancel: () => void;
 }) {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-  const editable = (lines ?? []).filter((line) => !line.removed);
+  // Includes lines an earlier decision dropped, shown struck through with a
+  // restore control. Filtering them out made a first-level deletion final in
+  // everything but name: the counter-signer reviews the whole request, and
+  // that has to include what was taken out of it.
+  const editable = lines ?? [];
 
   const [comment, setComment] = useState("");
   const [date, setDate] = useState(needsDate ? tomorrow : "");
   const [edits, setEdits] = useState<Record<string, { quantity: number; removed: boolean }>>(() =>
     Object.fromEntries(
-      editable.map((line) => [line.id, { quantity: line.quantityApproved ?? line.quantityRequested, removed: false }])
+      editable.map((line) => [
+        line.id,
+        { quantity: line.quantityApproved ?? line.quantityRequested, removed: line.removed },
+      ])
     )
   );
   const [error, setError] = useState<string | null>(null);
@@ -70,9 +77,16 @@ export default function RequestDecisionDialog({
       }
     }
 
+    // Compared against the line's current state, not against "untouched": a
+    // line that arrives already removed and stays removed is not an edit, but
+    // one that arrives removed and leaves restored is.
     const changed = editable
       .map((line) => ({ line, edit: edits[line.id]! }))
-      .filter(({ line, edit }) => edit.removed || edit.quantity !== (line.quantityApproved ?? line.quantityRequested));
+      .filter(
+        ({ line, edit }) =>
+          edit.removed !== line.removed ||
+          (!edit.removed && edit.quantity !== (line.quantityApproved ?? line.quantityRequested))
+      );
 
     if (editable.length > 0) {
       const survivors = editable.filter((line) => {

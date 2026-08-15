@@ -526,22 +526,39 @@ public class NeedRequestService {
             if (line == null) {
                 throw RequestWorkflowErrors.unknownLine();
             }
-            if (line.isRemoved()) continue;
 
             int before = line.effectiveQuantity();
+            boolean removalChanged = edit.removed() != line.isRemoved();
+            boolean quantityChanged =
+                    !edit.removed() && edit.quantity() != null && edit.quantity() != before;
+
             // Checked here rather than on the whole payload: a decision that
             // sends the lines back unchanged is not an edit, and refusing it
             // would block approving from anyone without this permission.
-            boolean changesSomething = edit.removed() || (edit.quantity() != null && edit.quantity() != before);
-            if (changesSomething && !canEditLines(actor)) {
+            if ((removalChanged || quantityChanged) && !canEditLines(actor)) {
                 throw RequestWorkflowErrors.lineEditNotPermitted();
             }
+
             if (edit.removed()) {
-                line.setRemoved(true);
-                recordLineEdit(action, line, before, null, true);
+                if (removalChanged) {
+                    line.setRemoved(true);
+                    recordLineEdit(action, line, before, null, true);
+                }
                 continue;
             }
-            if (edit.quantity() == null || edit.quantity() == before) continue;
+
+            // Putting back a line an earlier decision dropped. The
+            // counter-signer reviews the whole request, including what the
+            // first official took out of it — otherwise a deletion at the
+            // first level is final in everything but name.
+            if (removalChanged) {
+                line.setRemoved(false);
+                // before == after marks a restore: the line is back, at the
+                // quantity it already carried.
+                recordLineEdit(action, line, before, before, false);
+            }
+
+            if (!quantityChanged) continue;
             if (edit.quantity() <= 0) {
                 throw RequestWorkflowErrors.quantityMustBePositive();
             }
