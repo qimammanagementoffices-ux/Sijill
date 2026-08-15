@@ -3597,6 +3597,22 @@ body.lang-en .modal-head h3 {
 }
 /* The expired notice stays on the card rather than vanishing: a control that
    silently disappears reads as a bug. */
+/* Printed signature blocks: the name sits under the rule, so the sheet says
+   who signed rather than leaving an anonymous box. */
+.legacy-signature-name {
+  display: block;
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.legacy-form-signatures-single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 280px;
+}
+
 /* The edit button lives inside the note that explains the deadline, so the
    two always appear and disappear together. */
 .edit-note {

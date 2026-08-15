@@ -783,6 +783,12 @@ export default function RequestList({
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
                 actionLabel={actionLabel}
+                deliveryReport={{
+                  lines: (viewRequest.lines ?? [])
+                    .filter((line) => (line.quantityIssued ?? 0) > 0)
+                    .map((line) => ({ name: line.itemNameAr, issued: line.quantityIssued ?? 0, unit: line.itemUnit })),
+                  releasedBy: viewRequest.actions.find((entry) => entry.action === "FINISH")?.actorName ?? null,
+                }}
                 attachments={viewRequest.attachments}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
@@ -794,7 +800,7 @@ export default function RequestList({
                 ]}
                 sectionTitle={["الأصناف المطلوبة", "Requested Items", "अनुरोधित वस्तुएँ"]}
               >
-                <table className="legacy-form-table"><thead><tr><th>الصنف<br/><small>Item</small></th><th>الكمية<br/><small>Quantity</small></th><th>الوحدة<br/><small>Unit</small></th></tr></thead><tbody>{(viewRequest.lines ?? []).map((line) => <tr key={line.id}><td>{line.itemNameAr}<br/><small>{line.itemNameEn}</small></td><td>{line.quantityRequested}</td><td>—</td></tr>)}</tbody></table>
+                <table className="legacy-form-table"><thead><tr><th>الصنف<br/><small>Item</small></th><th>الكمية<br/><small>Quantity</small></th><th>الوحدة<br/><small>Unit</small></th></tr></thead><tbody>{(viewRequest.lines ?? []).map((line) => <tr key={line.id}><td>{line.itemNameAr}<br/><small>{line.itemNameEn}</small></td><td>{line.quantityRequested}</td><td>{line.itemUnit || "—"}</td></tr>)}</tbody></table>
                 {viewRequest.notes && <><div className="legacy-form-section">ملاحظات <small>Notes</small></div><div className="legacy-form-notes">{viewRequest.notes}</div></>}
               </LegacyRequestForm></div>
             </div>
