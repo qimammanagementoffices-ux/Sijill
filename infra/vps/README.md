@@ -177,27 +177,66 @@ sed -i "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)|" 
 set -a; . ./.env; set +a && docker compose up -d minio
 ```
 
-**Copy every object across**, create the buckets under the same names, and make
-only the attachment bucket publicly readable:
+**Pull every object down over HTTPS**, not over S3. Two S3 routes fail here:
+`mc alias set` rejects an endpoint containing a path (Supabase's ends in
+`/storage/v1/s3`), and the AWS CLI fails ListObjectsV2 against Supabase with
+an empty error code — it signs with the project's real region, which is not
+what `OBJECT_STORAGE_REGION` holds. The attachment bucket is public and every
+URL is already in the database, so fetch exactly the objects the database
+references:
 
 ```bash
-docker run --rm --network sijill_default --entrypoint sh minio/mc -c "mc alias set src '$OBJECT_STORAGE_ENDPOINT' '$OBJECT_STORAGE_ACCESS_KEY' '$OBJECT_STORAGE_SECRET_KEY' && mc alias set dst http://minio:9000 '$MINIO_ROOT_USER' '$MINIO_ROOT_PASSWORD' && mc mb -p dst/$OBJECT_STORAGE_BUCKET dst/$OBJECT_STORAGE_BACKUP_BUCKET && mc mirror --overwrite src/$OBJECT_STORAGE_BUCKET dst/$OBJECT_STORAGE_BUCKET && mc anonymous set download dst/$OBJECT_STORAGE_BUCKET && mc ls --recursive dst/$OBJECT_STORAGE_BUCKET | wc -l"
-```
-
-The last number is how many objects arrived. Compare it with Supabase before
-continuing — this is the only point where a miscount is cheap to fix.
-
-**Rewrite the stored URLs.** Check what it will change first:
-
-```bash
-docker compose exec postgres psql -U sijill -d sijill -c "select count(*) from attachment where url like '$OBJECT_STORAGE_PUBLIC_URL_BASE%';"
+docker compose exec -T postgres psql -U sijill -d sijill -At -F'|' -c "select storage_key, url from attachment where storage_key is not null" > attachments.txt
 ```
 
 ```bash
-docker compose exec postgres psql -U sijill -d sijill -c "update attachment set url = replace(url, '$OBJECT_STORAGE_PUBLIC_URL_BASE', 'https://$SIJILL_DOMAIN/files') where url like '$OBJECT_STORAGE_PUBLIC_URL_BASE%';"
+mkdir -p objects && while IFS='|' read -r key url; do [ -z "$key" ] && continue; mkdir -p "objects/$(dirname "$key")"; curl -fsSL "$url" -o "objects/$key" || echo "FAILED $key"; done < attachments.txt
 ```
 
-The two counts must match. This is done as a one-time statement rather than a
+```bash
+find objects -type f | wc -l
+```
+
+Any `FAILED` line is a row whose object is already missing from the bucket —
+broken on the live site today, and worth knowing about. Migrating cannot fix
+those; it only stops hiding them.
+
+**Push them into MinIO**, creating both buckets under the same names and
+granting anonymous read to the attachment bucket only:
+
+```bash
+docker run --rm --network sijill_default -v "$PWD/objects:/data" --entrypoint sh minio/mc -c "mc alias set dst http://minio:9000 '$MINIO_ROOT_USER' '$MINIO_ROOT_PASSWORD' && mc mb -p dst/$OBJECT_STORAGE_BUCKET dst/$OBJECT_STORAGE_BACKUP_BUCKET && mc mirror --overwrite /data dst/$OBJECT_STORAGE_BUCKET && mc anonymous set download dst/$OBJECT_STORAGE_BUCKET && mc ls --recursive dst/$OBJECT_STORAGE_BUCKET | wc -l"
+```
+
+Both counts must match. Then remove the local copy — it is a complete set of
+your attachments sitting in the deploy directory:
+
+```bash
+rm -rf objects
+```
+
+**Rewrite the stored URLs.** Take the prefix from the data, not from
+`$OBJECT_STORAGE_PUBLIC_URL_BASE` — the two can differ (Supabase serves public
+objects from `<ref>.storage.supabase.co` while the configured base may say
+`<ref>.supabase.co`), and a prefix that does not match updates nothing while
+reporting success:
+
+```bash
+docker compose exec -T postgres psql -U sijill -d sijill -At -c "select distinct regexp_replace(url, '(/[^/]+/[^/]+)$', '') from attachment;"
+```
+
+That prints the real prefix (or several, if history left more than one — then
+repeat the update for each). Count what will change, then change it:
+
+```bash
+docker compose exec postgres psql -U sijill -d sijill -c "select count(*) from attachment where url like 'PASTE_PREFIX%';"
+```
+
+```bash
+docker compose exec postgres psql -U sijill -d sijill -c "update attachment set url = replace(url, 'PASTE_PREFIX', 'https://$SIJILL_DOMAIN/files');"
+```
+
+The `UPDATE n` must equal the count. This is done as a one-time statement rather than a
 Flyway migration because the replacement is specific to this deployment's
 domain, and a migration is immutable once applied.
 
