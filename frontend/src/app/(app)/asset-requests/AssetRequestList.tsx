@@ -144,7 +144,12 @@ export default function AssetRequestList({
 
   useEffect(() => {
     if (searchParams.get("new") === "1") setShowAddModal(true);
-  }, [searchParams]);
+    // Arriving from the dashboard's counter-signing queue.
+    if (searchParams.get("tab") === "review" && permissions.includes("as.act.countersign")) {
+      selectView("review");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, permissions]);
 
   function statusLabel(s: string) {
     return statusDict[s as AssetRequestStatusValue] ?? s;

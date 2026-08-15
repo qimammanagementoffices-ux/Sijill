@@ -13,5 +13,6 @@ export default async function DashboardPage() {
     commonDict={dict.common}
     errorsDict={dict.errors}
     attachmentsDict={dict.attachments}
+    cardDict={dict.requestCard}
   />;
 }

@@ -558,6 +558,48 @@ body.lang-en .section-title {
   border-color: rgba(27, 42, 74, 0.25);
   border-top-color: var(--seal);
 }
+/* Queues waiting on the signed-in employee. Only rendered when non-empty, so
+   the dashboard stays quiet for anyone with nothing to decide. */
+.dashboard-queues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+
+.dashboard-queue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 12px;
+  background: var(--paper-dim);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.dashboard-queue:hover {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.dashboard-queue-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .review-policy-list {
   margin: 14px 0 18px;
   padding: 0;

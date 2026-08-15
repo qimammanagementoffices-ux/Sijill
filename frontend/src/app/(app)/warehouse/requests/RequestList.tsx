@@ -192,6 +192,13 @@ export default function RequestList({
 
   useEffect(() => {
     if (searchParams.get("new") === "1" && permissions.includes("wh.request")) setShowAddModal(true);
+    // Arriving from the dashboard's counter-signing queue: open that tab
+    // rather than the default pending one, or the count just clicked would
+    // appear to lead nowhere.
+    if (searchParams.get("tab") === "review" && permissions.includes("wh.act.countersign")) {
+      selectView("UNDER_REVIEW", false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, permissions]);
 
   function statusLabel(s: string) {

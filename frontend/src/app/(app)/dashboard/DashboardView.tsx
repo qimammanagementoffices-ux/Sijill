@@ -7,6 +7,7 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import NewRequestView from "@/components/NewRequestView";
+import QueueShortcuts from "@/components/QueueShortcuts";
 
 type EmployeeSummary = { name: string; permissions: string[] };
 
@@ -57,6 +58,7 @@ export default function DashboardView({
   commonDict,
   errorsDict,
   attachmentsDict,
+  cardDict,
 }: {
   dict: Dictionary["dashboard"];
   statsDict: Dictionary["dashboardStats"];
@@ -66,6 +68,7 @@ export default function DashboardView({
   commonDict: Dictionary["common"];
   errorsDict: Dictionary["errors"];
   attachmentsDict: Dictionary["attachments"];
+  cardDict: Dictionary["requestCard"];
 }) {
   const router = useRouter();
   const [employee, setEmployee] = useState<EmployeeSummary | null>(null);
@@ -106,6 +109,12 @@ export default function DashboardView({
         {dict.welcomeMessage}
         {employee ? `, ${employee.name}` : ""}
       </h1>
+
+      {/* Work waiting on this person, and nothing else: a queue shows only
+          when it has something in it and only to someone who can act on it. */}
+      {employee && (
+        <QueueShortcuts permissions={employee.permissions} dict={dict} cardDict={cardDict} />
+      )}
 
       {(canRequestAssets || canRequestWarehouse || canRequestMaintenance) && <section className="dashboard-quick-section no-print">
         <div className="dashboard-quick-heading"><span />{dict.quickActionsTitle}<span /></div>

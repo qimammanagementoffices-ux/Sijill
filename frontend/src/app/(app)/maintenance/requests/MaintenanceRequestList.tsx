@@ -150,6 +150,11 @@ export default function MaintenanceRequestList({
 
   useEffect(() => {
     if (searchParams.get("new") === "1" && permissions.includes("mt.request")) setShowAddModal(true);
+    // Arriving from the dashboard's counter-signing queue.
+    if (searchParams.get("tab") === "review" && permissions.includes("mt.act.countersign")) {
+      selectView("UNDER_REVIEW", false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, permissions]);
 
   function statusLabel(s: string) {
