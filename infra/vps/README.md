@@ -108,6 +108,50 @@ server. If it fails with a version mismatch, pin the matching client in
 RUN apk add --no-cache postgresql18-client
 ```
 
+## 7. Deploy on push
+
+`.github/workflows/vps-deploy.yml` runs after CI passes and rebuilds on the
+server. It needs a key that exists only between GitHub and this machine — not
+your personal SSH key.
+
+On the **server**:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/github_deploy -N "" -C "github-actions"
+```
+
+```bash
+cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+```
+
+```bash
+cat ~/.ssh/github_deploy
+```
+
+Copy that private key into GitHub → Settings → Secrets and variables → Actions,
+along with the rest:
+
+| Secret | Value |
+| --- | --- |
+| `VPS_SSH_KEY` | the whole private key, `BEGIN`/`END` lines included |
+| `VPS_HOST` | the server's IP or hostname |
+| `VPS_USER` | the user you are logged in as |
+| `VPS_APP_DIR` | clone path, if not `~/Sijill` |
+| `VPS_PORT` | SSH port, if not 22 |
+| `SIJILL_URL` | `https://sijill.example.com` — enables the post-deploy check |
+
+Then delete the private key from the server, since GitHub now holds it:
+
+```bash
+shred -u ~/.ssh/github_deploy
+```
+
+Without `VPS_HOST` the workflow skips itself, so nothing breaks before the
+secrets exist. Test it with **Actions → vps-deploy → Run workflow**.
+
+Once the VPS is serving real traffic, remove the `deploy` job from
+`backend-ci.yml` and `frontend-ci.yml` so pushes stop deploying to Render too.
+
 ## Afterwards
 
 - `docker compose ps` — what is running

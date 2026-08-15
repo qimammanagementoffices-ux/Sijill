@@ -1,0 +1,84 @@
+# Deploys to the VPS after CI passes.
+#
+# Triggered by the CI workflows rather than by the push itself, so a commit
+# that fails tests never reaches the server -- the same rule render.yaml's
+# autoDeploy: false was there to enforce. A push touching only the frontend
+# runs only frontend-ci, and that alone is enough to deploy; when both run,
+# the concurrency group below collapses them into one deploy.
+name: vps-deploy
+
+on:
+  workflow_run:
+    workflows: ["backend-ci", "frontend-ci"]
+    types: [completed]
+    branches: [main]
+  # For changes CI does not cover -- the compose file, the Caddyfile -- and for
+  # re-running a deploy by hand.
+  workflow_dispatch:
+
+concurrency:
+  group: vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # workflow_run fires on failure too; only a green run may deploy.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # One step, because the `secrets` context is not available to step-level
+      # `if:` conditions -- guarding there would look right and do nothing.
+      - name: Build and restart on the server
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          APP_DIR: ${{ secrets.VPS_APP_DIR || '~/Sijill' }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VPS_HOST" ]; then
+            echo "VPS_HOST is not set -- skipping deploy. See infra/vps/README.md."
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Pin the host key rather than trusting whatever answers first.
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            APP_DIR="$APP_DIR" bash -euo pipefail -s << 'REMOTE'
+            cd "$APP_DIR"
+            git fetch --prune origin
+            # The server's checkout is a deploy artifact, not a workspace:
+            # match origin/main exactly rather than trying to merge.
+            git reset --hard origin/main
+            cd infra/vps
+            docker compose up -d --build
+            # Old image layers accumulate fast under a JVM base image.
+            docker image prune -f
+          REMOTE
+
+      - name: Confirm the site answers
+        env:
+          SIJILL_URL: ${{ secrets.SIJILL_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SIJILL_URL:-}" ]; then
+            echo "SIJILL_URL is not set -- skipping the health check."
+            exit 0
+          fi
+          # The API restarts as part of the deploy; give it room to come up
+          # before calling the deploy broken.
+          for attempt in $(seq 1 20); do
+            if curl -fsS -m 10 "$SIJILL_URL/api/v1/i18n/locales" > /dev/null; then
+              echo "Deploy is live."
+              exit 0
+            fi
+            echo "Attempt $attempt: not up yet."
+            sleep 15
+          done
+          echo "The site did not answer within five minutes."
+          exit 1
