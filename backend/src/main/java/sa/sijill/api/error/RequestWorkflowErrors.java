@@ -109,6 +109,13 @@ public final class RequestWorkflowErrors {
                 Map.of("quantity", "must be > 0"));
     }
 
+    public static ApiException outsideDepartment() {
+        return validation(
+                "OUTSIDE_DEPARTMENT",
+                "This request belongs to a department outside your own",
+                Map.of("department", "outside the actor's scope"));
+    }
+
     public static ApiException lineEditNotPermitted() {
         return validation(
                 "LINE_EDIT_NOT_PERMITTED",

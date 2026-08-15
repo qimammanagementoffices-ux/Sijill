@@ -48,7 +48,7 @@ public class NeedRequestController {
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "wh.view") ? actor.getId() : null;
         Page<NeedRequest> page =
-                needRequestService.search(status, restrictToRequesterId, q, archived, underReview, pageable);
+                needRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         Set<UUID> ids = page.getContent().stream().map(NeedRequest::getId).collect(Collectors.toSet());
         Map<UUID, List<Attachment>> attachments = attachmentsByRequest(AttachmentOwnerType.NEED_REQUEST, ids);
         // Proof of delivery is kept apart from the requester's own evidence so

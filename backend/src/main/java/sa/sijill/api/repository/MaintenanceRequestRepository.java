@@ -28,6 +28,11 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
                     and r.status = sa.sijill.api.domain.MaintenanceRequestStatus.POSTPONED
                     and r.postponedUntil is not null and r.postponedUntil <= :today))
               and (:requesterId is null or r.requester.id = :requesterId)
+              -- Department scope; own requests always visible. See
+              -- DepartmentScopeService.
+              and (:unscoped = true
+                or r.department.id in :departmentIds
+                or r.requester.id = :actorId)
               and (:q is null or :q = ''
                 or lower(r.requester.name) like lower(concat('%', :q, '%'))
                 or lower(coalesce(r.location, '')) like lower(concat('%', :q, '%'))
@@ -44,6 +49,9 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
             // The counter-signer's queue is both review states at once.
             @Param("underReview") boolean underReview,
             @Param("today") LocalDate today,
+            @Param("departmentIds") java.util.Collection<UUID> departmentIds,
+            @Param("unscoped") boolean unscoped,
+            @Param("actorId") UUID actorId,
             Pageable pageable);
 
     @Query("""

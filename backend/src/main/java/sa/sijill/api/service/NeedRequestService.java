@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +50,7 @@ public class NeedRequestService {
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
     private final ReviewPolicyService reviewPolicyService;
+    private final DepartmentScopeService departmentScopeService;
 
     public NeedRequestService(
             NeedRequestRepository needRequestRepository,
@@ -58,7 +60,8 @@ public class NeedRequestService {
             RoomRepository roomRepository,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
             AuditService auditService,
-            ReviewPolicyService reviewPolicyService) {
+            ReviewPolicyService reviewPolicyService,
+            DepartmentScopeService departmentScopeService) {
         this.needRequestRepository = needRequestRepository;
         this.departmentRepository = departmentRepository;
         this.categoryRepository = categoryRepository;
@@ -67,6 +70,7 @@ public class NeedRequestService {
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
         this.reviewPolicyService = reviewPolicyService;
+        this.departmentScopeService = departmentScopeService;
     }
 
     @Transactional
@@ -76,11 +80,31 @@ public class NeedRequestService {
             String q,
             boolean archived,
             boolean underReview,
+            Employee actor,
             Pageable pageable) {
+        Set<UUID> scope = departmentScopeService.scopeFor(actor);
         Page<NeedRequest> page = needRequestRepository.search(
-                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(SCHOOL_TIME_ZONE), pageable);
+                status,
+                restrictToRequesterId,
+                q,
+                archived,
+                underReview,
+                LocalDate.now(SCHOOL_TIME_ZONE),
+                // "in ()" is not valid SQL, so an empty scope passes a random
+                // id that matches nothing rather than an empty list.
+                scope == null || scope.isEmpty() ? Set.of(UUID.randomUUID()) : scope,
+                scope == null,
+                actor.getId(),
+                pageable);
         page.getContent().forEach(this::materialiseResurface);
         return page;
+    }
+
+    /** Refuses a decision on a request outside the official's own branch. */
+    private void requireWithinScope(NeedRequest request, Employee actor) {
+        if (!departmentScopeService.covers(actor, request.getDepartment())) {
+            throw RequestWorkflowErrors.outsideDepartment();
+        }
     }
 
     public NeedRequest get(UUID id) {
@@ -242,6 +266,7 @@ public class NeedRequestService {
     public NeedRequest approve(UUID id, RequestDecisionRequest decision, Employee actor) {
         NeedRequest request = openRequest(id);
         requireStatus(request, NeedRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
 
         NeedRequestAction action = addAction(request, actor, "APPROVE", comment(decision));
@@ -262,6 +287,7 @@ public class NeedRequestService {
     public NeedRequest reject(UUID id, RequestDecisionRequest decision, Employee actor) {
         NeedRequest request = openRequest(id);
         requireStatus(request, NeedRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireNotRepeatingOverturnedDecision(request, actor, "REJECT");
         requireReason(decision);
 
@@ -279,6 +305,7 @@ public class NeedRequestService {
     public NeedRequest postpone(UUID id, RequestDecisionRequest decision, Employee actor) {
         NeedRequest request = openRequest(id);
         requireStatus(request, NeedRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireReason(decision);
         applyPostponement(request, actor, "POSTPONE", decision);
         return save(request, actor, "NEED_REQUEST_POSTPONED");
@@ -290,6 +317,7 @@ public class NeedRequestService {
     public NeedRequest countersign(UUID id, RequestDecisionRequest decision, Employee actor) {
         NeedRequest request = openRequest(id);
         requireStatus(request, NeedRequestStatus.APPROVED_UNDER_REVIEW, NeedRequestStatus.REJECTED_UNDER_REVIEW);
+        requireWithinScope(request, actor);
         requireDistinctFromFirstLevel(request, actor);
 
         boolean approving = request.getStatus() == NeedRequestStatus.APPROVED_UNDER_REVIEW;
@@ -306,6 +334,7 @@ public class NeedRequestService {
     public NeedRequest overturn(UUID id, OverturnRequest overturn, Employee actor) {
         NeedRequest request = openRequest(id);
         requireStatus(request, NeedRequestStatus.APPROVED_UNDER_REVIEW, NeedRequestStatus.REJECTED_UNDER_REVIEW);
+        requireWithinScope(request, actor);
         requireDistinctFromFirstLevel(request, actor);
 
         boolean wasApproval = request.getStatus() == NeedRequestStatus.APPROVED_UNDER_REVIEW;

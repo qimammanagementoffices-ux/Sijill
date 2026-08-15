@@ -40,6 +40,7 @@ public class AssetRequestService {
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
     private final ReviewPolicyService reviewPolicyService;
+    private final DepartmentScopeService departmentScopeService;
 
     public AssetRequestService(
             AssetRequestRepository assetRequestRepository,
@@ -50,7 +51,8 @@ public class AssetRequestService {
             AssetTransferService assetTransferService,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
             AuditService auditService,
-            ReviewPolicyService reviewPolicyService) {
+            ReviewPolicyService reviewPolicyService,
+            DepartmentScopeService departmentScopeService) {
         this.assetRequestRepository = assetRequestRepository;
         this.assetRepository = assetRepository;
         this.categoryRepository = categoryRepository;
@@ -60,6 +62,7 @@ public class AssetRequestService {
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
         this.reviewPolicyService = reviewPolicyService;
+        this.departmentScopeService = departmentScopeService;
     }
 
     @Transactional
@@ -69,11 +72,31 @@ public class AssetRequestService {
             String q,
             boolean archived,
             boolean underReview,
+            Employee actor,
             Pageable pageable) {
+        java.util.Set<UUID> scope = departmentScopeService.scopeFor(actor);
         Page<AssetRequest> page = assetRequestRepository.search(
-                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(), pageable);
+                status,
+                restrictToRequesterId,
+                q,
+                archived,
+                underReview,
+                LocalDate.now(),
+                // "in ()" is not valid SQL, so an empty scope passes an id
+                // that matches nothing.
+                scope == null || scope.isEmpty() ? java.util.Set.of(UUID.randomUUID()) : scope,
+                scope == null,
+                actor.getId(),
+                pageable);
         page.getContent().forEach(this::materialiseResurface);
         return page;
+    }
+
+    /** Refuses a decision on a request outside the official's own branch. */
+    private void requireWithinScope(AssetRequest request, Employee actor) {
+        if (!departmentScopeService.covers(actor, request.getDepartment())) {
+            throw RequestWorkflowErrors.outsideDepartment();
+        }
     }
 
     /** See NeedRequestService.materialiseResurface for why this is a write during a read. */
@@ -210,6 +233,7 @@ public class AssetRequestService {
     public AssetRequest approve(UUID id, RequestDecisionRequest decision, Employee actor) {
         AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
 
         addAction(request, actor, "APPROVE", comment(decision));
@@ -227,6 +251,7 @@ public class AssetRequestService {
     public AssetRequest reject(UUID id, RequestDecisionRequest decision, Employee actor) {
         AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireNotRepeatingOverturnedDecision(request, actor, "REJECT");
         requireReason(decision);
 
@@ -244,6 +269,7 @@ public class AssetRequestService {
     public AssetRequest postpone(UUID id, RequestDecisionRequest decision, Employee actor) {
         AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireReason(decision);
         applyPostponement(request, actor, "POSTPONE", decision);
         return save(request, actor, "ASSET_REQUEST_POSTPONED");
@@ -253,6 +279,7 @@ public class AssetRequestService {
     public AssetRequest countersign(UUID id, RequestDecisionRequest decision, Employee actor) {
         AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.APPROVED_UNDER_REVIEW, AssetRequestStatus.REJECTED_UNDER_REVIEW);
+        requireWithinScope(request, actor);
         requireDistinctFromFirstLevel(request, actor);
 
         boolean approving = request.getStatus() == AssetRequestStatus.APPROVED_UNDER_REVIEW;
@@ -265,6 +292,7 @@ public class AssetRequestService {
     public AssetRequest overturn(UUID id, OverturnRequest overturn, Employee actor) {
         AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.APPROVED_UNDER_REVIEW, AssetRequestStatus.REJECTED_UNDER_REVIEW);
+        requireWithinScope(request, actor);
         requireDistinctFromFirstLevel(request, actor);
 
         boolean wasApproval = request.getStatus() == AssetRequestStatus.APPROVED_UNDER_REVIEW;

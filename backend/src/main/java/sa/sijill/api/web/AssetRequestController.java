@@ -44,7 +44,7 @@ public class AssetRequestController {
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "as.view") ? actor.getId() : null;
         Page<AssetRequest> page =
-                assetRequestService.search(status, restrictToRequesterId, q, archived, underReview, pageable);
+                assetRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         List<UUID> ids = page.getContent().stream().map(AssetRequest::getId).toList();
         Map<UUID, List<AttachmentDto>> attachments = ids.isEmpty()
                 ? Map.of()

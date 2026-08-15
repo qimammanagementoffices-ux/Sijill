@@ -31,6 +31,13 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
                     and r.status = sa.sijill.api.domain.NeedRequestStatus.POSTPONED
                     and r.postponedUntil is not null and r.postponedUntil <= :today))
               and (:requesterId is null or r.requester.id = :requesterId)
+              -- Department scope. :unscoped short-circuits it for anyone who
+              -- covers the whole school. Own requests are always visible:
+              -- being outside an official's branch must not hide a request
+              -- from the person who raised it.
+              and (:unscoped = true
+                or r.department.id in :departmentIds
+                or r.requester.id = :actorId)
               and (:q is null or :q = ''
                 or lower(r.requester.name) like lower(concat('%', :q, '%'))
                 or lower(coalesce(r.notes, '')) like lower(concat('%', :q, '%')))
@@ -45,6 +52,11 @@ public interface NeedRequestRepository extends JpaRepository<NeedRequest, UUID> 
             // single status parameter cannot express.
             @Param("underReview") boolean underReview,
             @Param("today") LocalDate today,
+            // Never empty: pass a throwaway id when the scope is empty, since
+            // "in ()" is not valid SQL.
+            @Param("departmentIds") java.util.Collection<UUID> departmentIds,
+            @Param("unscoped") boolean unscoped,
+            @Param("actorId") UUID actorId,
             Pageable pageable);
 
     @Query("""

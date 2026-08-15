@@ -37,6 +37,7 @@ public class MaintenanceRequestService {
     private final SuggestedStartDateCalculator suggestedStartDateCalculator;
     private final AuditService auditService;
     private final ReviewPolicyService reviewPolicyService;
+    private final DepartmentScopeService departmentScopeService;
 
     public MaintenanceRequestService(
             MaintenanceRequestRepository maintenanceRequestRepository,
@@ -45,7 +46,8 @@ public class MaintenanceRequestService {
             InventoryItemRepository inventoryItemRepository,
             SuggestedStartDateCalculator suggestedStartDateCalculator,
             AuditService auditService,
-            ReviewPolicyService reviewPolicyService) {
+            ReviewPolicyService reviewPolicyService,
+            DepartmentScopeService departmentScopeService) {
         this.maintenanceRequestRepository = maintenanceRequestRepository;
         this.departmentRepository = departmentRepository;
         this.faultTypeRepository = faultTypeRepository;
@@ -53,6 +55,7 @@ public class MaintenanceRequestService {
         this.suggestedStartDateCalculator = suggestedStartDateCalculator;
         this.auditService = auditService;
         this.reviewPolicyService = reviewPolicyService;
+        this.departmentScopeService = departmentScopeService;
     }
 
     @Transactional
@@ -62,11 +65,31 @@ public class MaintenanceRequestService {
             String q,
             boolean archived,
             boolean underReview,
+            Employee actor,
             Pageable pageable) {
+        java.util.Set<UUID> scope = departmentScopeService.scopeFor(actor);
         Page<MaintenanceRequest> page = maintenanceRequestRepository.search(
-                status, restrictToRequesterId, q, archived, underReview, LocalDate.now(), pageable);
+                status,
+                restrictToRequesterId,
+                q,
+                archived,
+                underReview,
+                LocalDate.now(),
+                // "in ()" is not valid SQL, so an empty scope passes an id
+                // that matches nothing.
+                scope == null || scope.isEmpty() ? java.util.Set.of(UUID.randomUUID()) : scope,
+                scope == null,
+                actor.getId(),
+                pageable);
         page.getContent().forEach(this::materialiseResurface);
         return page;
+    }
+
+    /** Refuses a decision on a request outside the official's own branch. */
+    private void requireWithinScope(MaintenanceRequest request, Employee actor) {
+        if (!departmentScopeService.covers(actor, request.getDepartment())) {
+            throw RequestWorkflowErrors.outsideDepartment();
+        }
     }
 
     /** See NeedRequestService.materialiseResurface for why this is a write during a read. */
@@ -121,6 +144,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest approve(UUID id, RequestDecisionRequest decision, Employee actor) {
         MaintenanceRequest request = openRequest(id);
         requireStatus(request, MaintenanceRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireNotRepeatingOverturnedDecision(request, actor, "APPROVE");
 
         addAction(request, actor, "APPROVE", comment(decision));
@@ -138,6 +162,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest reject(UUID id, RequestDecisionRequest decision, Employee actor) {
         MaintenanceRequest request = openRequest(id);
         requireStatus(request, MaintenanceRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireNotRepeatingOverturnedDecision(request, actor, "REJECT");
         requireReason(decision);
 
@@ -155,6 +180,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest postpone(UUID id, RequestDecisionRequest decision, Employee actor) {
         MaintenanceRequest request = openRequest(id);
         requireStatus(request, MaintenanceRequestStatus.PENDING);
+        requireWithinScope(request, actor);
         requireReason(decision);
         applyPostponement(request, actor, "POSTPONE", decision);
         return save(request, actor, "MAINTENANCE_REQUEST_POSTPONED");
@@ -169,6 +195,7 @@ public class MaintenanceRequestService {
                 request,
                 MaintenanceRequestStatus.APPROVED_UNDER_REVIEW,
                 MaintenanceRequestStatus.REJECTED_UNDER_REVIEW);
+        requireWithinScope(request, actor);
         requireDistinctFromFirstLevel(request, actor);
 
         boolean approving = request.getStatus() == MaintenanceRequestStatus.APPROVED_UNDER_REVIEW;
@@ -184,6 +211,7 @@ public class MaintenanceRequestService {
                 request,
                 MaintenanceRequestStatus.APPROVED_UNDER_REVIEW,
                 MaintenanceRequestStatus.REJECTED_UNDER_REVIEW);
+        requireWithinScope(request, actor);
         requireDistinctFromFirstLevel(request, actor);
 
         boolean wasApproval = request.getStatus() == MaintenanceRequestStatus.APPROVED_UNDER_REVIEW;

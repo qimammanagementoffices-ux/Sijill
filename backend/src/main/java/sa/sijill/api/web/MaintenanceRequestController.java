@@ -48,7 +48,7 @@ public class MaintenanceRequestController {
             @AuthenticationPrincipal Employee actor) {
         UUID restrictToRequesterId = mine || !hasPermission(actor, "mt.view") ? actor.getId() : null;
         Page<MaintenanceRequest> page =
-                maintenanceRequestService.search(status, restrictToRequesterId, q, archived, underReview, pageable);
+                maintenanceRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         Set<UUID> ids = page.getContent().stream().map(MaintenanceRequest::getId).collect(Collectors.toSet());
         Map<UUID, List<Attachment>> attachments = ids.isEmpty()
                 ? Map.of()
