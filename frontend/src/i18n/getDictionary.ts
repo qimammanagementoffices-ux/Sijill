@@ -328,6 +328,8 @@ export type Dictionary = {
     edit: string;
     archive: string;
     restore: string;
+    // Written by the system when a postponed request comes back on its own.
+    resurface: string;
     view: string;
     print: string;
   };

@@ -209,8 +209,10 @@ export default function RequestList({
         FINISH: actionsDict.finishDelivery,
         RECEIVE: actionsDict.confirmReceipt,
         REJECT_RECEIPT: actionsDict.rejectReceipt,
+        CANCEL_REMAINDER: actionsDict.cancelRemainder,
         ARCHIVE: actionsDict.archive,
         RESTORE: actionsDict.restore,
+        RESURFACE: actionsDict.resurface,
       }[action] ?? action
     );
   }
@@ -745,6 +747,7 @@ export default function RequestList({
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
+                actionLabel={actionLabel}
                 attachments={viewRequest.attachments}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },

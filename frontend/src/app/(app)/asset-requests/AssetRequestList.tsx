@@ -166,6 +166,7 @@ export default function AssetRequestList({
         FINISH: dict.finish,
         ARCHIVE: actionsDict.archive,
         RESTORE: actionsDict.restore,
+        RESURFACE: actionsDict.resurface,
       }[action] ?? action
     );
   }
@@ -427,6 +428,7 @@ export default function AssetRequestList({
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
+                actionLabel={actionLabel}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
                   { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },

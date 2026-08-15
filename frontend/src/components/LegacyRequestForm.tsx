@@ -7,10 +7,6 @@ import type { AttachmentDto, BrandingDto } from "@/lib/types";
 type FormCell = { label: [string, string, string]; value: ReactNode };
 type FormAction = { actorName: string | null; action: string; reason: string | null; createdAt: string };
 
-const actionAr: Record<string, string> = {
-  SUBMIT: "تقديم الطلب", APPROVE: "اعتماد", REJECT: "رفض", POSTPONE: "تأجيل", START: "بدء العمل", FINISH: "إنهاء العمل",
-};
-
 function TriLabel({ text }: { text: [string, string, string] }) {
   return <span className="legacy-tri-label"><b>{text[0]}</b><small>{text[1]}</small><small>{text[2]}</small></span>;
 }
@@ -32,6 +28,7 @@ export default function LegacyRequestForm({
   children,
   actions = [],
   attachments = [],
+  actionLabel,
 }: {
   title: [string, string, string];
   subtitle: [string, string, string];
@@ -43,6 +40,10 @@ export default function LegacyRequestForm({
   children?: ReactNode;
   actions?: FormAction[];
   attachments?: AttachmentDto[];
+  // The caller's translated labels. This used to be a local Arabic-only map
+  // that knew six actions, so every action added since -- counter-signing,
+  // overturning, resurfacing -- printed its raw enum name in all languages.
+  actionLabel: (action: string) => string;
 }) {
   const [branding, setBranding] = useState<BrandingDto | null>(null);
   useEffect(() => { apiFetch<BrandingDto>("/branding").then(setBranding).catch(() => {}); }, []);
@@ -75,7 +76,7 @@ export default function LegacyRequestForm({
       {children}
       {actions.length > 0 && <>
         <div className="legacy-form-section"><TriLabel text={["سجل الإجراءات والتعليقات", "Actions & comments log", "कार्रवाई और टिप्पणियाँ"]} /></div>
-        <div className="legacy-form-actions">{[...actions].reverse().map((entry, index) => <div key={`${entry.createdAt}-${index}`}><span><b>{actionAr[entry.action] ?? entry.action}</b> — {entry.actorName}</span><time>{new Date(entry.createdAt).toLocaleString("ar-SA")}</time>{entry.reason && <p>{entry.reason}</p>}</div>)}</div>
+        <div className="legacy-form-actions">{[...actions].reverse().map((entry, index) => <div key={`${entry.createdAt}-${index}`}><span><b>{actionLabel(entry.action)}</b> — {entry.actorName}</span><time>{new Date(entry.createdAt).toLocaleString("ar-SA")}</time>{entry.reason && <p>{entry.reason}</p>}</div>)}</div>
       </>}
       <div className="legacy-form-signatures"><div>توقيع مقدّم الطلب<br /><small>Requester signature</small></div><div>توقيع جهة الاعتماد<br /><small>Approver signature</small></div><div>توقيع المسؤول<br /><small>Officer signature</small></div></div>
       <footer className="legacy-form-footer">مستند صادر آليًا من منصة سِجِلّ لإدارة المستودع والصيانة المدرسية</footer>

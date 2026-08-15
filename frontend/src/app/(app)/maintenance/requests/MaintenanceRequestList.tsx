@@ -174,6 +174,7 @@ export default function MaintenanceRequestList({
         REJECT_RECEIPT: actionsDict.rejectReceipt,
         ARCHIVE: actionsDict.archive,
         RESTORE: actionsDict.restore,
+        RESURFACE: actionsDict.resurface,
       }[action] ?? action
     );
   }
@@ -533,6 +534,7 @@ export default function MaintenanceRequestList({
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
+                actionLabel={actionLabel}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
                   { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
