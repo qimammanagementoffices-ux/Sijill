@@ -6,6 +6,7 @@ import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
   AssetListItem,
   AssetRequestDetail,
+  AssetRequestListItem,
   AssetRequestPurpose,
   AttachmentDto,
   CategoryDto,
@@ -27,12 +28,16 @@ export default function NewAssetRequestView({
   onSubmitted,
   formId,
   onSubmittingChange,
+  editing,
 }: {
   dict: Dictionary["assetRequests"];
   errorsDict: Dictionary["errors"];
   onSubmitted: (request: AssetRequestDetail) => void;
   formId?: string;
   onSubmittingChange?: (submitting: boolean) => void;
+  // The requester correcting their own request inside the edit window. Same
+  // form, PUT instead of POST.
+  editing?: AssetRequestListItem;
 }) {
   const entityLocale = useEntityLocale();
   const [me, setMe] = useState<MeData | null>(null);
@@ -40,16 +45,28 @@ export default function NewAssetRequestView({
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [assets, setAssets] = useState<AssetListItem[] | null>(null);
-  const [departmentId, setDepartmentId] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [destinationRoomId, setDestinationRoomId] = useState("");
-  const [priority, setPriority] = useState<"NORMAL" | "URGENT">("NORMAL");
-  const [purpose, setPurpose] = useState<AssetRequestPurpose>("PURCHASE");
-  const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>({});
-  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
+  const [departmentId, setDepartmentId] = useState(editing?.department?.id ?? "");
+  const [roomId, setRoomId] = useState(editing?.room?.id ?? "");
+  const [destinationRoomId, setDestinationRoomId] = useState(editing?.destinationRoom?.id ?? "");
+  const [priority, setPriority] = useState<"NORMAL" | "URGENT">(
+    editing?.priority === "URGENT" ? "URGENT" : "NORMAL"
+  );
+  const [purpose, setPurpose] = useState<AssetRequestPurpose>(
+    (editing?.purpose as AssetRequestPurpose) ?? "PURCHASE"
+  );
+  const [categoryQuantities, setCategoryQuantities] = useState<Record<string, number>>(() =>
+    Object.fromEntries(
+      (editing?.lines ?? [])
+        .filter((line) => line.categoryId)
+        .map((line) => [line.categoryId as string, line.quantity])
+    )
+  );
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(
+    () => new Set((editing?.lines ?? []).map((line) => line.assetId).filter((id): id is string => !!id))
+  );
   const [assetQuery, setAssetQuery] = useState("");
   const [assetSearchOpen, setAssetSearchOpen] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState(editing?.reason ?? "");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +86,9 @@ export default function NewAssetRequestView({
         setRooms(roomRows);
         setCategories(categoryRows);
         setAssets(assetPage.content);
-        if (meData.departments.length === 1) setDepartmentId(meData.departments[0]!.id);
+        // Only as a convenience on a new request: defaulting here would
+        // overwrite the department an edited request already has.
+        if (!editing && meData.departments.length === 1) setDepartmentId(meData.departments[0]!.id);
       })
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : errorsDict.generic);
@@ -152,8 +171,10 @@ export default function NewAssetRequestView({
     }
     setSubmitting(true);
     try {
-      const created = await apiFetch<AssetRequestDetail>("/asset-requests", {
-        method: "POST",
+      const created = await apiFetch<AssetRequestDetail>(
+        editing ? `/asset-requests/${editing.id}` : "/asset-requests",
+        {
+        method: editing ? "PUT" : "POST",
         body: JSON.stringify({
           departmentId,
           roomId: roomId || null,
@@ -163,7 +184,8 @@ export default function NewAssetRequestView({
           reason: reason.trim(),
           lines: purpose === "PURCHASE" ? purchaseLines : assetLines,
         }),
-      });
+        }
+      );
 
       let uploadFailed = false;
       for (const file of files) {

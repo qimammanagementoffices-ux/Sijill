@@ -52,7 +52,9 @@ public class AssetRequestController {
                         .map(AttachmentDto::from)
                         .collect(Collectors.groupingBy(AttachmentDto::ownerId));
         return PagedResponse.from(
-                page, request -> AssetRequestListItem.from(request, attachments.getOrDefault(request.getId(), List.of())));
+                page,
+                request -> AssetRequestListItem.from(
+                        request, attachments.getOrDefault(request.getId(), List.of()), actor));
     }
 
     @GetMapping("/{id}")
@@ -73,6 +75,18 @@ public class AssetRequestController {
     public AssetRequestDetail submit(
             @RequestBody SubmitAssetRequestRequest request, @AuthenticationPrincipal Employee actor) {
         return AssetRequestDetail.from(assetRequestService.submit(request, actor));
+    }
+
+    // The requester's one-hour correction window, or an admin on a still
+    // pending request. The service is the authority on both -- never the
+    // browser clock.
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('as.request', 'emp.manage')")
+    public AssetRequestDetail update(
+            @PathVariable UUID id,
+            @RequestBody SubmitAssetRequestRequest request,
+            @AuthenticationPrincipal Employee actor) {
+        return AssetRequestDetail.from(assetRequestService.update(id, request, actor));
     }
 
     @PostMapping("/{id}/approve")

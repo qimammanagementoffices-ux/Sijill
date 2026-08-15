@@ -415,6 +415,13 @@ export type AssetRequestActionDto = { actorName: string; action: string; reason:
 
 export type AssetRequestPurpose = "PURCHASE" | "MAINTENANCE" | "TRANSFER";
 export type AssetRequestPriority = "NORMAL" | "URGENT";
+// Added with the asset request edit window; see NeedRequestListItem for the
+// same pair.
+export type AssetRequestEditFields = {
+  editableUntil: string;
+  canEdit: boolean;
+};
+
 export type AssetRequestLineDto = {
   id: string;
   assetId: string | null;
@@ -427,7 +434,7 @@ export type AssetRequestLineDto = {
   quantity: number;
 };
 
-export type AssetRequestListItem = {
+export type AssetRequestListItem = AssetRequestEditFields & {
   id: string;
   requesterId: string;
   requesterName: string;

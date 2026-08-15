@@ -31,6 +31,8 @@ import sa.sijill.api.web.dto.SubmitAssetRequestRequest;
 @Service
 public class AssetRequestService {
 
+    private static final int EDIT_WINDOW_MINUTES = 60;
+
     private final AssetRequestRepository assetRequestRepository;
     private final AssetRepository assetRepository;
     private final CategoryRepository categoryRepository;
@@ -152,6 +154,53 @@ public class AssetRequestService {
     }
 
     private AssetRequest submitLegacyStyle(SubmitAssetRequestRequest request, Employee requester) {
+        AssetRequest assetRequest = new AssetRequest();
+        assetRequest.setRequester(requester);
+        assetRequest.setStatus(AssetRequestStatus.PENDING);
+        assetRequest.setSuggestedStartDate(suggestedStartDateCalculator.from(LocalDate.now()));
+        applyLegacyStyle(assetRequest, request, requester);
+
+        addAction(assetRequest, requester, "SUBMIT", null);
+        AssetRequest saved = assetRequestRepository.save(assetRequest);
+        auditService.record(requester, "ASSET_REQUEST_SUBMITTED", "AssetRequest", saved.getId());
+        return saved;
+    }
+
+    /**
+     * The requester correcting their own request within the hour, or an admin
+     * on a still-pending one. Shares every validation with submit rather than
+     * repeating it: two copies would disagree the first time either changed,
+     * and the one people edit through is the one that would be wrong.
+     */
+    @Transactional
+    public AssetRequest update(UUID id, SubmitAssetRequestRequest request, Employee actor) {
+        AssetRequest assetRequest = openRequest(id);
+        if (!canEdit(assetRequest, actor)) {
+            throw RequestWorkflowErrors.editWindowClosed();
+        }
+        applyLegacyStyle(assetRequest, request, assetRequest.getRequester());
+        return save(assetRequest, actor, "ASSET_REQUEST_UPDATED");
+    }
+
+    /**
+     * The requester edits within an hour of submitting; an admin edits any
+     * still-pending request. Nobody edits once a decision has been taken --
+     * otherwise the request changes under the approver's name after the fact.
+     */
+    public static boolean canEdit(AssetRequest request, Employee actor) {
+        if (request.getArchivedAt() != null || effectiveStatus(request) != AssetRequestStatus.PENDING) return false;
+        if (request.getRequester().getId().equals(actor.getId())) {
+            return Instant.now().isBefore(editableUntil(request));
+        }
+        return actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals);
+    }
+
+    public static Instant editableUntil(AssetRequest request) {
+        return request.getCreatedAt().plusSeconds(EDIT_WINDOW_MINUTES * 60L);
+    }
+
+    private void applyLegacyStyle(
+            AssetRequest assetRequest, SubmitAssetRequestRequest request, Employee requester) {
         Department department = resolveRequesterDepartment(request.departmentId(), requester);
         Room room = resolveRoom(request.roomId(), "roomId");
         if (room != null
@@ -176,16 +225,16 @@ public class AssetRequestService {
                     "Destination room must be different", Map.of("destinationRoomId", "must differ from roomId"));
         }
 
-        AssetRequest assetRequest = new AssetRequest();
-        assetRequest.setRequester(requester);
         assetRequest.setDepartment(department);
         assetRequest.setRoom(room);
         assetRequest.setDestinationRoom(destinationRoom);
         assetRequest.setPurpose(request.purpose());
         assetRequest.setPriority(request.priority() == null ? AssetRequestPriority.NORMAL : request.priority());
         assetRequest.setReason(request.reason().trim());
-        assetRequest.setStatus(AssetRequestStatus.PENDING);
-        assetRequest.setSuggestedStartDate(suggestedStartDateCalculator.from(LocalDate.now()));
+        // Rebuilt from the payload: an edit may drop a line, and orphanRemoval
+        // deletes what is no longer here.
+        assetRequest.getLines().clear();
+        assetRequest.setAsset(null);
 
         Set<UUID> selectedIds = new HashSet<>();
         for (AssetRequestLineRequest requestedLine : requestedLines) {
@@ -222,11 +271,6 @@ public class AssetRequestService {
             }
             assetRequest.getLines().add(line);
         }
-
-        addAction(assetRequest, requester, "SUBMIT", null);
-        AssetRequest saved = assetRequestRepository.save(assetRequest);
-        auditService.record(requester, "ASSET_REQUEST_SUBMITTED", "AssetRequest", saved.getId());
-        return saved;
     }
 
     @Transactional

@@ -23,6 +23,10 @@ public record AssetRequestListItem(
         String status,
         LocalDate suggestedStartDate,
         LocalDate postponedUntil,
+        // The requester's one-hour correction window, so the card can offer an
+        // edit button for exactly as long as the server will accept one.
+        Instant editableUntil,
+        boolean canEdit,
         boolean returnedBySenior,
         Instant archivedAt,
         List<AssetRequestLineDto> lines,
@@ -30,10 +34,13 @@ public record AssetRequestListItem(
         List<AttachmentDto> attachments) {
 
     public static AssetRequestListItem from(AssetRequest request) {
-        return from(request, List.of());
+        return from(request, List.of(), null);
     }
 
-    public static AssetRequestListItem from(AssetRequest request, List<AttachmentDto> attachments) {
+    // A null actor means "nobody in particular is asking" -- canEdit is then
+    // false, since the answer depends entirely on who wants to edit.
+    public static AssetRequestListItem from(
+            AssetRequest request, List<AttachmentDto> attachments, sa.sijill.api.domain.Employee actor) {
         LocalizedRef department = request.getDepartment() != null
                 ? LocalizedRef.from(request.getDepartment())
                 : request.getAsset() == null
@@ -77,6 +84,8 @@ public record AssetRequestListItem(
                 AssetRequestService.effectiveStatus(request).name(),
                 request.getSuggestedStartDate(),
                 request.getPostponedUntil(),
+                AssetRequestService.editableUntil(request),
+                actor != null && AssetRequestService.canEdit(request, actor),
                 request.isReturnedBySenior(),
                 request.getArchivedAt(),
                 lines,

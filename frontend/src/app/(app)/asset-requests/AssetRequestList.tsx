@@ -26,6 +26,7 @@ import type {
   RequestDecisionBody,
 } from "@/lib/types";
 import { withCount } from "@/lib/withCount";
+import { formatEditDeadline } from "@/lib/formatEditDeadline";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
@@ -101,6 +102,8 @@ export default function AssetRequestList({
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: AssetRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
+  const [editRequest, setEditRequest] = useState<AssetRequestListItem | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   function queryFor(nextView: AssetRequestView, query: string) {
     const params = new URLSearchParams();
@@ -345,6 +348,22 @@ export default function AssetRequestList({
                 {/* The reason moved into the submission entry below: it is
                     something the requester said when they raised this, not a
                     loose fact about the request. */}
+                {/* The window and the button appear and disappear together --
+                    when the hour lapses, and the moment an official decides.
+                    Nothing is said afterwards: a note about a button that is
+                    already gone only helps someone hunting for it. */}
+                {request.canEdit && (
+                  <p className="edit-note">
+                    {cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setEditRequest(request)}
+                    >
+                      {actionsDict.edit}
+                    </button>
+                  </p>
+                )}
                 {/* Only while the request is still waiting -- see the same
                     guard on the warehouse and maintenance cards. */}
                 {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
@@ -414,6 +433,45 @@ export default function AssetRequestList({
               <button type="submit" form="asset-request-add-form" className="btn btn-primary btn-sm" disabled={addSubmitting}>
                 {addSubmitting && <span className="spinner" />}
                 {dict.submit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Same form, loaded with the request. The server re-checks the edit
+          window, so a card left open past the hour cannot save. */}
+      {editRequest && (
+        <div className="overlay" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <div className="modal-head">
+              <h3>{actionsDict.edit}</h3>
+              <button type="button" className="modal-close" onClick={() => setEditRequest(null)} aria-label="close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <NewAssetRequestView
+                key={editRequest.id}
+                dict={dict}
+                errorsDict={errorsDict}
+                editing={editRequest}
+                formId="asset-request-edit-form"
+                onSubmittingChange={setEditSubmitting}
+                onSubmitted={() => {
+                  setEditRequest(null);
+                  load();
+                  setToast(commonDict.actionSuccess);
+                }}
+              />
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditRequest(null)} disabled={editSubmitting}>
+                {commonDict.cancel}
+              </button>
+              <button type="submit" form="asset-request-edit-form" className="btn btn-primary btn-sm" disabled={editSubmitting}>
+                {editSubmitting && <span className="spinner" />}
+                {commonDict.save}
               </button>
             </div>
           </div>
