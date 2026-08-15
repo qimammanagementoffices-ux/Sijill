@@ -8,7 +8,6 @@ import type { AttachmentDto, MaintenanceDto } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
-import OfficialHolidayCalendar from "@/components/OfficialHolidayCalendar";
 
 // Fixed synthetic owner id for the single maintenance_setting row — same
 // pattern as BrandingAdmin.tsx's BRANDING_OWNER_ID (the row has no UUID id
@@ -189,7 +188,6 @@ export default function SiteMaintenanceAdmin({ dict, locale }: { dict: Dictionar
         </div>
       </div>
 
-      <OfficialHolidayCalendar dict={dict} locale={locale} />
     </>
   );
 }

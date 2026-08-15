@@ -1111,6 +1111,10 @@ img[data-viewable] {
 .field input[type="email"],
 .field input[type="password"],
 .field input[type="datetime-local"],
+/* Autocomplete inputs carry no type attribute, and [type="text"] does not
+   match an absent attribute -- so they rendered unstyled next to every other
+   field on the form. */
+.field .asset-autocomplete > input,
 .field select,
 .field textarea {
   border: 1.5px solid var(--line);
