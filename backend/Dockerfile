@@ -4,6 +4,11 @@
 FROM gradle:8.10-jdk21-alpine AS build
 WORKDIR /home/gradle/src
 COPY build.gradle.kts settings.gradle.kts ./
+# Resolve dependencies in their own layer, keyed only on the build files. src
+# changes on every deploy, so without this the layer below is always a cache
+# miss and every deploy re-downloads the whole dependency graph before it can
+# start compiling.
+RUN gradle --no-daemon dependencies --configuration runtimeClasspath > /dev/null
 COPY src src
 RUN gradle build --no-daemon -x test
 
