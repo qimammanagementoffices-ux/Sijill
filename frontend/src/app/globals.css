@@ -1035,6 +1035,16 @@ tbody tr.clickable:hover {
   color: var(--seal);
   background: var(--seal-soft);
 }
+/* "عاجلة" has to read as a warning, not as another grey fact among the
+   request's metadata -- it is the one chip that asks the reader to act
+   sooner. Same seal red as a refusal, with a border so it still carries
+   at a glance in a row of pills. */
+.chip-urgent {
+  color: var(--seal);
+  background: var(--seal-soft);
+  border: 1px solid color-mix(in srgb, var(--seal) 35%, transparent);
+  font-weight: 700;
+}
 .s-progress {
   color: var(--ink-light);
   background: #e7eaf4;

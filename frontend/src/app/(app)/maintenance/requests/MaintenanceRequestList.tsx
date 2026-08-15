@@ -397,7 +397,7 @@ export default function MaintenanceRequestList({
                   <span>{request.requesterName}</span>
                   {request.department && <span>{request.department.ar}</span>}
                   {request.location && <span>{request.location}</span>}
-                  <span className="chip chip-sm">{priorityLabel(request.priority)}</span>
+                  <span className={`chip chip-sm${request.priority === "URGENT" ? " chip-urgent" : ""}`}>{priorityLabel(request.priority)}</span>
                 </div>
 
                 {request.description && <p className="request-card-notes">{request.description}</p>}

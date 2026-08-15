@@ -106,7 +106,7 @@ export default function MaintenanceRequestDetailView({
           <span className="dot" />
           {statusLabel}
         </span>
-        <span className="chip chip-sm">{priorityLabel}</span>
+        <span className={`chip chip-sm${request.priority === "URGENT" ? " chip-urgent" : ""}`}>{priorityLabel}</span>
       </div>
 
       <div className="panel">
