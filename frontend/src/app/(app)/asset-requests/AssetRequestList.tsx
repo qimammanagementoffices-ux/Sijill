@@ -316,8 +316,6 @@ export default function AssetRequestList({
             </span>
           </div>
           <div className="table-toolbar-actions">
-            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
-            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
             {permissions.includes("as.request") && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}
@@ -371,8 +369,8 @@ export default function AssetRequestList({
                 {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
                   <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
                 )}
-                <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle}
-                  systemActorLabel={cardDict.systemActor} attachmentsDict={attachmentsDict}
+                <RequestCardActivity actions={request.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle}
+                  systemActorLabel={cardDict.systemActor}
                   submissionNote={request.reason} />
                 <div className="request-card-actions">
                   {request.status === "PENDING" && !request.archivedAt && (
@@ -395,10 +393,10 @@ export default function AssetRequestList({
                       {dict.finish}
                     </button>
                   )}
-                  {permissions.includes("emp.manage") && (request.archivedAt || request.status === "CLOSED") && (
-                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
-                      {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
-                      {request.archivedAt ? actionsDict.restore : actionsDict.archive}
+                  {permissions.includes("emp.manage") && !request.archivedAt && request.status === "CLOSED" && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, "archive")}>
+                      {busyAction === `${request.id}:archive` && <span className="spinner" />}
+                      {actionsDict.archive}
                     </button>
                   )}
                   <button type="button" className="btn btn-outline btn-sm" onClick={() => setViewRequest(request)}>{dict.cardOpen}</button>

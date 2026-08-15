@@ -88,16 +88,29 @@ export default function AssetViewModal({
   return (
     <div className="overlay" role="dialog" aria-modal="true">
       <div className="modal wide">
-        <button type="button" className="modal-close" onClick={onClose} aria-label="close">×</button>
-        <div className="modal-head">
-          <h3>{asset ? `${asset.nameAr} — ${asset.assetNumber}` : "..."}</h3>
+        {/* Same head as "بطاقة الصنف": identity split into kicker, name and
+            code instead of one run-on title, and the close button inside the
+            head so it lands at the end edge -- the left, in RTL. */}
+        <div className="modal-head item-card-head">
+          <div className="item-card-heading">
+            <span className="item-card-kicker">{dict.cardTitle}</span>
+            <h3>{asset ? asset.nameAr : "…"}</h3>
+            {asset && (
+              <span className="item-card-code mono">
+                {asset.assetNumber}
+                {asset.category?.ar ? ` · ${asset.category.ar}` : ""}
+              </span>
+            )}
+          </div>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="close">×</button>
         </div>
         <div className="modal-body">
           {!asset ? (
             <SectionLoading />
           ) : (
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 260 }}>
+            <div className="asset-card-split">
+              <div className="asset-card-facts">
+                <h4 className="ps-section-title">{dict.cardBasicInfo}</h4>
                 <dl className="info-grid">
                   <dt>{dict.categoryLabel}</dt>
                   <dd>{asset.category?.ar ?? "—"}</dd>
@@ -126,7 +139,11 @@ export default function AssetViewModal({
                   <dd>{asset.notes ?? "—"}</dd>
                 </dl>
 
-                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              </div>
+
+              <div className="asset-card-qr">
+                {qrUrl ? <img src={qrUrl} alt="QR" /> : <SectionLoading />}
+                <div className="asset-card-qr-actions">
                   <button type="button" className="btn btn-outline btn-sm" onClick={downloadQr}>
                     {dict.downloadQr}
                   </button>
@@ -135,24 +152,14 @@ export default function AssetViewModal({
                   </button>
                 </div>
               </div>
-
-              <div style={{ flexShrink: 0, textAlign: "center" }}>
-                {qrUrl ? (
-                  <img
-                    src={qrUrl}
-                    alt="QR"
-                    style={{ width: 180, height: 180, borderRadius: 8, border: "1px solid var(--line)" }}
-                  />
-                ) : <SectionLoading />}
-              </div>
             </div>
           )}
 
           {asset && (
-            <div style={{ marginTop: 24 }}>
-              <h4 style={{ fontWeight: 700, marginBottom: 10 }}>{dict.transferLog}</h4>
+            <div className="asset-card-transfers">
+              <h4 className="ps-section-title">{dict.transferLog}</h4>
               {!transfers || transfers.length === 0 ? (
-                <p style={{ color: "var(--slate)", fontSize: 13.5 }}>{dict.noTransfers}</p>
+                <p className="asset-card-empty">{dict.noTransfers}</p>
               ) : (
                 <div className="table-scroll">
                   <table>

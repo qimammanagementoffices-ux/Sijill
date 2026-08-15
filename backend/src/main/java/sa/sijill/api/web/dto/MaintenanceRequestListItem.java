@@ -13,6 +13,9 @@ public record MaintenanceRequestListItem(
         long requestNumber,
         UUID requesterId,
         String requesterName,
+        // For the printed form's "المسمى الوظيفي" cell, which had no source
+        // and always printed a dash. Matches NeedRequestListItem.
+        String requesterJobTitle,
         LocalizedRef department,
         LocalizedRef faultType,
         String priority,
@@ -32,6 +35,9 @@ public record MaintenanceRequestListItem(
                 request.getRequestNumber(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
+                request.getRequester().getJobTitle() == null
+                        ? null
+                        : request.getRequester().getJobTitle().getNameAr(),
                 request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment()),
                 request.getFaultType() == null
                         ? null

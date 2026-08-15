@@ -305,6 +305,7 @@ export type MaintenanceRequestListItem = {
   requestNumber: number;
   requesterId: string;
   requesterName: string;
+  requesterJobTitle: string | null;
   department: LocalizedRef | null;
   faultType: LocalizedRef | null;
   priority: MaintenancePriority;

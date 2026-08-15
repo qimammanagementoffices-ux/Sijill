@@ -706,6 +706,8 @@ export type Dictionary = {
     close: string;
     transferLog: string;
     noTransfers: string;
+    cardTitle: string;
+    cardBasicInfo: string;
     deleteAsset: string;
     saveChanges: string;
     photoUploadLabel: string;

@@ -640,6 +640,53 @@ body.lang-en .section-title {
   font-weight: 600;
 }
 
+/* The asset card reuses the item card's head; its body is a facts column
+   beside the QR sticker, which drops under the facts once there is no room
+   for two columns. */
+.asset-card-split {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.asset-card-facts {
+  flex: 1;
+  min-width: 260px;
+}
+
+.asset-card-qr {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  align-content: start;
+  flex: none;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper-dim);
+}
+
+.asset-card-qr img {
+  width: 180px;
+  height: 180px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.asset-card-qr-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.asset-card-transfers {
+  margin-top: 24px;
+}
+
+.asset-card-empty {
+  color: var(--slate);
+  font-size: 13.5px;
+}
+
 /* Queues waiting on the signed-in employee. Only rendered when non-empty, so
    the dashboard stays quiet for anyone with nothing to decide. */
 .dashboard-queues {

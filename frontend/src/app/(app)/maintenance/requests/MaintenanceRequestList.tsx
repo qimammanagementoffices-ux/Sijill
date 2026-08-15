@@ -361,8 +361,6 @@ export default function MaintenanceRequestList({
             </span>
           </div>
           <div className="table-toolbar-actions">
-            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
-            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
             {permissions.includes("mt.request") && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}
@@ -422,11 +420,9 @@ export default function MaintenanceRequestList({
 
                 <RequestCardActivity
                   actions={request.actions}
-                  attachments={request.attachments}
                   actionLabel={actionLabel}
                   activityTitle={dict.activityTitle}
                   systemActorLabel={cardDict.systemActor}
-                  attachmentsDict={attachmentsDict}
                 />
 
                 <div className="request-card-actions">
@@ -496,10 +492,17 @@ export default function MaintenanceRequestList({
                     </>
                   )}
 
-                  {permissions.includes("emp.manage") && (request.archivedAt || request.status === "CLOSED") && (
-                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
-                      {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
-                      {request.archivedAt ? actionsDict.restore : actionsDict.archive}
+                  {/* Archive only, matching the warehouse card: restoring is
+                      not offered there either. DONE counts as finished --
+                      under one-level review a request ends there rather than
+                      at CLOSED, so waiting for CLOSED meant the button never
+                      appeared. */}
+                  {permissions.includes("emp.manage") &&
+                    !request.archivedAt &&
+                    (request.status === "CLOSED" || request.status === "DONE") && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, "archive")}>
+                      {busyAction === `${request.id}:archive` && <span className="spinner" />}
+                      {actionsDict.archive}
                     </button>
                   )}
 
@@ -595,7 +598,7 @@ export default function MaintenanceRequestList({
                 purchasingOfficerAction="FINISH"
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
-                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: viewRequest.requesterJobTitle ?? "—" },
                   { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
                   { label: ["نوع العطل", "Fault Type", "खराबी का प्रकार"], value: viewRequest.faultType?.ar ?? "—" },
                   { label: ["الموقع", "Location", "स्थान"], value: viewRequest.location ?? "—" },

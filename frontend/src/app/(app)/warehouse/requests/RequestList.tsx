@@ -468,8 +468,6 @@ export default function RequestList({
             </span>
           </div>
           <div className="table-toolbar-actions">
-            <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={handleExport} />
-            <ExportButton format="pdf" label={commonDict.exportPdf} onClick={() => window.print()} />
             {permissions.includes("wh.request") && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
                 {dict.addNew}
@@ -583,12 +581,10 @@ export default function RequestList({
 
                 <RequestCardActivity
                   actions={request.actions}
-                  attachments={request.attachments}
                   actionLabel={actionLabel}
                   activityTitle={dict.activityTitle}
                   systemActorLabel={cardDict.systemActor}
                   lineEditNotices={(edits) => lineEditNotices(request, edits)}
-                  attachmentsDict={attachmentsDict}
                   submissionNote={request.notes}
                 />
 

@@ -1,6 +1,3 @@
-import type { AttachmentDto } from "@/lib/types";
-import type { Dictionary } from "@/i18n/getDictionary";
-
 type RequestActionLineEdit = {
   lineId: string | null;
   quantityBefore: number;
@@ -48,21 +45,20 @@ export function formatActionDate(value: string) {
       }).format(date);
 }
 
+// Attachments are deliberately absent: the card is a summary, and the files
+// belong to the printed record. They appear on their own pages in
+// "عرض النموذج", which is also what the print view renders.
 export default function RequestCardActivity({
   actions = [],
-  attachments = [],
   actionLabel,
   activityTitle,
-  attachmentsDict,
   systemActorLabel,
   lineEditNotices,
   submissionNote,
 }: {
   actions?: RequestAction[];
-  attachments?: AttachmentDto[];
   actionLabel: (action: string) => string;
   activityTitle: string;
-  attachmentsDict: Dictionary["attachments"];
   // Shown for entries the system wrote rather than an employee — currently
   // only a postponed request returning to the queue.
   systemActorLabel?: string;
@@ -76,25 +72,6 @@ export default function RequestCardActivity({
 }) {
   return (
     <>
-      {attachments.length > 0 && (
-        <section className="request-card-section">
-          <h4>{attachmentsDict.title}</h4>
-          <div className="request-attachment-list">
-            {attachments.map((attachment) => (
-              <div className="request-attachment-row" key={attachment.id}>
-                <a className="request-attachment-name" href={attachment.url} target="_blank" rel="noopener noreferrer" title={attachment.filename}>
-                  <span aria-hidden="true">{attachment.contentType.startsWith("image/") ? "▣" : "PDF"}</span>
-                  <b>{attachment.filename}</b>
-                </a>
-                <a className="request-attachment-download" href={attachment.url} download={attachment.filename} target="_blank" rel="noopener noreferrer">
-                  {attachmentsDict.download}
-                </a>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {actions.length > 0 && (
         <section className="request-card-section">
           <h4>{activityTitle}</h4>
