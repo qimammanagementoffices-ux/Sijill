@@ -431,6 +431,8 @@ export type Dictionary = {
     finishStep: string;
     addCustomRequest: string;
     customRequestPlaceholder: string;
+    itemSearchPlaceholder: string;
+    noMatchingItems: string;
     describeCustomRequest: string;
     backToItems: string;
     attachmentsHint: string;

@@ -558,6 +558,55 @@ body.lang-en .section-title {
   border-color: rgba(27, 42, 74, 0.25);
   border-top-color: var(--seal);
 }
+/* Item autocomplete rows: photo, then name and code. */
+.item-picker-options button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-picker-thumb {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-dim);
+  color: var(--slate);
+  /* The zoom below scales the image past these bounds, so the row must not
+     clip it. */
+  overflow: visible;
+}
+
+.item-picker-thumb img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+/* Hover zoom: the thumbnail is too small to judge an item by, and opening a
+   lightbox mid-selection would lose the dropdown. transform-origin keeps the
+   enlarged image inside the panel instead of over the page edge. */
+.item-picker-options button:hover .item-picker-thumb img,
+.item-picker-options button:focus-visible .item-picker-thumb img {
+  transform: scale(2.6);
+  transform-origin: center right;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 3;
+}
+
+.item-picker-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 /* "بطاقة الصنف" — the head carries the item's identity (name, code,
    category) instead of one long run-on title, and the close button sits
    inside the head like every other modal, which puts it at the end edge:

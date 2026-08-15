@@ -15,6 +15,7 @@ import type {
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
+import ItemPicker from "@/components/ItemPicker";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
 
@@ -284,29 +285,23 @@ export default function NewRequestView({
                 >
                   <div className="field span2">
                     <label>{dict.itemLabel}</label>
-                    <select
+                    {/* An item already taken by another row is dropped from
+                        this one: the same item twice in one request is two
+                        quantities for one thing, which the warehouse then has
+                        to reconcile by hand. The row's own current value
+                        always stays, or choosing an item would remove it from
+                        its own list. */}
+                    <ItemPicker
+                      items={filteredItems.filter(
+                        (item) =>
+                          item.id === line.inventoryItemId ||
+                          !lines.some((other, otherIndex) => otherIndex !== index && other.inventoryItemId === item.id)
+                      )}
                       value={line.inventoryItemId}
-                      onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
-                    >
-                      <option value="">—</option>
-                      {/* An item already taken by another row is dropped from
-                          this one: the same item twice in one request is two
-                          quantities for one thing, which the warehouse then
-                          has to reconcile by hand. The row's own current
-                          value always stays, or selecting it would remove it
-                          from its own list. */}
-                      {filteredItems
-                        .filter(
-                          (item) =>
-                            item.id === line.inventoryItemId ||
-                            !lines.some((other, otherIndex) => otherIndex !== index && other.inventoryItemId === item.id)
-                        )
-                        .map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.code} — {item.nameAr}
-                          </option>
-                        ))}
-                    </select>
+                      placeholder={dict.itemSearchPlaceholder}
+                      emptyLabel={dict.noMatchingItems}
+                      onChange={(itemId) => updateLine(index, { inventoryItemId: itemId })}
+                    />
                   </div>
                   <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <div style={{ flex: 1 }}>
