@@ -3673,8 +3673,54 @@ body.lang-en .modal-head h3 {
   color: var(--slate);
   font-size: 11px;
 }
+/* These inputs sit outside .field, so none of the form styling above reaches
+   them -- they rendered as raw browser controls in the middle of a styled
+   dialog. The quantity is the one thing being decided here, so it is set
+   larger and centred rather than merely bordered. */
 .decision-line input[type="number"],
 .delivery-line input[type="number"] {
-  width: 88px;
+  width: 92px;
   flex: none;
+  padding: 9px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  /* Digits keep their column as the value changes instead of jittering. */
+  font-variant-numeric: tabular-nums;
+}
+
+.decision-line input[type="number"]:focus,
+.delivery-line input[type="number"]:focus {
+  border-color: var(--ink-soft);
+  box-shadow: 0 0 0 3px rgba(46, 66, 114, 0.1);
+}
+
+.decision-line input[type="number"]:disabled,
+.delivery-line input[type="number"]:disabled {
+  background: var(--paper-dim);
+  color: var(--slate);
+}
+
+/* Chrome hides the stepper until hover; these are quantities people click
+   into deliberately, so keep the arrows where they can be seen -- same
+   reasoning as the .field rule above. */
+.decision-line input[type="number"]::-webkit-inner-spin-button,
+.decision-line input[type="number"]::-webkit-outer-spin-button,
+.delivery-line input[type="number"]::-webkit-inner-spin-button,
+.delivery-line input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 22px;
+}
+
+/* Room for the larger control, and the stock line beside it. */
+.delivery-line,
+.decision-line {
+  padding: 10px 12px;
+  gap: 12px;
 }
