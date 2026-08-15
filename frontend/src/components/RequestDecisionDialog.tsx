@@ -166,7 +166,7 @@ export default function RequestDecisionDialog({
             />
           </div>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
         </div>
         <div className="modal-foot">
           <button type="button" className="btn btn-outline btn-sm" onClick={onCancel} disabled={submitting}>

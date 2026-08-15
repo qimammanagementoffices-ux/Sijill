@@ -133,7 +133,13 @@ export default function RequestList({
   const [filtering, setFiltering] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [, setAddSubmitting] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  // A refusal and a confirmation used to look identical -- same neutral pill.
+  // The tone now travels with the message: setToast still takes a plain string
+  // for successes, failures go through failToast and come out red.
+  const [toast, setToastState] = useState<{ message: string; error: boolean } | null>(null);
+  const setToast = (message: string) => setToastState({ message, error: false });
+  const failToast = (error: unknown) =>
+    setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
   const { id: currentEmployeeId, permissions } = useSession();
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -164,7 +170,7 @@ export default function RequestList({
         }
         // Anything else used to be swallowed: the list simply never arrived and
         // the page sat on its loading state with nothing to explain it.
-        setToast(requestErrorMessage(err, requestErrorsDict, errorsDict.generic));
+        failToast(err);
         setPage((current) => current ?? { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0 });
       })
       .finally(() => setFiltering(false));
@@ -318,7 +324,7 @@ export default function RequestList({
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
-      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
+      failToast(error);
     } finally {
       setBusyAction(null);
     }
@@ -383,7 +389,7 @@ export default function RequestList({
       load();
       setToast(uploadFailed ? deliveryDict.attachmentsFailed : commonDict.actionSuccess);
     } catch (error) {
-      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
+      failToast(error);
     } finally {
       setBusyAction(null);
     }
@@ -406,7 +412,7 @@ export default function RequestList({
       load();
       setToast(commonDict.actionSuccess);
     } catch (error) {
-      setToast(requestErrorMessage(error, requestErrorsDict, errorsDict.generic));
+      failToast(error);
     } finally {
       setBusyAction(null);
     }
@@ -770,7 +776,7 @@ export default function RequestList({
         </div>
       )}
 
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} error={toast.error} durationMs={toast.error ? 6000 : 3000} onDismiss={() => setToastState(null)} />}
     </>
   );
 }
