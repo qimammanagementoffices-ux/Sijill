@@ -335,7 +335,19 @@ public class BackupService {
                 "drop schema if exists restore_temp cascade; "
                         + "create schema restore_temp; "
                         + "alter table public.backup_snapshot set schema restore_temp; "
-                        + "drop schema public cascade; "
+                        // Every user schema, not just public. V99 archived room
+                        // location data into sijill_archive, and a dump that
+                        // carries "create schema sijill_archive" fails against a
+                        // database where it still exists -- which broke restore
+                        // for every snapshot taken since. Enumerating rather than
+                        // naming it keeps the next archive schema from doing the
+                        // same thing again.
+                        + "do $$ declare s text; begin "
+                        + "for s in select nspname from pg_namespace "
+                        + "where nspname not in ('information_schema', 'restore_temp') "
+                        + "and nspname not like 'pg\\_%' "
+                        + "loop execute format('drop schema %I cascade', s); end loop; "
+                        + "end $$; "
                         + "create schema public; "
                         + "alter table restore_temp.backup_snapshot set schema public; "
                         + "drop schema restore_temp;");
