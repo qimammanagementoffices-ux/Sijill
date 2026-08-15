@@ -30,6 +30,7 @@ import sa.sijill.api.repository.AuditLogRepository;
 import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.repository.InventoryItemRepository;
 import sa.sijill.api.repository.NeedRequestRepository;
+import sa.sijill.api.repository.PermissionRepository;
 import sa.sijill.api.web.dto.CreateAssetRequest;
 import sa.sijill.api.web.dto.CreateNeedRequestRequest;
 import sa.sijill.api.web.dto.FinishNeedRequestRequest;
@@ -61,6 +62,7 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
     @Autowired private AssetRepository assetRepository;
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private NeedRequestRepository needRequestRepository;
+    @Autowired private PermissionRepository permissionRepository;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
@@ -94,6 +96,11 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         Employee saved = employeeRepository.save(employee);
         createdEmployeeIds.add(saved.getId());
         return saved;
+    }
+
+    private Employee grantAllRequestDepartments(Employee employee) {
+        employee.getPermissions().add(permissionRepository.findById("sys.requests.all").orElseThrow());
+        return employeeRepository.save(employee);
     }
 
     private InventoryItem createItem(String code, int quantity) {
@@ -143,8 +150,8 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
     @Test
     void concurrentFinishOnSharedStockLetsOnlyOneSucceed() throws Exception {
         Employee actor = createEmployee("0597700001");
-        Employee approver = createEmployee("0597700003");
-        Employee senior = createEmployee("0597700004");
+        Employee approver = grantAllRequestDepartments(createEmployee("0597700003"));
+        Employee senior = grantAllRequestDepartments(createEmployee("0597700004"));
         InventoryItem item = createItem("CONC-001", 1);
 
         NeedRequest requestA = submitAndApprove(item.getId(), actor, approver, senior);

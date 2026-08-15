@@ -113,7 +113,8 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isConflict());
 
-        String seniorToken = createEmployeeAndLogin(adminToken, "0599888888", Set.of("mt.act.countersign", "mt.view"));
+        String seniorToken = createEmployeeAndLogin(
+                adminToken, "0599888888", Set.of("mt.act.countersign", "mt.view", "sys.requests.all"));
         mockMvc.perform(post("/api/v1/maintenance/requests/" + requestId + "/countersign")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken))
                 .andExpect(status().isOk())

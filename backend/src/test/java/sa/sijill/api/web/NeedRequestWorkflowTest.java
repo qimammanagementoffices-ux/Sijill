@@ -130,7 +130,8 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isForbidden());
 
-        String seniorToken = createEmployeeAndLogin(adminToken, "0596888888", Set.of("wh.act.countersign", "wh.view"));
+        String seniorToken = createEmployeeAndLogin(
+                adminToken, "0596888888", Set.of("wh.act.countersign", "wh.view", "sys.requests.all"));
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/countersign")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken))
                 .andExpect(status().isOk())
@@ -205,7 +206,8 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     void deliveryIsCappedAtStockNotAtTheApprovedQuantity() throws Exception {
         String adminToken = createAdminAndGetToken("0596991111");
         String requesterToken = createEmployeeAndLogin(adminToken, "0596992222", Set.of("wh.request"));
-        String seniorToken = createEmployeeAndLogin(adminToken, "0596993333", Set.of("wh.act.countersign", "wh.view"));
+        String seniorToken = createEmployeeAndLogin(
+                adminToken, "0596993333", Set.of("wh.act.countersign", "wh.view", "sys.requests.all"));
         String itemId = createItemWithStock(adminToken, 10);
 
         var submit = new CreateNeedRequestRequest(
@@ -271,7 +273,8 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     void aShortDeliveryClosesTheRequestAndRecordsTheShortfall() throws Exception {
         String adminToken = createAdminAndGetToken("0596994444");
         String requesterToken = createEmployeeAndLogin(adminToken, "0596995555", Set.of("wh.request"));
-        String seniorToken = createEmployeeAndLogin(adminToken, "0596996666", Set.of("wh.act.countersign", "wh.view"));
+        String seniorToken = createEmployeeAndLogin(
+                adminToken, "0596996666", Set.of("wh.act.countersign", "wh.view", "sys.requests.all"));
         String itemId = createItemWithStock(adminToken, 10);
 
         var submit = new CreateNeedRequestRequest(

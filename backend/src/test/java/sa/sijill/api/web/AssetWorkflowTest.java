@@ -63,7 +63,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     void fullWorkflowSubmitApproveFinishTransfersCustodyAndRecordsHistory() throws Exception {
         String adminToken = createAdminAndGetToken("0599888111");
         String countersignerToken = createEmployeeAndLogin(
-                adminToken, "0599888991", Set.of("as.act.countersign"));
+                adminToken, "0599888991", Set.of("as.act.countersign", "sys.requests.all"));
         String requesterBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -179,7 +179,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     void legacyStyleTabsSubmitPurchaseAndMoveTransferAsset() throws Exception {
         String adminToken = createAdminAndGetToken("0599888333");
         String countersignerToken = createEmployeeAndLogin(
-                adminToken, "0599888555", Set.of("as.act.countersign"));
+                adminToken, "0599888555", Set.of("as.act.countersign", "sys.requests.all"));
 
         String departmentBody = mockMvc.perform(post("/api/v1/departments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)

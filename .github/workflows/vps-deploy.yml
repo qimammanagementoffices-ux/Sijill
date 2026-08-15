@@ -1,19 +1,16 @@
 # Deploys to the VPS after CI passes.
 #
-# Triggered by the CI workflows rather than by the push itself, so a commit
-# that fails tests never reaches the server -- the same rule render.yaml's
-# autoDeploy: false was there to enforce. A push touching only the frontend
-# runs only frontend-ci, and that alone is enough to deploy; when both run,
-# the concurrency group below collapses them into one deploy.
+# Triggered by the single CI workflow rather than either half independently.
+# Both backend and frontend must pass before the complete commit reaches the
+# server; a green frontend can no longer deploy a red backend.
 name: vps-deploy
 
 on:
   workflow_run:
-    workflows: ["backend-ci", "frontend-ci"]
+    workflows: ["ci"]
     types: [completed]
     branches: [main]
-  # For changes CI does not cover -- the compose file, the Caddyfile -- and for
-  # re-running a deploy by hand.
+  # Emergency/manual redeploy of the current main commit.
   workflow_dispatch:
 
 concurrency:
