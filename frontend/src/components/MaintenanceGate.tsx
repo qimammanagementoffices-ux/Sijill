@@ -29,13 +29,20 @@ export default function MaintenanceGate({
   const [bypassChecked, setBypassChecked] = useState(!status.enabled);
   const [canBypass, setCanBypass] = useState(false);
 
+  // Keyed on pathname as well as the flag: this component lives in the
+  // layout, so logging in navigates without remounting it. Checked once, it
+  // kept the answer it got on /login -- no token, no bypass -- and went on
+  // showing the maintenance page to an admin who had just signed in, until
+  // they reloaded the page by hand.
   useEffect(() => {
     if (!status.enabled) return;
     const token = getToken();
     if (!token) {
+      setCanBypass(false);
       setBypassChecked(true);
       return;
     }
+    setBypassChecked(false);
     apiFetch<EmployeeSummary>("/auth/me")
       .then((me) => setCanBypass(me.permissions.includes("sys.maintenance")))
       .catch((err) => {
@@ -48,7 +55,7 @@ export default function MaintenanceGate({
         }
       })
       .finally(() => setBypassChecked(true));
-  }, [status.enabled]);
+  }, [status.enabled, pathname]);
 
   if (!status.enabled || ALWAYS_ALLOWED_PATHS.has(pathname)) {
     return <>{children}</>;
