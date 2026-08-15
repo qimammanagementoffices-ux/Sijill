@@ -403,10 +403,6 @@ export default function RequestList({
       await apiFetch<NeedRequestDetail>(`/warehouse/requests/${id}/${path}`, {
         method: "POST",
         body: body === undefined ? undefined : JSON.stringify(body),
-        // Never leave an action button spinning indefinitely if Render drops
-        // or stalls the connection. The catch below shows the normal localized
-        // request error and finally always releases the button.
-        signal: AbortSignal.timeout(30_000),
       });
       setDelivering(null);
       load();

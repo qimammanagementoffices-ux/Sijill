@@ -44,17 +44,38 @@ export class ApiError extends Error {
   }
 }
 
+// A fetch that never settles leaves its caller's `finally` unreached, so the
+// button it disabled spins forever. Render stalls connections often enough
+// (cold start, instance restart) that every call needs a deadline, not just
+// the ones a bug report happened to name.
+const REQUEST_TIMEOUT_MS = 45_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
+function timeoutSignal(init: RequestInit | undefined, ms: number): AbortSignal {
+  return init?.signal ?? AbortSignal.timeout(ms);
+}
+
+// AbortSignal rejects with a DOMException the callers' error handling doesn't
+// recognise; give it a status so it reads as a normal failed request.
+function asApiError(error: unknown): never {
+  if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
+    throw new ApiError(408, "The request timed out", "TIMEOUT");
+  }
+  throw error;
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
 
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
+    signal: timeoutSignal(init, REQUEST_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
-  });
+  }).catch(asApiError);
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -147,7 +168,9 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: prepared,
-  });
+    // Longer than a plain request: this one is pushing up to 2MB.
+    signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+  }).catch(asApiError);
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new ApiError(res.status, body?.error?.message ?? `Request failed: ${res.status}`, body?.error?.code);
