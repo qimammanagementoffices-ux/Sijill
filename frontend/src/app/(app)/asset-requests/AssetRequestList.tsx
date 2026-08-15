@@ -12,6 +12,7 @@ import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import { usePermissions } from "@/lib/session";
+import { useQueueCounts } from "@/lib/queueCounts";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
@@ -92,6 +93,10 @@ export default function AssetRequestList({
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
   const permissions = usePermissions();
+  const { counts, refreshCounts } = useQueueCounts(
+    "/asset-requests",
+    permissions.includes("as.act.countersign")
+  );
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: AssetRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
@@ -109,6 +114,9 @@ export default function AssetRequestList({
 
   function load(nextView = view, query = appliedQuery) {
     setFiltering(true);
+    // Both queue badges, not just the tab being loaded -- a decision here
+    // changes the size of the other queue too.
+    refreshCounts();
     apiFetch<PagedResponse<AssetRequestListItem>>(`/asset-requests${queryFor(nextView, query)}`)
       .then(setPage)
       .catch((err) => {
@@ -279,9 +287,9 @@ export default function AssetRequestList({
         <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">
-              <button type="button" className={`btn btn-sm ${view === "pending" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("pending")}>{dict.pendingTab}</button>
+              <button type="button" className={`btn btn-sm ${view === "pending" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("pending")}>{dict.pendingTab}{counts ? ` (${counts.pending})` : ""}</button>
               {permissions.includes("as.act.countersign") && (
-                <button type="button" className={`btn btn-sm ${view === "review" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("review")}>{cardDict.reviewTab}</button>
+                <button type="button" className={`btn btn-sm ${view === "review" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("review")}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
               <button type="button" className={`btn btn-sm ${view === "all" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("all")}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${view === "mine" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("mine")}>{dict.mineTab}</button>

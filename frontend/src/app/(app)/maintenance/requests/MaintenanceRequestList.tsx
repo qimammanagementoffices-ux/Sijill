@@ -12,6 +12,7 @@ import ExportButton from "@/components/ExportButton";
 import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import { useSession } from "@/lib/session";
+import { useQueueCounts } from "@/lib/queueCounts";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
@@ -98,6 +99,10 @@ export default function MaintenanceRequestList({
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
   const { id: currentEmployeeId, permissions } = useSession();
+  const { counts, refreshCounts } = useQueueCounts(
+    "/maintenance/requests",
+    permissions.includes("mt.act.countersign")
+  );
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: MaintenanceRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<MaintenanceRequestListItem | null>(null);
@@ -115,6 +120,9 @@ export default function MaintenanceRequestList({
       params.set("underReview", "true");
     }
     setFiltering(true);
+    // Both queue badges, not just the tab being loaded -- a decision here
+    // changes the size of the other queue too.
+    refreshCounts();
     apiFetch<PagedResponse<MaintenanceRequestListItem>>(`/maintenance/requests?${params.toString()}`)
       .then(setPage)
       .catch((err) => {
@@ -303,9 +311,9 @@ export default function MaintenanceRequestList({
         <div className="panel-head table-toolbar no-print">
           <div className="request-toolbar">
             <div className="request-tabs">
-              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{status === "PENDING" && !mine && !archived && page ? ` (${page.totalElements})` : ""}</button>
+              <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{counts ? ` (${counts.pending})` : ""}</button>
               {permissions.includes("mt.act.countersign") && (
-                <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}</button>
+                <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
               <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
