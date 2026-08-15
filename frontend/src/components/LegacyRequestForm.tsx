@@ -30,6 +30,7 @@ export default function LegacyRequestForm({
   attachments = [],
   actionLabel,
   deliveryReport,
+  purchasingOfficerAction = "RECEIVE",
 }: {
   title: [string, string, string];
   subtitle: [string, string, string];
@@ -48,6 +49,8 @@ export default function LegacyRequestForm({
   // What actually left the store, and who released it. Only present once a
   // delivery has been recorded.
   deliveryReport?: { lines: { name: string; issued: number; unit: string | null }[]; releasedBy: string | null };
+  // Maintenance is settled by FINISH; warehouse receipt remains RECEIVE.
+  purchasingOfficerAction?: string;
 }) {
   const [branding, setBranding] = useState<BrandingDto | null>(null);
   useEffect(() => { apiFetch<BrandingDto>("/branding").then(setBranding).catch(() => {}); }, []);
@@ -62,9 +65,9 @@ export default function LegacyRequestForm({
     actions.find((entry) => entry.action === "COUNTERSIGN_APPROVE")?.actorName ??
     actions.find((entry) => entry.action === "APPROVE")?.actorName ??
     null;
-  // Whoever confirmed receipt signs as the purchasing officer: they are the
-  // one who took delivery of the goods.
-  const receivedByName = actions.find((entry) => entry.action === "RECEIVE")?.actorName ?? null;
+  // Each workflow identifies its purchasing officer by the action that
+  // settles it: RECEIVE for stock, FINISH for maintenance.
+  const receivedByName = actions.find((entry) => entry.action === purchasingOfficerAction)?.actorName ?? null;
 
   return (
     <>
