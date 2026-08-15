@@ -64,6 +64,14 @@ services:
       minio:
         condition: service_healthy
     environment:
+      # An OutOfMemoryError kills the Tomcat acceptor threads but leaves the
+      # JVM running, so the container stays "up" while answering nothing and
+      # every request hangs until Caddy times out -- the site reads as slow
+      # rather than down, and `restart: unless-stopped` never fires. Exiting
+      # on OOM turns that into a restart measured in seconds.
+      # MaxRAMPercentage replaces the default quarter-of-the-box heap: this
+      # container is one of five on an 8GB host.
+      JAVA_OPTS: "-XX:+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=35 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
       PGHOST: postgres
       PGPORT: "5432"
       PGDATABASE: ${PGDATABASE}

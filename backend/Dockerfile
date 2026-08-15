@@ -21,4 +21,6 @@ RUN addgroup -S sijill && adduser -S sijill -G sijill
 COPY --from=build /home/gradle/src/build/libs/*.jar app.jar
 USER sijill
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Via sh so JAVA_OPTS from compose is expanded; exec so the JVM stays PID 1
+# and still receives Docker's stop signal.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
