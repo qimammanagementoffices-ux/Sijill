@@ -342,14 +342,17 @@ export default function AssetRequestList({
                   <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && request.postponedUntil && <time>{request.postponedUntil}</time>}</span>
                 </header>
                 <div className="request-card-meta"><span>{request.requesterName}</span>{request.department && <span>{request.department.ar}</span>}{request.room && <span>{request.room.ar}</span>}{request.assetNumber !== "—" && <span className="chip chip-sm">{request.assetNumber}</span>}{request.priority && <span className="chip chip-sm">{request.priority === "URGENT" ? dict.priorityUrgent : dict.priorityNormal}</span>}{request.destinationRoom && <span>{dict.destinationRoomLabel}: <b>{request.destinationRoom.ar}</b></span>}</div>
-                {request.reason && <p className="request-card-notes">{request.reason}</p>}
+                {/* The reason moved into the submission entry below: it is
+                    something the requester said when they raised this, not a
+                    loose fact about the request. */}
                 {/* Only while the request is still waiting -- see the same
                     guard on the warehouse and maintenance cards. */}
                 {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
                   <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
                 )}
                 <RequestCardActivity actions={request.actions} attachments={request.attachments} actionLabel={actionLabel} activityTitle={dict.activityTitle}
-                  systemActorLabel={cardDict.systemActor} attachmentsDict={attachmentsDict} />
+                  systemActorLabel={cardDict.systemActor} attachmentsDict={attachmentsDict}
+                  submissionNote={request.reason} />
                 <div className="request-card-actions">
                   {request.status === "PENDING" && !request.archivedAt && (
                     <>
