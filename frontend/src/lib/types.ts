@@ -206,7 +206,6 @@ export type NeedRequestStatusValue =
   | "APPROVED"
   | "POSTPONED"
   | "REJECTED"
-  | "PARTIALLY_DELIVERED"
   | "DELIVERED"
   | "CLOSED";
 

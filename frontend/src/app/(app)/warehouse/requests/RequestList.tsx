@@ -69,7 +69,6 @@ const STATUS_STAMP_CLASS: Record<string, string> = {
   APPROVED: "s-approved",
   POSTPONED: "s-postponed",
   REJECTED: "s-rejected",
-  PARTIALLY_DELIVERED: "s-progress",
   DELIVERED: "s-delivered",
   CLOSED: "s-closed",
 };
@@ -83,18 +82,15 @@ type DecisionKind =
   | "overturn-approve"
   | "overturn-reject"
   | "overturn-postpone"
-  | "reject-receipt"
-  | "cancel-remainder";
+  | "reject-receipt";
 
-// A refusal, a deferral or a write-off always has to say why; an approval
-// need not.
+// A refusal or a deferral always has to say why; an approval need not.
 const REQUIRES_REASON: DecisionKind[] = [
   "reject",
   "postpone",
   "overturn-reject",
   "overturn-postpone",
   "reject-receipt",
-  "cancel-remainder",
 ];
 
 // Only decisions that grant the items may trim or drop lines.
@@ -218,7 +214,6 @@ export default function RequestList({
         FINISH: actionsDict.finishDelivery,
         RECEIVE: actionsDict.confirmReceipt,
         REJECT_RECEIPT: actionsDict.rejectReceipt,
-        CANCEL_REMAINDER: actionsDict.cancelRemainder,
         ARCHIVE: actionsDict.archive,
         RESTORE: actionsDict.restore,
         RESURFACE: actionsDict.resurface,
@@ -284,20 +279,6 @@ export default function RequestList({
     return notices;
   }
 
-  // "المتبقي من هذا الطلب: صنف × 2" while a short delivery is still open.
-  function outstandingNotice(request: NeedRequestListItem) {
-    if (request.status !== "PARTIALLY_DELIVERED") return null;
-    const parts = request.lines
-      .filter((line) => !line.removed)
-      .map((line) => ({
-        line,
-        remaining: (line.quantityApproved ?? line.quantityRequested) - (line.quantityIssued ?? 0),
-      }))
-      .filter((entry) => entry.remaining > 0)
-      .map((entry) => `${entry.line.itemNameAr} × ${entry.remaining}`);
-    return parts.length === 0 ? null : cardDict.outstandingNotice.replace("{items}", parts.join("، "));
-  }
-
   function selectView(nextStatus: string, mineOnly: boolean, showArchived = false) {
     setStatus(nextStatus);
     setMine(mineOnly);
@@ -322,7 +303,6 @@ export default function RequestList({
     "overturn-reject": "overturn",
     "overturn-postpone": "overturn",
     "reject-receipt": "reject-receipt",
-    "cancel-remainder": "cancel-remainder",
   };
 
   async function act(id: string, kind: DecisionKind, body: RequestDecisionBody) {
@@ -363,8 +343,6 @@ export default function RequestList({
         return modalsDict.cancelRejectionTitle;
       case "reject-receipt":
         return modalsDict.rejectReceiptTitle;
-      case "cancel-remainder":
-        return modalsDict.cancelRemainderTitle;
     }
   }
 
@@ -563,9 +541,6 @@ export default function RequestList({
                     {cardDict.postponeResurfaceNote.replace("{date}", request.postponedUntil)}
                   </p>
                 )}
-                {outstandingNotice(request) && (
-                  <p className="request-card-notice">{outstandingNotice(request)}</p>
-                )}
                 {request.returnedBySenior && <p className="request-card-notice">{cardDict.returnedBySenior}</p>}
                 {(request.deliveryAttachments?.length ?? 0) > 0 && (
                   <section className="request-card-section">
@@ -640,21 +615,13 @@ export default function RequestList({
                   {/* Delivery belongs to the storekeeper, not the requester:
                       the beneficiary must not be the one declaring what left
                       the warehouse. */}
-                  {(request.status === "APPROVED" || request.status === "PARTIALLY_DELIVERED") &&
+                  {request.status === "APPROVED" &&
                     !request.archivedAt &&
                     permissions.includes("wh.act.finish") && (
                       <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDelivering(request)}>
-                        {request.status === "PARTIALLY_DELIVERED" ? actionsDict.deliverRemainder : actionsDict.finishDelivery}
+                        {actionsDict.finishDelivery}
                       </button>
                     )}
-
-                  {/* Writes off what will never arrive, so a short delivery
-                      does not leave the request open indefinitely. */}
-                  {request.status === "PARTIALLY_DELIVERED" && !request.archivedAt && permissions.includes("wh.act.finish") && (
-                    <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "cancel-remainder" })}>
-                      {actionsDict.cancelRemainder}
-                    </button>
-                  )}
 
                   {request.status === "DELIVERED" && !request.archivedAt && request.requesterId === currentEmployeeId && (
                     <>

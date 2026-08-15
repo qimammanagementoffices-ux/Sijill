@@ -148,16 +148,6 @@ public class NeedRequestController {
         return detail(needRequestService.finish(id, request, actor), actor);
     }
 
-    // Writes off an undelivered remainder instead of leaving a short-delivered
-    // request open forever. Same permission as delivering it.
-    @PostMapping("/{id}/cancel-remainder")
-    @PreAuthorize("hasAuthority('wh.act.finish')")
-    public NeedRequestDetail cancelRemainder(
-            @PathVariable UUID id,
-            @RequestBody(required = false) RequestDecisionRequest request,
-            @AuthenticationPrincipal Employee actor) {
-        return detail(needRequestService.cancelRemainder(id, request, actor), actor);
-    }
 
     // Receipt is the requester's own step -- gated by ownership in the
     // service, not by a permission key.

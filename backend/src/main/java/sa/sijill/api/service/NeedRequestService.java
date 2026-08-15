@@ -334,16 +334,21 @@ public class NeedRequestService {
     // --- Delivery and receipt --------------------------------------------
 
     /**
-     * Records what actually left the warehouse. Callable more than once: a
-     * short delivery leaves the request PARTIALLY_DELIVERED and open, and each
-     * later pass adds to what was already issued rather than replacing it. The
-     * request only reaches DELIVERED when every approved quantity is met, or
-     * when the remainder is written off through {@link #cancelRemainder}.
+     * Records what actually left the warehouse, and closes the delivery in one
+     * pass. Issuing less than was approved is allowed and does not leave the
+     * request open for a second handover: the shortfall is written into the
+     * action log against this delivery, so it is visible rather than pending.
+     *
+     * The approved quantities are deliberately left alone. Reducing them to
+     * what was issued would record the shortfall too, but a later
+     * reject-receipt returns the request to APPROVED, and the re-delivery
+     * would then be capped at the reduced figure — quietly shrinking what the
+     * approver granted.
      */
     @Transactional
     public NeedRequest finish(UUID id, FinishNeedRequestRequest request, Employee actor) {
         NeedRequest needRequest = openRequest(id);
-        requireStatus(needRequest, NeedRequestStatus.APPROVED, NeedRequestStatus.PARTIALLY_DELIVERED);
+        requireStatus(needRequest, NeedRequestStatus.APPROVED);
 
         Map<UUID, Integer> issuedByLineId = new HashMap<>();
         if (request != null && request.lines() != null) {
@@ -352,23 +357,20 @@ public class NeedRequestService {
             }
         }
 
+        NeedRequestAction action = addAction(needRequest, actor, "FINISH", request == null ? null : request.notes());
+
         int issuedNow = 0;
-        int outstanding = 0;
         for (NeedRequestLine line : needRequest.getLines()) {
             if (line.isRemoved()) {
                 line.setQuantityIssued(0);
                 continue;
             }
             int approved = line.effectiveQuantity();
-            int alreadyIssued = line.getQuantityIssued() == null ? 0 : line.getQuantityIssued();
-            int remaining = approved - alreadyIssued;
 
             Integer requestedIssue = issuedByLineId.get(line.getId());
-            int quantityIssued = requestedIssue != null ? requestedIssue : remaining;
+            int quantityIssued = requestedIssue != null ? requestedIssue : approved;
 
-            // Capped against what is still outstanding on the approved
-            // quantity, so repeated passes cannot over-deliver in total.
-            if (quantityIssued < 0 || quantityIssued > remaining) {
+            if (quantityIssued < 0 || quantityIssued > approved) {
                 throw RequestWorkflowErrors.issuedOutOfRange();
             }
 
@@ -381,9 +383,14 @@ public class NeedRequestService {
                 inventoryItemRepository.save(item);
             }
 
-            line.setQuantityIssued(alreadyIssued + quantityIssued);
+            line.setQuantityIssued(quantityIssued);
             issuedNow += quantityIssued;
-            outstanding += remaining - quantityIssued;
+
+            // The shortfall, attributed to this delivery, so the card can say
+            // "5 approved, 3 delivered" instead of leaving it to arithmetic.
+            if (quantityIssued < approved) {
+                recordLineEdit(action, line, approved, quantityIssued, false);
+            }
         }
 
         // A delivery of nothing would otherwise advance the request while
@@ -393,36 +400,8 @@ public class NeedRequestService {
             throw RequestWorkflowErrors.nothingDelivered();
         }
 
-        needRequest.setStatus(
-                outstanding > 0 ? NeedRequestStatus.PARTIALLY_DELIVERED : NeedRequestStatus.DELIVERED);
-        addAction(needRequest, actor, "FINISH", request == null ? null : request.notes());
+        needRequest.setStatus(NeedRequestStatus.DELIVERED);
         return save(needRequest, actor, "NEED_REQUEST_FINISHED");
-    }
-
-    /**
-     * Writes off what was never delivered, with a reason, instead of leaving a
-     * short-delivered request open forever. The approved quantities drop to
-     * what was actually issued, so the shortfall is recorded rather than
-     * silently forgotten, and the request moves on to the requester.
-     */
-    @Transactional
-    public NeedRequest cancelRemainder(UUID id, RequestDecisionRequest decision, Employee actor) {
-        NeedRequest request = openRequest(id);
-        requireStatus(request, NeedRequestStatus.PARTIALLY_DELIVERED);
-        requireReason(decision);
-
-        NeedRequestAction action = addAction(request, actor, "CANCEL_REMAINDER", comment(decision));
-        for (NeedRequestLine line : request.getLines()) {
-            if (line.isRemoved()) continue;
-            int approved = line.effectiveQuantity();
-            int issued = line.getQuantityIssued() == null ? 0 : line.getQuantityIssued();
-            if (issued >= approved) continue;
-            recordLineEdit(action, line, approved, issued, false);
-            line.setQuantityApproved(issued);
-        }
-
-        request.setStatus(NeedRequestStatus.DELIVERED);
-        return save(request, actor, "NEED_REQUEST_REMAINDER_CANCELLED");
     }
 
     @Transactional

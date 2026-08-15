@@ -66,10 +66,7 @@ public class InventoryItemService {
                         NeedRequestStatus.PENDING,
                         NeedRequestStatus.POSTPONED,
                         NeedRequestStatus.APPROVED_UNDER_REVIEW,
-                        NeedRequestStatus.APPROVED,
-                        // Still outstanding: the shortfall has not been
-                        // delivered and has not been written off either.
-                        NeedRequestStatus.PARTIALLY_DELIVERED),
+                        NeedRequestStatus.APPROVED),
                 categoryId,
                 dateFrom,
                 dateTo,

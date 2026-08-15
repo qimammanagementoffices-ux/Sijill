@@ -64,8 +64,7 @@ public class InventoryItemController {
                                         NeedRequestStatus.PENDING,
                                         NeedRequestStatus.POSTPONED,
                                         NeedRequestStatus.APPROVED_UNDER_REVIEW,
-                                        NeedRequestStatus.APPROVED,
-                                        NeedRequestStatus.PARTIALLY_DELIVERED))
+                                        NeedRequestStatus.APPROVED))
                         .stream()
                         .collect(Collectors.toMap(
                                 ItemHistoryRepository.RequestedQuantityTotal::getItemId,

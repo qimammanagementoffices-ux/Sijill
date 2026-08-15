@@ -16,10 +16,9 @@ public enum NeedRequestStatus {
     APPROVED,
     POSTPONED,
     REJECTED,
-    // Some of what was approved has been handed over. The request stays open
-    // and deliverable until the remainder arrives or is formally written off,
-    // rather than closing and silently abandoning the difference.
-    PARTIALLY_DELIVERED,
+    // No PARTIALLY_DELIVERED: a delivery closes the request in one pass, and
+    // issuing less than approved is recorded as a shortfall against that
+    // delivery rather than leaving the request open for a second handover.
     DELIVERED,
     CLOSED
 }

@@ -42,8 +42,7 @@ public class CostDashboardService {
                     .forEach(r -> add(r, maintenanceCost(r), departments, requesters));
         } else {
             needRequests.findAll().stream()
-                    .filter(r -> r.getStatus() == NeedRequestStatus.APPROVED
-                            || r.getStatus() == NeedRequestStatus.PARTIALLY_DELIVERED
+                    .filter(r -> r.getStatus() == NeedRequestStatus.APPROVED
                             || r.getStatus() == NeedRequestStatus.DELIVERED
                             || r.getStatus() == NeedRequestStatus.CLOSED)
                     .filter(r -> inRange(r.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate(), from, to))
