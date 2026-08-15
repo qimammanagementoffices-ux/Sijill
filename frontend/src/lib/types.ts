@@ -444,6 +444,7 @@ export type AssetRequestListItem = AssetRequestEditFields & {
   requestNumber: number;
   requesterId: string;
   requesterName: string;
+  requesterJobTitle: string | null;
   assetNumber: string;
   assetNameAr: string;
   assetNameEn: string;

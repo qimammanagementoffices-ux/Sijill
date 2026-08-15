@@ -30,6 +30,15 @@ import { withCount } from "@/lib/withCount";
 import { formatEditDeadline } from "@/lib/formatEditDeadline";
 import type { Dictionary } from "@/i18n/getDictionary";
 
+// The printed sheet names what the request actually is. One generic
+// "نموذج طلب أصل" made a purchase, a transfer and a maintenance request all
+// print under the same heading, which is not what any of them is.
+const PURPOSE_FORM_TITLE: Record<string, [string, string, string]> = {
+  PURCHASE: ["نموذج شراء أصل جديد", "New Asset Purchase Form", "नई संपत्ति खरीद फ़ॉर्म"],
+  MAINTENANCE: ["نموذج صيانة أصل", "Asset Maintenance Form", "संपत्ति रखरखाव फ़ॉर्म"],
+  TRANSFER: ["نموذج نقل أصل بين الغرف", "Asset Transfer Form", "संपत्ति स्थानांतरण फ़ॉर्म"],
+};
+
 const STATUS_STAMP_CLASS: Record<string, string> = {
   PENDING: "s-pending",
   APPROVED_UNDER_REVIEW: "s-review",
@@ -501,7 +510,7 @@ export default function AssetRequestList({
             </div>
             <div className="modal-body request-form-modal-body">
               <div className="print-pages"><LegacyRequestForm
-                title={["نموذج طلب أصل", "Asset Request Form", "संपत्ति अनुरोध फ़ॉर्म"]}
+                title={PURPOSE_FORM_TITLE[viewRequest.purpose ?? ""] ?? ["نموذج طلب أصل", "Asset Request Form", "संपत्ति अनुरोध फ़ॉर्म"]}
                 subtitle={[viewRequest.assetNameAr, viewRequest.assetNameEn, "—"]}
                 documentNumber={`AS-${String(viewRequest.requestNumber).padStart(4, "0")}`}
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
@@ -510,7 +519,7 @@ export default function AssetRequestList({
                 actionLabel={actionLabel}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
-                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: "—" },
+                  { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: viewRequest.requesterJobTitle ?? "—" },
                   { label: ["القسم / الإدارة", "Department", "विभाग"], value: viewRequest.department?.ar ?? "—" },
                   { label: ["نوع الطلب", "Request Purpose", "अनुरोध का उद्देश्य"], value: purposeLabel(viewRequest.purpose) },
                   { label: ["الغرفة", "Room", "कमरा"], value: viewRequest.room?.ar ?? "—" },

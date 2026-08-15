@@ -12,6 +12,9 @@ public record AssetRequestListItem(
         long requestNumber,
         UUID requesterId,
         String requesterName,
+        // For the printed form's "المسمى الوظيفي" cell, which had no source
+        // and always printed a dash. Matches NeedRequestListItem.
+        String requesterJobTitle,
         String assetNumber,
         String assetNameAr,
         String assetNameEn,
@@ -74,6 +77,9 @@ public record AssetRequestListItem(
                 request.getRequestNumber(),
                 request.getRequester().getId(),
                 request.getRequester().getName(),
+                request.getRequester().getJobTitle() == null
+                        ? null
+                        : request.getRequester().getJobTitle().getNameAr(),
                 assetNumber.isBlank() ? "—" : assetNumber,
                 assetNameAr.isBlank() ? "—" : assetNameAr,
                 assetNameEn.isBlank() ? "—" : assetNameEn,
