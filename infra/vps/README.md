@@ -278,22 +278,23 @@ cover the disk, the machine, or a mistyped `docker compose down -v`.
 Nothing ever backed up the attachment files, on Supabase either — this closes
 both gaps at once.
 
-Fill the `OFFSITE_*` values in `.env` (the old Supabase project is a fine
-target — it is off this server, which is the whole requirement), then:
+**Enable Hostinger's automatic VPS backups** in hPanel (VPS → your server →
+Backups → turn on automatic backups; take one manual snapshot immediately so
+a recent point exists straight away).
 
-```bash
-chmod +x offsite-backup.sh && ./offsite-backup.sh
-```
+This is deliberately the whole-disk option rather than a script syncing
+buckets to another S3 provider. It covers what a bucket sync does not: `.env`
+and its secrets, Caddy's issued certificates, the Docker volumes, and the
+server's own configuration. Restoring is a single action in the panel instead
+of a rebuild plus a data copy.
 
-Once it works, schedule it nightly, an hour after the app's own 02:00 UTC
-database backup so it has something fresh to copy:
-
-```bash
-(crontab -l 2>/dev/null; echo "0 3 * * * $PWD/offsite-backup.sh >> /var/log/sijill-offsite.log 2>&1") | crontab -
-```
-
-The script never passes `--remove`: a file deleted here should not disappear
-from the copy that exists to survive mistakes made here.
+The trade is granularity — a snapshot restores the machine as it was, not one
+deleted attachment. The app's own nightly `pg_dump` into the backup bucket
+covers that case for the database, and it keeps running. Nothing covers a
+single deleted attachment file; at this volume that is an accepted gap, not
+an oversight. If it stops being acceptable, add an object-level sync to
+Backblaze B2 or Cloudflare R2 — both are free at this size and, unlike
+Supabase, work with the standard AWS CLI.
 
 **A backup you have not restored is not a backup.** Once a month, restore the
 newest dump into a scratch database and count some rows:
