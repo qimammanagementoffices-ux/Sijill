@@ -177,6 +177,12 @@ public class BackupService {
         Path recoveryFile = createTempDumpFile("sijill-restore-recovery-");
         try {
             downloadTo(preRestoreSnapshot, recoveryFile);
+            // A failed restore leaves a half-created schema behind, so this
+            // has to start from a clean one exactly as the restore did.
+            // Without it every object collides and the recovery fails too --
+            // turning one failure into an empty database, which is what
+            // happened live on 2026-08-15.
+            resetPublicSchema();
             runPgRestore(recoveryFile);
             refreshDatabaseAfterRestore();
             throw ApiException.internal(
