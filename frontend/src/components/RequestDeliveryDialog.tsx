@@ -6,10 +6,13 @@ import type { Dictionary } from "@/i18n/getDictionary";
 import type { NeedRequestLineDto } from "@/lib/types";
 
 // The legacy "إنهاء التسليم — تقرير الأصناف" modal: the storekeeper records
-// what actually left the warehouse, which may be less than what was approved.
-// A short delivery leaves the request open, so this can be reopened later for
-// the remainder — the quantities below are what is still outstanding, not the
-// original request.
+// what actually left the warehouse.
+//
+// Each row starts at the quantity the last official settled on — the
+// counter-signed figure, not what was originally asked for — and can be moved
+// up or down from there, because what physically left the store is a fact, not
+// a decision. The one limit is stock on hand: issuing what is not there is the
+// only entry that cannot be true, and the server refuses it as well.
 export default function RequestDeliveryDialog({
   lines,
   submitting,
@@ -32,12 +35,7 @@ export default function RequestDeliveryDialog({
     () =>
       lines
         .filter((line) => !line.removed)
-        .map((line) => {
-          const approved = line.quantityApproved ?? line.quantityRequested;
-          const issued = line.quantityIssued ?? 0;
-          return { line, remaining: Math.max(0, approved - issued) };
-        })
-        .filter((entry) => entry.remaining > 0),
+        .map((line) => ({ line, approved: line.quantityApproved ?? line.quantityRequested })),
     [lines]
   );
 
@@ -46,10 +44,11 @@ export default function RequestDeliveryDialog({
   const [files, setFiles] = useState<File[]>([]);
   const [issued, setIssued] = useState<Record<string, number>>(() =>
     Object.fromEntries(
-      deliverable.map(({ line, remaining }) => [
+      deliverable.map(({ line, approved }) => [
         line.id,
-        // Default to everything still outstanding, capped by what is on hand.
-        Math.min(remaining, line.itemQuantity),
+        // Starts at what was approved, but never proposes issuing stock that
+        // is not there.
+        Math.min(approved, line.itemQuantity),
       ])
     )
   );
@@ -111,14 +110,16 @@ export default function RequestDeliveryDialog({
               <span className="chip chip-sm">{dict.selectedCount.replace("{n}", String(selectedCount))}</span>
 
               <ul className="delivery-lines">
-                {visible.map(({ line, remaining }) => {
-                  const cap = Math.min(remaining, line.itemQuantity);
+                {visible.map(({ line, approved }) => {
+                  // Stock is the only ceiling: the approved figure is a
+                  // decision, what is on the shelf is a fact.
+                  const cap = line.itemQuantity;
                   return (
                     <li key={line.id} className="delivery-line">
                       <div className="delivery-line-text">
                         <b>{line.itemNameAr}</b>
                         <small>
-                          {dict.remaining.replace("{qty}", String(remaining))}
+                          {dict.remaining.replace("{qty}", String(approved))}
                           {" · "}
                           {dict.availableStock
                             .replace("{qty}", String(line.itemQuantity))

@@ -136,9 +136,11 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"));
 
-        // More than was approved is refused outright.
+        // More than is on the shelf is refused. More than was approved is not:
+        // the storekeeper records what physically left the warehouse, and only
+        // stock can make an entry impossible. Stock here is 10.
         var tooMany = new FinishNeedRequestRequest(
-                List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 6)), null);
+                List.of(new FinishNeedRequestRequest.FinishLine(UUID.fromString(lineId), 11)), null);
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -198,9 +200,9 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .isEqualTo(7); // 10 - 3 issued; the undelivered 2 never left stock
     }
 
-    /** A line trimmed during approval must not stay deliverable at the original quantity. */
+    /** Delivery is bounded by stock on hand, not by the approved quantity. */
     @Test
-    void deliveryIsCappedAtTheApprovedQuantityNotTheRequestedOne() throws Exception {
+    void deliveryIsCappedAtStockNotAtTheApprovedQuantity() throws Exception {
         String adminToken = createAdminAndGetToken("0596991111");
         String requesterToken = createEmployeeAndLogin(adminToken, "0596992222", Set.of("wh.request"));
         String seniorToken = createEmployeeAndLogin(adminToken, "0596993333", Set.of("wh.act.countersign", "wh.view"));
@@ -232,20 +234,36 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + seniorToken))
                 .andExpect(status().isOk());
 
-        var overDeliver = new FinishNeedRequestRequest(
-                List.of(new FinishNeedRequestRequest.FinishLine(lineId, 5)), null);
-        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(overDeliver)))
-                .andExpect(status().isBadRequest());
-
         var empty = new FinishNeedRequestRequest(List.of(new FinishNeedRequestRequest.FinishLine(lineId, 0)), null);
         mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(empty)))
                 .andExpect(status().isBadRequest());
+
+        // Beyond stock is refused: 10 on the shelf.
+        var beyondStock = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(lineId, 11)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(beyondStock)))
+                .andExpect(status().isBadRequest());
+
+        // Above the approved 2 is allowed, and recorded as a difference against
+        // the delivery: what left the warehouse is a fact, not a decision.
+        var aboveApproved = new FinishNeedRequestRequest(
+                List.of(new FinishNeedRequestRequest.FinishLine(lineId, 5)), null);
+        mockMvc.perform(post("/api/v1/warehouse/requests/" + requestId + "/finish")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(aboveApproved)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lines[0].quantityIssued").value(5))
+                .andExpect(jsonPath("$.actions[-1:].lineEdits[0].quantityBefore")
+                        .value(org.hamcrest.Matchers.contains(2)))
+                .andExpect(jsonPath("$.actions[-1:].lineEdits[0].quantityAfter")
+                        .value(org.hamcrest.Matchers.contains(5)));
     }
 
     /** A short delivery closes the request and records the shortfall in its log. */

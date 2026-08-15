@@ -382,7 +382,12 @@ public class NeedRequestService {
             Integer requestedIssue = issuedByLineId.get(line.getId());
             int quantityIssued = requestedIssue != null ? requestedIssue : approved;
 
-            if (quantityIssued < 0 || quantityIssued > approved) {
+            // Deliberately NOT capped at the approved quantity. The storekeeper
+            // records what physically left the warehouse, which can be more or
+            // less than the approval; the log keeps both figures. Stock is the
+            // real constraint, checked below — issuing what is not there is the
+            // only outcome that cannot be true.
+            if (quantityIssued < 0) {
                 throw RequestWorkflowErrors.issuedOutOfRange();
             }
 
@@ -398,9 +403,10 @@ public class NeedRequestService {
             line.setQuantityIssued(quantityIssued);
             issuedNow += quantityIssued;
 
-            // The shortfall, attributed to this delivery, so the card can say
-            // "5 approved, 3 delivered" instead of leaving it to arithmetic.
-            if (quantityIssued < approved) {
+            // Any difference from the approved figure, in either direction,
+            // attributed to this delivery — so the card can say "5 approved,
+            // 3 delivered" instead of leaving it to arithmetic.
+            if (quantityIssued != approved) {
                 recordLineEdit(action, line, approved, quantityIssued, false);
             }
         }
