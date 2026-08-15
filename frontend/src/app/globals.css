@@ -558,6 +558,39 @@ body.lang-en .section-title {
   border-color: rgba(27, 42, 74, 0.25);
   border-top-color: var(--seal);
 }
+/* "بطاقة الصنف" — the head carries the item's identity (name, code,
+   category) instead of one long run-on title, and the close button sits
+   inside the head like every other modal, which puts it at the end edge:
+   the left, in this RTL layout. */
+.item-card-head {
+  align-items: flex-start;
+  padding-bottom: 14px;
+}
+
+.item-card-heading {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.item-card-kicker {
+  color: var(--slate);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.item-card-head h3 {
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.item-card-code {
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Queues waiting on the signed-in employee. Only rendered when non-empty, so
    the dashboard stays quiet for anyone with nothing to decide. */
 .dashboard-queues {

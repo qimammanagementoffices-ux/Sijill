@@ -59,11 +59,23 @@ export default function ItemViewModal({
   return (
     <div className="overlay" role="dialog" aria-modal="true">
       <div className="modal wide">
-        <button type="button" className="modal-close" onClick={onClose} aria-label="close">
-          ×
-        </button>
-        <div className="modal-head">
-          <h3>{item ? `${dict.cardTitle} — ${item.nameAr}` : "..."}</h3>
+        {/* The close button belongs inside the head, like every other modal:
+            outside it, it rendered as a loose element above the title rather
+            than at the head's end edge — which in an RTL layout is the left. */}
+        <div className="modal-head item-card-head">
+          <div className="item-card-heading">
+            <span className="item-card-kicker">{dict.cardTitle}</span>
+            <h3>{item ? item.nameAr : "…"}</h3>
+            {item && (
+              <span className="item-card-code mono">
+                {item.code}
+                {item.category?.ar ? ` · ${item.category.ar}` : ""}
+              </span>
+            )}
+          </div>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="close">
+            ×
+          </button>
         </div>
         <div className="modal-body">
           {!item ? (
