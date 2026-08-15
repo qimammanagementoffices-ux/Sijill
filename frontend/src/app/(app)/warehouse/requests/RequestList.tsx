@@ -513,10 +513,20 @@ export default function RequestList({
                 </div>
 
                 {(request.lines?.length ?? 0) > 0 && (
-                  <div className="request-card-chips">
+                  <div className="request-item-list">
                     {(request.lines ?? []).map((line) => (
-                      <span key={line.id} className={line.removed ? "chip chip-removed" : "chip"}>
-                        {line.itemNameAr} × {line.quantityApproved ?? line.quantityRequested}
+                      <span key={line.id} className={`request-item-chip${line.removed ? " chip-removed" : ""}`}>
+                        <b>{line.itemNameAr}</b>
+                        <span>
+                          {locale === "ar" ? "الكمية المطلوبة" : locale === "hi" ? "अनुरोधित मात्रा" : "Requested quantity"}:
+                          <strong>{line.quantityRequested}</strong>
+                        </span>
+                        {line.quantityApproved != null && line.quantityApproved !== line.quantityRequested && (
+                          <small>
+                            {locale === "ar" ? "بعد التعديل" : locale === "hi" ? "संशोधन के बाद" : "After adjustment"}:
+                            <strong>{line.quantityApproved}</strong>
+                          </small>
+                        )}
                       </span>
                     ))}
                   </div>
@@ -781,7 +791,7 @@ export default function RequestList({
                 ]}
                 sectionTitle={["الأصناف المطلوبة", "Requested Items", "अनुरोधित वस्तुएँ"]}
               >
-                <table className="legacy-form-table"><thead><tr><th>الصنف<br/><small>Item</small></th><th>الكمية<br/><small>Quantity</small></th><th>الوحدة<br/><small>Unit</small></th></tr></thead><tbody>{(viewRequest.lines ?? []).map((line) => <tr key={line.id}><td>{line.itemNameAr}<br/><small>{line.itemNameEn}</small></td><td>{line.quantityRequested}</td><td>{line.itemUnit || "—"}</td></tr>)}</tbody></table>
+                <table className="legacy-form-table"><thead><tr><th>الصنف<br/><small>Item</small></th><th>الكمية المطلوبة<br/><small>Requested quantity</small></th><th>الوحدة<br/><small>Unit</small></th></tr></thead><tbody>{(viewRequest.lines ?? []).map((line) => <tr key={line.id}><td>{line.itemNameAr}<br/><small>{line.itemNameEn}</small></td><td><strong>{line.quantityRequested}</strong></td><td>{line.itemUnit || "—"}</td></tr>)}</tbody></table>
                 {viewRequest.notes && <><div className="legacy-form-section">ملاحظات <small>Notes</small></div><div className="legacy-form-notes">{viewRequest.notes}</div></>}
               </LegacyRequestForm></div>
             </div>

@@ -1608,6 +1608,30 @@ img[data-viewable] {
 .request-card-section {
   margin-top: 5px;
 }
+.request-item-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 7px;
+}
+.request-item-chip {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 2px 12px;
+  min-width: 185px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--request-state) 35%, var(--line));
+  border-inline-start: 4px solid var(--request-state);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--request-state) 8%, var(--card));
+  color: var(--ink);
+}
+.request-item-chip > b { font-size: 15.5px; }
+.request-item-chip > span,
+.request-item-chip > small { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--slate); }
+.request-item-chip strong { color:var(--request-state); font-size:16px; }
+.request-item-chip > small { grid-column:1 / -1; padding-top:3px; border-top:1px dashed color-mix(in srgb,var(--request-state) 30%,var(--line)); }
 .request-card-section h4 {
   margin: 0 0 3px;
   font-size: 14px;
