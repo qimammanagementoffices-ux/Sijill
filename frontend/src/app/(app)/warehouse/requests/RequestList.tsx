@@ -13,6 +13,7 @@ import NewRequestView from "@/components/NewRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import { useSession } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
+import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestDeliveryDialog from "@/components/RequestDeliveryDialog";
 import RequestCardActivity from "@/components/RequestCardActivity";
@@ -125,6 +126,7 @@ export default function RequestList({
     "/warehouse/requests",
     permissions.includes("wh.act.countersign")
   );
+  const reviewPolicy = useReviewPolicy();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: NeedRequestListItem; kind: DecisionKind } | null>(null);
   const [delivering, setDelivering] = useState<NeedRequestListItem | null>(null);
@@ -447,7 +449,7 @@ export default function RequestList({
           <div className="request-toolbar">
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{counts ? ` (${counts.pending})` : ""}</button>
-              {permissions.includes("wh.act.countersign") && (
+              {permissions.includes("wh.act.countersign") && reviewPolicy?.warehouseTwoLevel && (
                 <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
               <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>

@@ -703,11 +703,11 @@ body.lang-en .section-title {
   font-weight: 600;
 }
 
-.review-policy-row input {
-  width: 18px;
-  height: 18px;
+.review-policy-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: none;
-  cursor: pointer;
 }
 
 /* Shown while the maintenance bypass check is in flight — holds the page
@@ -1607,6 +1607,58 @@ img[data-viewable] {
 }
 .request-card-section {
   margin-top: 5px;
+}
+
+.maintenance-finish-lines {
+  display: grid;
+  gap: 12px;
+}
+
+.maintenance-finish-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  color: var(--ink-soft);
+  background: var(--paper-dim);
+}
+
+.maintenance-finish-summary strong {
+  color: var(--sage);
+  font-size: 1.05rem;
+}
+
+.maintenance-finish-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 150px) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--paper-dim);
+}
+
+.maintenance-finish-quantity input {
+  font-weight: 800;
+  text-align: center;
+}
+
+.maintenance-finish-remove {
+  margin-bottom: 1px;
+}
+
+@media (max-width: 680px) {
+  .maintenance-finish-line {
+    grid-template-columns: 1fr;
+  }
+
+  .maintenance-finish-remove {
+    justify-self: start;
+  }
 }
 .request-item-list {
   display: flex;

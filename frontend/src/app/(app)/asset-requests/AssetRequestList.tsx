@@ -13,6 +13,7 @@ import NewAssetRequestView from "@/components/NewAssetRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import { usePermissions } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
+import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
@@ -99,6 +100,7 @@ export default function AssetRequestList({
     "/asset-requests",
     permissions.includes("as.act.countersign")
   );
+  const reviewPolicy = useReviewPolicy();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: AssetRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
@@ -297,7 +299,7 @@ export default function AssetRequestList({
           <div className="request-toolbar">
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${view === "pending" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("pending")}>{dict.pendingTab}{counts ? ` (${counts.pending})` : ""}</button>
-              {permissions.includes("as.act.countersign") && (
+              {permissions.includes("as.act.countersign") && reviewPolicy?.assetTwoLevel && (
                 <button type="button" className={`btn btn-sm ${view === "review" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("review")}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
               <button type="button" className={`btn btn-sm ${view === "all" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("all")}>{dict.allTab}</button>

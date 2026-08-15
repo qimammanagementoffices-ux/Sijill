@@ -19,7 +19,9 @@ export default function ReviewPolicyAdmin({
   errorsDict: Dictionary["errors"];
 }) {
   const [policy, setPolicy] = useState<ReviewPolicyDto | null>(null);
-  const [saving, setSaving] = useState(false);
+  // Which row is in flight, so the spinner sits on the switch the user just
+  // touched rather than on all three.
+  const [saving, setSaving] = useState<Key | null>(null);
   const [toast, setToastState] = useState<{ message: string; error: boolean } | null>(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function ReviewPolicyAdmin({
     if (!policy || saving) return;
     const next = { ...policy, [key]: !policy[key] };
     setPolicy(next);
-    setSaving(true);
+    setSaving(key);
     try {
       setPolicy(await apiFetch<ReviewPolicyDto>("/review-policy", { method: "PUT", body: JSON.stringify(next) }));
       setToastState({ message: commonDict.actionSuccess, error: false });
@@ -43,7 +45,7 @@ export default function ReviewPolicyAdmin({
       setPolicy(policy); // put the switch back where it was
       setToastState({ message: errorsDict.generic, error: true });
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   }
 
@@ -71,14 +73,22 @@ export default function ReviewPolicyAdmin({
               {rows.map((row) => (
                 <li key={row.key} className="review-policy-row">
                   <label htmlFor={row.key}>{row.label}</label>
-                  <input
-                    id={row.key}
-                    type="checkbox"
-                    role="switch"
-                    checked={policy[row.key]}
-                    disabled={saving}
-                    onChange={() => void toggle(row.key)}
-                  />
+                  <span className="review-policy-control">
+                    {saving === row.key && <span className="spinner" />}
+                    {/* The same switch the permissions grid uses -- one
+                        control for "this is on or off" across the admin. */}
+                    <label className="switch">
+                      <input
+                        id={row.key}
+                        type="checkbox"
+                        checked={policy[row.key]}
+                        disabled={saving !== null}
+                        onChange={() => void toggle(row.key)}
+                      />
+                      <span className="track" />
+                      <span className="knob" />
+                    </label>
+                  </span>
                 </li>
               ))}
             </ul>

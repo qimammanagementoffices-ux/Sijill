@@ -83,8 +83,7 @@ export default function MaintenanceRequestDetailView({
           .map((d) => ({ inventoryItemId: d.inventoryItemId, quantity: Number(d.quantity) })),
       }),
     });
-    load();
-    setToast(commonDict.actionSuccess);
+    router.replace("/maintenance/requests");
   }
 
   if (!request) return <SectionLoading />;

@@ -13,11 +13,13 @@ import NewMaintenanceRequestView from "@/components/NewMaintenanceRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
 import { useSession } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
+import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
+import MaintenanceFinishDialog from "@/components/MaintenanceFinishDialog";
 import type {
   MaintenanceRequestDetail,
   MaintenanceRequestListItem,
@@ -104,9 +106,11 @@ export default function MaintenanceRequestList({
     "/maintenance/requests",
     permissions.includes("mt.act.countersign")
   );
+  const reviewPolicy = useReviewPolicy();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ request: MaintenanceRequestListItem; kind: DecisionKind } | null>(null);
   const [viewRequest, setViewRequest] = useState<MaintenanceRequestListItem | null>(null);
+  const [finishing, setFinishing] = useState<MaintenanceRequestListItem | null>(null);
   const [archived, setArchived] = useState(false);
 
   function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
@@ -274,6 +278,26 @@ export default function MaintenanceRequestList({
     }
   }
 
+  async function finishWork(body: { partsUsed: { inventoryItemId: string; quantity: number }[] }) {
+    if (!finishing) return;
+    const key = `${finishing.id}:finish`;
+    setBusyAction(key);
+    try {
+      await apiFetch<MaintenanceRequestDetail>(`/maintenance/requests/${finishing.id}/finish`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      setFinishing(null);
+      router.replace("/maintenance/requests");
+      load("PENDING", "", false, false);
+      setToast(commonDict.actionSuccess);
+    } catch (error) {
+      failToast(error);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function handleExport() {
     const params = new URLSearchParams({ size: "10000" });
     if (status) params.set("status", status);
@@ -318,7 +342,7 @@ export default function MaintenanceRequestList({
           <div className="request-toolbar">
             <div className="request-tabs">
               <button type="button" className={`btn btn-sm ${status === "PENDING" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("PENDING", false)}>{cardDict.pendingTab}{counts ? ` (${counts.pending})` : ""}</button>
-              {permissions.includes("mt.act.countersign") && (
+              {permissions.includes("mt.act.countersign") && reviewPolicy?.maintenanceTwoLevel && (
                 <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
               <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
@@ -452,12 +476,12 @@ export default function MaintenanceRequestList({
                     </button>
                   )}
 
-                  {/* Finishing records which parts were consumed, so it opens
-                      the request page rather than posting an empty report. */}
+                  {/* Finishing records consumed maintenance stock in a modal;
+                      the server performs deduction and completion atomically. */}
                   {request.status === "IN_PROGRESS" && !request.archivedAt && permissions.includes("mt.act.finish") && (
-                    <a className="btn btn-sm request-decision request-decision-approve" href={`/maintenance/requests/${request.id}`}>
+                    <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setFinishing(request)}>
                       {actionsDict.finishWork}
-                    </a>
+                    </button>
                   )}
 
                   {request.status === "DONE" && !request.archivedAt && request.requesterId === currentEmployeeId && (
@@ -535,6 +559,20 @@ export default function MaintenanceRequestList({
           commonDict={commonDict}
           onConfirm={(body) => void act(decision.request.id, decision.kind, body)}
           onCancel={() => setDecision(null)}
+        />
+      )}
+
+      {finishing && (
+        <MaintenanceFinishDialog
+          title={actionsDict.finishWork}
+          request={finishing}
+          submitting={busyAction === `${finishing.id}:finish`}
+          dict={dict}
+          commonDict={commonDict}
+          loadErrorLabel={errorsDict.generic}
+          onConfirm={(body) => void finishWork(body)}
+          onCancel={() => setFinishing(null)}
+          onLoadError={failToast}
         />
       )}
 
