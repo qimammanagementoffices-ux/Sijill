@@ -379,6 +379,7 @@ public class AssetRequestService {
         if (request.getArchivedAt() != null) {
             throw RequestWorkflowErrors.alreadyArchived();
         }
+        requireStatus(request, AssetRequestStatus.CLOSED);
         request.setArchivedAt(Instant.now());
         request.setArchivedBy(actor);
         addAction(request, actor, "ARCHIVE", null);

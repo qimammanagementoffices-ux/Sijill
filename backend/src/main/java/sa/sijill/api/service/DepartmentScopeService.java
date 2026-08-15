@@ -18,8 +18,8 @@ import sa.sijill.api.repository.DepartmentRepository;
 /**
  * Which departments an official may act on.
  *
- * An employee attached to "الشؤون التعليمية" acts on it and on everything
- * beneath it; one attached to "مرحلة الثانوي بنات" acts on that branch alone.
+ * Level 2 controls itself and its descendants. Level 3 (or deeper) controls
+ * only itself. The root administration grants no request scope.
  *
  * A root department is deliberately worth nothing here. Every employee belongs
  * to "الإدارة العامة", so honouring it would hand the whole school to everyone
@@ -56,12 +56,17 @@ public class DepartmentScopeService {
         if (seesEveryDepartment(actor)) return null;
 
         Set<UUID> roots = new HashSet<>();
+        Set<UUID> exactOnly = new HashSet<>();
         for (Department department : actor.getDepartments()) {
             // The root is everyone's, so it grants nothing.
             if (department.getParent() == null) continue;
-            roots.add(department.getId());
+            if (department.getParent().getParent() == null) {
+                roots.add(department.getId());
+            } else {
+                exactOnly.add(department.getId());
+            }
         }
-        if (roots.isEmpty()) return Set.of();
+        if (roots.isEmpty()) return exactOnly;
 
         // The department table is small enough to walk in memory; a recursive
         // CTE would be faster and much harder to read for no gain at this size.
@@ -73,7 +78,7 @@ public class DepartmentScopeService {
                     .add(department.getId());
         }
 
-        Set<UUID> scope = new HashSet<>();
+        Set<UUID> scope = new HashSet<>(exactOnly);
         Deque<UUID> pending = new ArrayDeque<>(roots);
         while (!pending.isEmpty()) {
             UUID current = pending.pop();

@@ -79,17 +79,23 @@ export default function RequestCardActivity({
       {attachments.length > 0 && (
         <section className="request-card-section">
           <h4>{attachmentsDict.title}</h4>
-          <div className="request-card-chips">
+          <div className="request-attachment-grid">
             {attachments.map((attachment) => (
-              <a
-                key={attachment.id}
-                className="chip chip-sm"
-                href={attachment.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {attachment.filename}
-              </a>
+              <article className="request-attachment" key={attachment.id}>
+                <a className="request-attachment-preview" href={attachment.url} target="_blank" rel="noopener noreferrer">
+                  {attachment.contentType.startsWith("image/") ? (
+                    <img src={attachment.url} alt={attachment.filename} loading="lazy" />
+                  ) : (
+                    <span className="request-attachment-file" aria-hidden="true">PDF</span>
+                  )}
+                </a>
+                <div className="request-attachment-info">
+                  <b title={attachment.filename}>{attachment.filename}</b>
+                  <a href={attachment.url} download={attachment.filename} target="_blank" rel="noopener noreferrer">
+                    {attachmentsDict.download}
+                  </a>
+                </div>
+              </article>
             ))}
           </div>
         </section>

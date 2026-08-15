@@ -339,7 +339,7 @@ export default function AssetRequestList({
         ) : (
           <div className="request-cards">
             {page.content.map((request) => (
-              <article key={request.id} className="request-card">
+              <article key={request.id} className="request-card" data-status={request.status}>
                 <header className="request-card-head">
                   <h3 className="request-card-title">{purposeLabel(request.purpose)} — {request.assetNameAr}</h3>
                   <span className="request-card-state"><span className={`stamp ${STATUS_STAMP_CLASS[request.status]}`}><span className="dot" />{statusLabel(request.status)}</span>{request.status === "POSTPONED" && request.postponedUntil && <time>{request.postponedUntil}</time>}</span>
@@ -393,7 +393,7 @@ export default function AssetRequestList({
                       {dict.finish}
                     </button>
                   )}
-                  {permissions.includes("emp.manage") && (
+                  {permissions.includes("emp.manage") && (request.archivedAt || request.status === "CLOSED") && (
                     <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
                       {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
                       {request.archivedAt ? actionsDict.restore : actionsDict.archive}

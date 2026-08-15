@@ -1275,7 +1275,7 @@ img[data-viewable] {
 .request-cards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .request-directory-panel {
   border: 0;
@@ -1321,33 +1321,42 @@ img[data-viewable] {
   padding: 8px 12px;
 }
 .request-card {
-  border: 1px solid var(--line);
+  --request-state: #8a6f2d;
+  border: 1px solid color-mix(in srgb, var(--request-state) 35%, var(--line));
+  border-inline-start: 4px solid var(--request-state);
   border-radius: 12px;
-  background: var(--card);
-  padding: 14px 13px 10px;
-  box-shadow: none;
+  background: transparent;
+  padding: 10px 12px 8px;
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--request-state) 10%, transparent);
 }
+.request-card[data-status="PENDING"] { --request-state:#b67910; }
+.request-card[data-status="APPROVED_UNDER_REVIEW"], .request-card[data-status="REJECTED_UNDER_REVIEW"] { --request-state:#6d5cae; }
+.request-card[data-status="APPROVED"], .request-card[data-status="DELIVERED"], .request-card[data-status="DONE"] { --request-state:#2e7b55; }
+.request-card[data-status="POSTPONED"] { --request-state:#ad7313; }
+.request-card[data-status="REJECTED"] { --request-state:#aa4141; }
+.request-card[data-status="IN_PROGRESS"] { --request-state:#28749c; }
+.request-card[data-status="CLOSED"] { --request-state:#52606d; }
 .request-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 .request-card-title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--ink);
 }
 .request-card-state { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
-.request-card-state time { color:var(--slate); font-size:10.5px; }
+.request-card-state time { color:var(--slate); font-size:12px; }
 .request-card-meta {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 6px;
-  font-size: 12px;
+  margin-top: 4px;
+  font-size: 13.5px;
   color: var(--slate);
 }
 .request-card-meta-date {
@@ -1597,19 +1606,19 @@ img[data-viewable] {
   .request-view-lines { grid-template-columns: 1fr; }
 }
 .request-card-section {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .request-card-section h4 {
-  margin: 0 0 7px;
-  font-size: 12px;
+  margin: 0 0 5px;
+  font-size: 13.5px;
   color: var(--slate);
 }
 .request-card-timeline {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   margin: 0;
   padding: 2px 0 2px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-soft);
 }
 .request-card-timeline li {
@@ -1647,7 +1656,7 @@ img[data-viewable] {
 }
 .request-timeline-content {
   min-width: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--timeline-line);
   border-radius: 12px;
   background: linear-gradient(135deg, var(--timeline-bg), var(--card) 82%);
@@ -1661,8 +1670,16 @@ img[data-viewable] {
 }
 .request-timeline-status {
   color: var(--timeline-tone);
-  font-size: 12px;
+  font-size: 13.5px;
 }
+.request-attachment-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; }
+.request-attachment { overflow:hidden; border:1px solid color-mix(in srgb,var(--request-state) 25%,var(--line)); border-radius:10px; background:rgb(255 255 255 / 58%); }
+.request-attachment-preview { display:flex; align-items:center; justify-content:center; height:128px; background:rgb(255 255 255 / 70%); }
+.request-attachment-preview img { width:100%; height:100%; object-fit:contain; }
+.request-attachment-file { display:grid; place-items:center; width:64px; height:78px; border-radius:6px; background:#a64242; color:#fff; font-weight:900; letter-spacing:.04em; }
+.request-attachment-info { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; font-size:12px; }
+.request-attachment-info b { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.request-attachment-info a { flex:none; color:var(--request-state); font-weight:800; }
 .request-card-timeline time {
   color: var(--ink-soft);
   font-size: 11px;

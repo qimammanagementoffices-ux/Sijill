@@ -362,7 +362,7 @@ export default function MaintenanceRequestList({
         ) : (
           <div className="request-cards">
             {page.content.map((request) => (
-              <article key={request.id} className="request-card">
+              <article key={request.id} className="request-card" data-status={request.status}>
                 <header className="request-card-head">
                   <h3 className="request-card-title">
                     {dict.cardTitle} — {request.faultType ? request.faultType.ar : "—"}
@@ -471,7 +471,7 @@ export default function MaintenanceRequestList({
                     </>
                   )}
 
-                  {permissions.includes("emp.manage") && (
+                  {permissions.includes("emp.manage") && (request.archivedAt || request.status === "CLOSED") && (
                     <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, request.archivedAt ? "restore" : "archive")}>
                       {busyAction === `${request.id}:${request.archivedAt ? "restore" : "archive"}` && <span className="spinner" />}
                       {request.archivedAt ? actionsDict.restore : actionsDict.archive}

@@ -494,7 +494,7 @@ export default function RequestList({
           // cannot carry without a column per fact.
           <div className="request-cards">
             {page.content.map((request) => (
-              <article key={request.id} className="request-card">
+              <article key={request.id} className="request-card" data-status={request.status}>
                 <header className="request-card-head">
                   <h3 className="request-card-title">
                     {dict.cardTitle} — {request.category ? request.category.ar : "—"}
@@ -641,7 +641,7 @@ export default function RequestList({
                     </>
                   )}
 
-                  {permissions.includes("emp.manage") && !request.archivedAt && (
+                  {permissions.includes("emp.manage") && !request.archivedAt && request.status === "CLOSED" && (
                     <button type="button" className="btn btn-outline btn-sm" disabled={busyAction !== null} onClick={() => void post(request.id, "archive")}>
                       {busyAction === `${request.id}:archive` && <span className="spinner" />}
                       {actionsDict.archive}

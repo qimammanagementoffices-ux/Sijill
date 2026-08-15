@@ -339,6 +339,7 @@ public class MaintenanceRequestService {
         if (request.getArchivedAt() != null) {
             throw RequestWorkflowErrors.alreadyArchived();
         }
+        requireStatus(request, MaintenanceRequestStatus.CLOSED);
         request.setArchivedAt(Instant.now());
         request.setArchivedBy(actor);
         addAction(request, actor, "ARCHIVE", null);
