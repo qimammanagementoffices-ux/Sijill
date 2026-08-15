@@ -23,6 +23,12 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        # Requests eagerly load lines and actions, and every action eagerly
+        # loads its own line edits -- so a list page issued one query per
+        # collection per row, and got slower with every decision anyone made.
+        # Batching collapses those into "where fk in (...)" reads instead of
+        # restructuring the entity graph and its serialisation contract.
+        default_batch_fetch_size: 32
 
   flyway:
     enabled: true
