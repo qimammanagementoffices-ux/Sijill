@@ -22,6 +22,7 @@ import ExportButton from "@/components/ExportButton";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import CategoriesModal from "@/components/CategoriesModal";
 import type { CategoryDto, InventoryItemDetail, InventoryItemListItem, PagedResponse } from "@/lib/types";
+import { withCount } from "@/lib/withCount";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Sort = { field: string; dir: "asc" | "desc" };
@@ -246,7 +247,7 @@ export default function ItemDirectory({
     <>
       <div className="no-print">
         <div className="eyebrow">{dict.title}</div>
-        <h1 className="section-title disp">{dict.title}</h1>
+        <h1 className="section-title disp">{withCount(dict.title, page)}</h1>
       </div>
       <div className="print-only">
         <PrintReportHeader title={dict.reportTitle} filtersSummary={printFiltersSummary()} dict={commonDict} />

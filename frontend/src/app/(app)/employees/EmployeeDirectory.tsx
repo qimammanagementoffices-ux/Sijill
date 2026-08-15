@@ -9,6 +9,7 @@ import { getToken } from "@/lib/auth";
 import EmployeeForm from "@/components/EmployeeForm";
 import Toast from "@/components/Toast";
 import type { EmployeeDetail, EmployeeListItem, LocalizedEntityDto, PagedResponse, PermissionDto } from "@/lib/types";
+import { withCount } from "@/lib/withCount";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import TableSearch from "@/components/TableSearch";
@@ -106,7 +107,7 @@ export default function EmployeeDirectory({
   return (
     <>
       <div className="eyebrow">{dict.title}</div>
-      <h1 className="section-title disp">{dict.title}</h1>
+      <h1 className="section-title disp">{withCount(dict.title, page)}</h1>
 
       <div className="panel">
         <div className="panel-head table-toolbar">

@@ -16,6 +16,7 @@ import type { InvoiceDetail, PagedResponse } from "@/lib/types";
 import ExportButton from "@/components/ExportButton";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import type { AttachmentOwnerType } from "@/lib/types";
+import { withCount } from "@/lib/withCount";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 type Sort = { field: string; dir: "asc" | "desc" };
@@ -153,7 +154,7 @@ export default function InvoiceList({
     <>
       <div className="no-print">
         <div className="eyebrow">{dict.title}</div>
-        <h1 className="section-title disp">{dict.title}</h1>
+        <h1 className="section-title disp">{withCount(dict.title, page)}</h1>
       </div>
       <div className="print-only">
         <PrintReportHeader title={dict.title} dict={commonDict} />

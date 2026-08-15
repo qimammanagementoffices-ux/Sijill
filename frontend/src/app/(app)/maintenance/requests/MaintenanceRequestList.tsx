@@ -25,6 +25,7 @@ import type {
   PagedResponse,
   RequestDecisionBody,
 } from "@/lib/types";
+import { withCount } from "@/lib/withCount";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_STAMP_CLASS: Record<string, string> = {
@@ -301,7 +302,7 @@ export default function MaintenanceRequestList({
     <>
       <div className="no-print">
         <div className="eyebrow">{dict.title}</div>
-        <h1 className="section-title disp">{dict.title}</h1>
+        <h1 className="section-title disp">{withCount(dict.title, page)}</h1>
       </div>
       <div className="print-only">
         <PrintReportHeader title={dict.title} dict={commonDict} />

@@ -20,6 +20,7 @@ import TableFooter from "@/components/TableFooter";
 import TableSearch from "@/components/TableSearch";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type { AssetDetail, AssetListItem, CategoryDto, PagedResponse, RoomDto } from "@/lib/types";
+import { withCount } from "@/lib/withCount";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 const STATUS_CHIP_CLASS: Record<string, string> = {
@@ -190,7 +191,7 @@ export default function AssetDirectory({
     <>
       <div className="no-print">
         <div className="eyebrow">{dict.title}</div>
-        <h1 className="section-title disp">{dict.title}</h1>
+        <h1 className="section-title disp">{withCount(dict.title, page)}</h1>
       </div>
       <div className="print-only">
         <PrintReportHeader title={dict.title} dict={commonDict} />
