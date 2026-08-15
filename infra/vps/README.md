@@ -201,6 +201,19 @@ Any `FAILED` line is a row whose object is already missing from the bucket —
 broken on the live site today, and worth knowing about. Migrating cannot fix
 those; it only stops hiding them.
 
+**Check the bucket names are lowercase first.** MinIO enforces the S3 naming
+rule; Supabase does not. A name like `sijill-Public` makes `mc mb` fail, and
+because the commands below are chained with `&&`, everything after it is
+skipped — no mirror, no anonymous policy — while the API keeps working,
+because it authenticates and never needs the public policy. The failure shows
+up only as 403 on every image in the browser:
+
+```bash
+grep -E '^OBJECT_STORAGE_(BUCKET|BACKUP_BUCKET)=' .env
+```
+
+Lowercase them in `.env` if needed, and re-source before continuing.
+
 **Push them into MinIO**, creating both buckets under the same names and
 granting anonymous read to the attachment bucket only:
 
@@ -257,11 +270,14 @@ set -a; . ./.env; set +a && docker compose up -d --build
 backup bucket refuses anonymous access, and a manual backup succeeds.
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" "https://$SIJILL_DOMAIN/files/$OBJECT_STORAGE_BACKUP_BUCKET/"
+curl -s -o /dev/null -w "logo=%{http_code}\n" "$(docker compose exec -T postgres psql -U sijill -d sijill -At -c "select url from attachment limit 1")"
+curl -s -o /dev/null -w "private=%{http_code}\n" "https://$SIJILL_DOMAIN/files/$OBJECT_STORAGE_BACKUP_BUCKET/"
+curl -s -o /dev/null -w "missing=%{http_code}\n" "https://$SIJILL_DOMAIN/files/$OBJECT_STORAGE_BUCKET/nope.jpg"
 ```
 
-That must **not** be 200. Anything other than a listing means the private
-bucket stayed private.
+Expect `200`, `403`, `404` in that order. The third matters: a private bucket
+answers 403 for a missing object too, so only a **404** proves the public
+policy actually applied rather than a denial hiding the truth.
 
 Leave the Supabase buckets untouched for a couple of weeks. They cost nothing
 and they are the rollback: putting the old values back in `.env` and reversing
