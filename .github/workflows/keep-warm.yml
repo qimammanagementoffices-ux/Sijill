@@ -1,0 +1,18 @@
+# Render's free plan suspends a service after ~15 minutes idle, and this app
+# takes ~200s to boot on a free instance -- far longer than Render's proxy
+# waits, so the first click after a quiet spell returns 502 rather than
+# waking the service. Pinging the health endpoint keeps it from ever
+# sleeping. Delete this once the service moves to a paid plan.
+name: keep-warm
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the API health endpoint
+        run: curl -fsS -m 120 --retry 3 --retry-all-errors https://sijill-api.onrender.com/actuator/health
