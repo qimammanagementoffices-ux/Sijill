@@ -14,9 +14,35 @@ const apiHost = (() => {
   }
 })();
 
+// Dev-only proxy for looking at UI changes against a remote API.
+//
+// The API allows exactly one CORS origin (FRONTEND_ORIGIN), so a browser on
+// http://localhost:3000 is refused before the request is even considered.
+// Worse, LoginForm reports any non-ApiError as "wrong phone or PIN", so a
+// blocked request looks like bad credentials.
+//
+// Rewriting is server-side: the browser calls its own origin and Next forwards
+// the call, so CORS never enters into it. Set DEV_API_PROXY_TARGET to the API
+// origin (no trailing slash) and leave NEXT_PUBLIC_API_URL as the default
+// relative /api/v1.
+//
+//   $env:DEV_API_PROXY_TARGET="https://riyadh.sijill.digital"; npm run dev
+//
+// This reads and writes REAL data on whatever it points at. Use it for styling
+// and layout only; anything that creates or changes records belongs on the
+// local stack (docs/local-development.md).
+const devApiProxyTarget = process.env.DEV_API_PROXY_TARGET;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  ...(devApiProxyTarget
+    ? {
+        async rewrites() {
+          return [{ source: "/api/:path*", destination: `${devApiProxyTarget}/api/:path*` }];
+        },
+      }
+    : {}),
   // Emits .next/standalone: the server plus only the dependencies it actually
   // uses, so the container does not carry all of node_modules. Ignored by
   // `next dev` and by Render's node runtime, which still runs `npm run start`.
