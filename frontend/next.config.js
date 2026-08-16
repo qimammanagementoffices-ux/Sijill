@@ -23,10 +23,13 @@ const apiHost = (() => {
 //
 // Rewriting is server-side: the browser calls its own origin and Next forwards
 // the call, so CORS never enters into it. Set DEV_API_PROXY_TARGET to the API
-// origin (no trailing slash) and leave NEXT_PUBLIC_API_URL as the default
-// relative /api/v1.
+// origin (no trailing slash), and point NEXT_PUBLIC_API_URL at this dev
+// server. It must be absolute -- parts of the app fetch during SSR, where
+// Node's fetch rejects a relative URL with "Failed to parse URL from /api/v1".
 //
-//   $env:DEV_API_PROXY_TARGET="https://riyadh.sijill.digital"; npm run dev
+//   $env:DEV_API_PROXY_TARGET="https://riyadh.sijill.digital"
+//   $env:NEXT_PUBLIC_API_URL="http://localhost:3000/api/v1"
+//   npm run dev
 //
 // This reads and writes REAL data on whatever it points at. Use it for styling
 // and layout only; anything that creates or changes records belongs on the
