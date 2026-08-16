@@ -14,38 +14,13 @@ const apiHost = (() => {
   }
 })();
 
-// Dev-only proxy for looking at UI changes against a remote API.
-//
-// The API allows exactly one CORS origin (FRONTEND_ORIGIN), so a browser on
-// http://localhost:3000 is refused before the request is even considered.
-// Worse, LoginForm reports any non-ApiError as "wrong phone or PIN", so a
-// blocked request looks like bad credentials.
-//
-// Rewriting is server-side: the browser calls its own origin and Next forwards
-// the call, so CORS never enters into it. Set DEV_API_PROXY_TARGET to the API
-// origin (no trailing slash), and point NEXT_PUBLIC_API_URL at this dev
-// server. It must be absolute -- parts of the app fetch during SSR, where
-// Node's fetch rejects a relative URL with "Failed to parse URL from /api/v1".
-//
-//   $env:DEV_API_PROXY_TARGET="https://riyadh.sijill.digital"
-//   $env:NEXT_PUBLIC_API_URL="http://localhost:3000/api/v1"
-//   npm run dev
-//
-// This reads and writes REAL data on whatever it points at. Use it for styling
-// and layout only; anything that creates or changes records belongs on the
-// local stack (docs/local-development.md).
-const devApiProxyTarget = process.env.DEV_API_PROXY_TARGET;
+// The dev-only proxy lives in src/app/api/[...path]/route.ts, not here: a
+// rewrite cannot strip the browser's Origin header, and Spring's CorsFilter
+// rejects a disallowed Origin with 403 even server-to-server.
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  ...(devApiProxyTarget
-    ? {
-        async rewrites() {
-          return [{ source: "/api/:path*", destination: `${devApiProxyTarget}/api/:path*` }];
-        },
-      }
-    : {}),
   // Emits .next/standalone: the server plus only the dependencies it actually
   // uses, so the container does not carry all of node_modules. Ignored by
   // `next dev` and by Render's node runtime, which still runs `npm run start`.
