@@ -54,6 +54,9 @@ jobs:
             git reset --hard origin/main
             cd infra/vps
             docker compose up -d --build
+            # A mounted but unwritable directory would fail only during the
+            # next OOM, when it is too late to recover the evidence.
+            docker compose exec -T api sh -c 'test -w /heap-dumps'
             # Caddy resolves api:8080 and holds on to the address. Rebuilding
             # the API gives it a new container IP, and Caddy keeps proxying to
             # the old one -- a healthy app behind a 502/503 until Caddy is
