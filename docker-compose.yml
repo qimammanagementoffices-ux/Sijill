@@ -1,3 +1,17 @@
+# Local development stack.
+#
+#   docker compose up -d                        # Postgres + MinIO only, for
+#                                               # running the app from an IDE
+#   docker compose --profile app up -d --build  # everything, no JDK needed
+#
+# The `app` profile builds the API and frontend in containers, so a machine
+# with only Docker installed can run the whole system -- there is no Gradle
+# wrapper in this repo, and building the backend natively would need both a
+# JDK and Gradle.
+#
+# Postgres is 16 here against 18 in production (infra/vps). That gap only
+# matters for restoring a production dump: pg_restore refuses a dump made by
+# a newer pg_dump. Use `postgres:18` below if you want to load one.
 services:
   postgres:
     image: postgres:16
@@ -35,6 +49,57 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # --- `app` profile: the whole system in containers -------------------------
+  api:
+    profiles: ["app"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sijill-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: sijill
+      DATABASE_USERNAME: sijill
+      DATABASE_PASSWORD: sijill_local_dev
+      PORT: "8080"
+      # Local secrets only. Never reuse these values on the VPS.
+      JWT_SIGNING_SECRET: local_dev_signing_secret_change_me_0123456789abcdef
+      JWT_ACCESS_TOKEN_EXPIRY_MINUTES: "600"
+      FRONTEND_ORIGIN: http://localhost:3000
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_REGION: us-east-1
+      OBJECT_STORAGE_BUCKET: sijill-public
+      OBJECT_STORAGE_BACKUP_BUCKET: sijill-private
+      OBJECT_STORAGE_ACCESS_KEY: sijill_minio
+      OBJECT_STORAGE_SECRET_KEY: sijill_minio_local_dev
+      # Browser-facing, so localhost rather than the compose hostname.
+      OBJECT_STORAGE_PUBLIC_URL_BASE: http://localhost:9000/sijill-public
+
+  frontend:
+    profiles: ["app"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked at build time by Next, so changing this needs a rebuild.
+        NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+        NEXT_PUBLIC_QR_BASE_URL: http://localhost:3000/public/assets
+    container_name: sijill-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
 
 volumes:
   sijill-postgres-data:
