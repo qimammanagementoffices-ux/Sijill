@@ -14,9 +14,12 @@ builds it inside a container instead.
 ## Start it
 
 ```bash
-cd "path/to/sijill"
+cd "C:\Users\X-ThinkPad\Desktop\@@haytham\Sijill - New\sijill"
 docker compose --profile app up -d --build
 ```
+
+Keep the quotes — the path contains spaces and `@@`. Docker Desktop must be
+running (whale icon in the tray), not merely installed.
 
 First run takes several minutes (it downloads the Gradle image and the whole
 dependency graph). Later runs are fast.
