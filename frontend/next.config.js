@@ -17,6 +17,18 @@ const apiHost = (() => {
 // The dev-only proxy lives in src/app/api/[...path]/route.ts, not here: a
 // rewrite cannot strip the browser's Origin header, and Spring's CorsFilter
 // rejects a disallowed Origin with 403 even server-to-server.
+//
+// Behind that proxy NEXT_PUBLIC_API_URL points at localhost, so apiHost above
+// is "localhost" and attachment URLs -- which still carry the remote host --
+// are refused by next/image. Allow the proxy target's host as well. Unset in
+// production, where apiHost is already the right one.
+const devProxyHost = (() => {
+  try {
+    return new URL(process.env.DEV_API_PROXY_TARGET).hostname;
+  } catch {
+    return null;
+  }
+})();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -28,6 +40,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       ...(apiHost ? [{ protocol: "https", hostname: apiHost, pathname: "/files/**" }] : []),
+      ...(devProxyHost ? [{ protocol: "https", hostname: devProxyHost, pathname: "/files/**" }] : []),
       // Kept while the Supabase buckets remain as rollback; harmless once
       // they are gone.
       { protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" },
