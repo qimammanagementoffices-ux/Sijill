@@ -1,5 +1,6 @@
 package sa.sijill.api.web;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,7 @@ import sa.sijill.api.service.EmployeeService;
 import sa.sijill.api.web.dto.CreateEmployeeRequest;
 import sa.sijill.api.web.dto.EmployeeDetail;
 import sa.sijill.api.web.dto.EmployeeListItem;
+import sa.sijill.api.web.dto.EmployeeOption;
 import sa.sijill.api.web.dto.PagedResponse;
 import sa.sijill.api.web.dto.ResetPinRequest;
 import sa.sijill.api.web.dto.UpdateEmployeeRequest;
@@ -28,7 +30,7 @@ public class EmployeeController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('emp.view')")
+    @PreAuthorize("hasAnyAuthority('emp.view', 'emp.manage')")
     public PagedResponse<EmployeeListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) UUID departmentId,
@@ -37,8 +39,14 @@ public class EmployeeController {
         return PagedResponse.from(page, EmployeeListItem::from);
     }
 
+    @GetMapping("/options")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
+    public List<EmployeeOption> options() {
+        return employeeService.activeOptions().stream().map(EmployeeOption::from).toList();
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('emp.view')")
+    @PreAuthorize("hasAnyAuthority('emp.view', 'emp.manage')")
     public EmployeeDetail get(@PathVariable UUID id) {
         return EmployeeDetail.from(employeeService.get(id));
     }

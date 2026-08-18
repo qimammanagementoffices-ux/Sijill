@@ -29,7 +29,7 @@ public class AssetTransferController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public List<AssetTransferDto> history(@PathVariable UUID assetId) {
         return assetTransferService.history(assetId).stream().map(AssetTransferDto::from).toList();
     }

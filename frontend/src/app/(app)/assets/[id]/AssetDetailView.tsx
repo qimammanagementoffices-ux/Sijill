@@ -14,8 +14,7 @@ import type {
   AssetStatusValue,
   AssetTransferDto,
   CategoryDto,
-  EmployeeListItem,
-  PagedResponse,
+  EmployeeOption,
   RoomDto,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
@@ -46,7 +45,7 @@ export default function AssetDetailView({
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
-  const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
+  const [employees, setEmployees] = useState<EmployeeOption[] | null>(null);
   const [transfers, setTransfers] = useState<AssetTransferDto[] | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -94,8 +93,8 @@ export default function AssetDetailView({
     load();
     apiFetch<CategoryDto[]>("/assets/categories").then(setCategories).catch(() => {});
     apiFetch<RoomDto[]>("/rooms").then(setRooms).catch(() => {});
-    apiFetch<PagedResponse<EmployeeListItem>>("/employees?size=200")
-      .then((p) => setEmployees(p.content))
+    apiFetch<EmployeeOption[]>("/employees/options")
+      .then(setEmployees)
       .catch(() => setEmployees([]));
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => setCanManage(me.permissions.includes("as.manage")))

@@ -95,6 +95,28 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void employeeManagerCanReadDirectoryWithoutSeparateViewPermission() throws Exception {
+        String adminToken = createAdminAndGetToken("0563333334");
+        var manager = new CreateEmployeeRequest(
+                "Employee Manager", "0564444445", "1234", "1234", null, null, null, null, null,
+                Set.of("emp.manage"), null);
+        mockMvc.perform(post("/api/v1/employees")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(manager)));
+
+        String loginBody = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new sa.sijill.api.web.dto.LoginRequest("0564444445", "1234"))))
+                .andReturn().getResponse().getContentAsString();
+
+        mockMvc.perform(get("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + objectMapper.readTree(loginBody).get("token").asText()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void filtersEmployeesByDepartment() throws Exception {
         String token = createAdminAndGetToken("0565555555");
         Department department = new Department();

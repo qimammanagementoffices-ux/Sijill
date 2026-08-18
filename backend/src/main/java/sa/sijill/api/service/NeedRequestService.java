@@ -181,6 +181,9 @@ public class NeedRequestService {
         if (!canEdit(request, actor)) {
             throw RequestWorkflowErrors.editWindowClosed();
         }
+        if (!request.getRequester().getId().equals(actor.getId())) {
+            requireWithinScope(request, actor);
+        }
 
         request.setDepartment(resolveRequesterDepartment(update.departmentId(), request.getRequester()));
         request.setCategory(resolveCategory(update.categoryId()));
@@ -391,6 +394,7 @@ public class NeedRequestService {
     public NeedRequest finish(UUID id, FinishNeedRequestRequest request, Employee actor) {
         NeedRequest needRequest = openRequest(id);
         requireStatus(needRequest, NeedRequestStatus.APPROVED);
+        requireWithinScope(needRequest, actor);
 
         Map<UUID, Integer> issuedByLineId = new HashMap<>();
         if (request != null && request.lines() != null) {
@@ -498,6 +502,7 @@ public class NeedRequestService {
     @Transactional
     public NeedRequest archive(UUID id, Employee actor) {
         NeedRequest request = get(id);
+        requireWithinScope(request, actor);
         if (request.getArchivedAt() != null) {
             throw RequestWorkflowErrors.alreadyArchived();
         }

@@ -1,5 +1,6 @@
 package sa.sijill.api.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -33,4 +34,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
             Pageable pageable);
 
     long countByActiveTrue();
+
+    List<Employee> findByActiveTrueOrderByNameAsc();
 }

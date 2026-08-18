@@ -77,16 +77,17 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0599333333");
         String requesterToken = createEmployeeAndLogin(adminToken, "0599444444", Set.of("mt.request"));
 
+        mockMvc.perform(get("/api/v1/rooms/options").header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].custodianId").doesNotExist())
+                .andExpect(jsonPath("$[0].assetCount").doesNotExist());
         mockMvc.perform(get("/api/v1/rooms").header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
         String partId = createPartWithStock(adminToken, 10);
 
-        mockMvc.perform(get("/api/v1/maintenance/categories")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
-                .andExpect(status().isOk());
         mockMvc.perform(get("/api/v1/maintenance/parts").param("size", "200")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/v1/maintenance/fault-types")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
                 .andExpect(status().isOk());
@@ -184,5 +185,15 @@ class MaintenanceRequestWorkflowTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/maintenance/requests/" + created.get("id").asText())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterBToken))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void decisionPermissionCanOpenItsScopedQueueWithoutViewPermission() throws Exception {
+        String adminToken = createAdminAndGetToken("0599555556");
+        String approverToken = createEmployeeAndLogin(adminToken, "0599666667", Set.of("mt.act.approve"));
+
+        mockMvc.perform(get("/api/v1/maintenance/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + approverToken))
+                .andExpect(status().isOk());
     }
 }

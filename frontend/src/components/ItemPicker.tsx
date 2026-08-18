@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { InventoryItemListItem } from "@/lib/types";
+import type { InventoryRequestOption } from "@/lib/types";
 
 // Type-to-search over the item catalogue, replacing a <select> that had to be
 // scrolled through. Follows the same shape as the asset autocomplete on the
@@ -16,7 +16,7 @@ export default function ItemPicker({
 }: {
   // Already filtered by the caller — by category, and to drop items taken by
   // another row.
-  items: InventoryItemListItem[];
+  items: InventoryRequestOption[];
   value: string;
   placeholder: string;
   emptyLabel: string;
@@ -36,7 +36,7 @@ export default function ItemPicker({
       )
     : items;
 
-  function choose(item: InventoryItemListItem) {
+  function choose(item: InventoryRequestOption) {
     onChange(item.id);
     setQuery("");
     setOpen(false);

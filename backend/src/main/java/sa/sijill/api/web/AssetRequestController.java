@@ -14,10 +14,10 @@ import sa.sijill.api.domain.AssetRequest;
 import sa.sijill.api.domain.AssetRequestStatus;
 import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.Employee;
-import sa.sijill.api.domain.Permission;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.AttachmentRepository;
 import sa.sijill.api.service.AssetRequestService;
+import sa.sijill.api.service.DepartmentScopeService;
 import sa.sijill.api.web.dto.*;
 
 @RestController
@@ -26,14 +26,19 @@ public class AssetRequestController {
 
     private final AssetRequestService assetRequestService;
     private final AttachmentRepository attachmentRepository;
+    private final DepartmentScopeService departmentScopeService;
 
-    public AssetRequestController(AssetRequestService assetRequestService, AttachmentRepository attachmentRepository) {
+    public AssetRequestController(
+            AssetRequestService assetRequestService,
+            AttachmentRepository attachmentRepository,
+            DepartmentScopeService departmentScopeService) {
         this.assetRequestService = assetRequestService;
         this.attachmentRepository = attachmentRepository;
+        this.departmentScopeService = departmentScopeService;
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'as.act.approve', 'as.act.reject', 'as.act.postpone', 'as.act.finish', 'as.act.countersign')")
     public PagedResponse<AssetRequestListItem> search(
             @RequestParam(required = false) AssetRequestStatus status,
             @RequestParam(required = false) String q,
@@ -42,7 +47,7 @@ public class AssetRequestController {
             @RequestParam(defaultValue = "false") boolean underReview,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
-        UUID restrictToRequesterId = mine || !hasPermission(actor, "as.view") ? actor.getId() : null;
+        UUID restrictToRequesterId = mine || !canReadDecisionQueue(actor) ? actor.getId() : null;
         Page<AssetRequest> page =
                 assetRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         List<UUID> ids = page.getContent().stream().map(AssetRequest::getId).toList();
@@ -58,7 +63,7 @@ public class AssetRequestController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'as.act.approve', 'as.act.reject', 'as.act.postpone', 'as.act.finish', 'as.act.countersign')")
     public AssetRequestDetail get(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         AssetRequest request = assetRequestService.get(id);
         requireOwnerOrView(request, actor);
@@ -153,13 +158,14 @@ public class AssetRequestController {
     }
 
     private void requireOwnerOrView(AssetRequest request, Employee actor) {
-        if (hasPermission(actor, "as.view")) return;
-        if (!request.getRequester().getId().equals(actor.getId())) {
-            throw ApiException.forbidden("You do not have permission to view this request");
-        }
+        if (request.getRequester().getId().equals(actor.getId())) return;
+        if (canReadDecisionQueue(actor) && departmentScopeService.covers(actor, request.getDepartment())) return;
+        throw ApiException.forbidden("You do not have permission to view this request");
     }
 
-    private boolean hasPermission(Employee employee, String key) {
-        return employee.getPermissions().stream().map(Permission::getKey).anyMatch(key::equals);
+    private boolean canReadDecisionQueue(Employee employee) {
+        List<String> keys = List.of(
+                "as.view", "as.act.approve", "as.act.reject", "as.act.postpone", "as.act.finish", "as.act.countersign");
+        return employee.getPermissions().stream().map(permission -> permission.getKey()).anyMatch(keys::contains);
     }
 }

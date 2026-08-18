@@ -17,7 +17,7 @@ import TableSearch from "@/components/TableSearch";
 import { IconTrash } from "@/components/NavIcons";
 import ExportButton from "@/components/ExportButton";
 import { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
-import type { EmployeeListItem, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
+import type { EmployeeOption, LocalizedEntityDto, PagedResponse, RoomDto } from "@/lib/types";
 import { withCount } from "@/lib/withCount";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -73,7 +73,7 @@ export default function RoomAdmin({
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
-  const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
+  const [employees, setEmployees] = useState<EmployeeOption[] | null>(null);
 
   function queryString(
     pageNumber: number,
@@ -117,10 +117,10 @@ export default function RoomAdmin({
     load(0, "", "");
     Promise.all([
       apiFetch<LocalizedEntityDto[]>("/departments"),
-      apiFetch<PagedResponse<EmployeeListItem>>("/employees?size=200"),
+      apiFetch<EmployeeOption[]>("/employees/options"),
     ]).then(([d, e]) => {
       setDepartments(d);
-      setEmployees(e.content);
+      setEmployees(e);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);

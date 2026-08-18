@@ -255,6 +255,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest start(UUID id, Employee actor) {
         MaintenanceRequest request = openRequest(id);
         requireStatus(request, MaintenanceRequestStatus.APPROVED);
+        requireWithinScope(request, actor);
         request.setStatus(MaintenanceRequestStatus.IN_PROGRESS);
         addAction(request, actor, "START", null);
         return save(request, actor, "MAINTENANCE_REQUEST_STARTED");
@@ -264,6 +265,7 @@ public class MaintenanceRequestService {
     public MaintenanceRequest finish(UUID id, FinishMaintenanceRequestRequest request, Employee actor) {
         MaintenanceRequest maintenanceRequest = openRequest(id);
         requireStatus(maintenanceRequest, MaintenanceRequestStatus.IN_PROGRESS);
+        requireWithinScope(maintenanceRequest, actor);
 
         if (request != null && request.partsUsed() != null) {
             for (PartUsedRequest partUsedRequest : request.partsUsed()) {
@@ -337,6 +339,7 @@ public class MaintenanceRequestService {
     @Transactional
     public MaintenanceRequest archive(UUID id, Employee actor) {
         MaintenanceRequest request = get(id);
+        requireWithinScope(request, actor);
         if (request.getArchivedAt() != null) {
             throw RequestWorkflowErrors.alreadyArchived();
         }
@@ -350,6 +353,7 @@ public class MaintenanceRequestService {
     @Transactional
     public MaintenanceRequest restore(UUID id, Employee actor) {
         MaintenanceRequest request = get(id);
+        requireWithinScope(request, actor);
         if (request.getArchivedAt() == null) {
             throw RequestWorkflowErrors.notArchived();
         }

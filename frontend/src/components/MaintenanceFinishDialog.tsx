@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import ItemPicker from "@/components/ItemPicker";
 import { apiFetch } from "@/lib/apiClient";
 import type { Dictionary } from "@/i18n/getDictionary";
-import type { InventoryItemListItem, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
+import type { InventoryRequestOption, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
 
 type PartDraft = { inventoryItemId: string; quantity: number };
 
@@ -29,12 +29,12 @@ export default function MaintenanceFinishDialog({
   onCancel: () => void;
   onLoadError: (error: unknown) => void;
 }) {
-  const [parts, setParts] = useState<InventoryItemListItem[] | null>(null);
+  const [parts, setParts] = useState<InventoryRequestOption[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [drafts, setDrafts] = useState<PartDraft[]>([{ inventoryItemId: "", quantity: 1 }]);
 
   useEffect(() => {
-    apiFetch<PagedResponse<InventoryItemListItem>>("/maintenance/parts?size=10000")
+    apiFetch<PagedResponse<InventoryRequestOption>>("/maintenance/parts/finish-options?size=10000")
       .then((page) => setParts(page.content.filter((item) => item.active && item.quantity > 0)))
       .catch((error) => {
         setParts([]);

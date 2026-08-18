@@ -28,7 +28,7 @@ public class MaintenanceInvoiceController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('wh.invoices')")
+    @PreAuthorize("hasAnyAuthority('wh.invoices', 'wh.invoices.edit')")
     public PagedResponse<InvoiceDetail> list(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
@@ -38,7 +38,7 @@ public class MaintenanceInvoiceController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('wh.invoices')")
+    @PreAuthorize("hasAnyAuthority('wh.invoices', 'wh.invoices.edit')")
     public InvoiceDetail get(@PathVariable UUID id) {
         return InvoiceDetail.from(invoiceService.get(id));
     }

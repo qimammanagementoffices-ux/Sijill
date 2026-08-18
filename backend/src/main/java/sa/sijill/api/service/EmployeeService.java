@@ -73,6 +73,11 @@ public class EmployeeService {
         return employeeRepository.search(q, departmentId, pageable);
     }
 
+    @Transactional(readOnly = true)
+    public List<Employee> activeOptions() {
+        return employeeRepository.findByActiveTrueOrderByNameAsc();
+    }
+
     public Employee get(UUID id) {
         return employeeRepository.findById(id).orElseThrow(() -> ApiException.notFound("Employee not found"));
     }

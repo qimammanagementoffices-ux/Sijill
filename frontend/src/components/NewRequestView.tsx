@@ -6,7 +6,7 @@ import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
   AttachmentDto,
   CategoryDto,
-  InventoryItemListItem,
+  InventoryRequestOption,
   LocalizedEntityDto,
   LocalizedRef,
   NeedRequestDetail,
@@ -46,7 +46,7 @@ export default function NewRequestView({
   const [me, setMe] = useState<MeData | null>(null);
   const entityLocale = useEntityLocale();
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
-  const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
+  const [items, setItems] = useState<InventoryRequestOption[] | null>(null);
   const [rooms, setRooms] = useState<RoomDto[] | null>(null);
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
@@ -80,7 +80,7 @@ export default function NewRequestView({
       apiFetch<MeData>("/auth/me"),
       apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<CategoryDto[]>("/warehouse/categories"),
-      apiFetch<PagedResponse<InventoryItemListItem>>("/warehouse/items?size=200"),
+      apiFetch<PagedResponse<InventoryRequestOption>>("/warehouse/items/request-options?size=200"),
       apiFetch<RoomDto[]>("/rooms"),
     ]).then(([m, departmentRows, c, i, r]) => {
       const assignedIds = new Set(m.departments.map((department) => department.id));

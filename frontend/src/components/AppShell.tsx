@@ -6,6 +6,13 @@ import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
 import { clearToken, getToken } from "@/lib/auth";
 import { SessionProvider } from "@/lib/session";
+import {
+  ASSET_REQUEST_PAGE_PERMISSIONS,
+  MAINTENANCE_REQUEST_PAGE_PERMISSIONS,
+  WAREHOUSE_REQUEST_PAGE_PERMISSIONS,
+  canAccessAppPath,
+  hasAnyPermission,
+} from "@/lib/permissions";
 import type { Dictionary } from "@/i18n/getDictionary";
 import type { LocaleInfo } from "@/i18n/locales";
 import type { BrandingDto } from "@/lib/types";
@@ -60,6 +67,7 @@ export default function AppShell({
   // Bumped to retry /auth/me without a full reload.
   const [authAttempt, setAuthAttempt] = useState(0);
   const [authFailed, setAuthFailed] = useState(false);
+  const [verifiedPath, setVerifiedPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!getToken()) {
@@ -68,7 +76,10 @@ export default function AppShell({
     }
     setAuthFailed(false);
     apiFetch<EmployeeSummary>("/auth/me", { signal: AbortSignal.timeout(30_000) })
-      .then(setEmployee)
+      .then((currentEmployee) => {
+        setEmployee(currentEmployee);
+        setVerifiedPath(pathname ?? "");
+      })
       .catch((error) => {
         // Only the server saying "not you" ends the session. A network blip,
         // a 429, or a gateway error while the API restarts used to land here
@@ -82,7 +93,19 @@ export default function AppShell({
         }
         setAuthFailed(true);
       });
-  }, [router, authAttempt]);
+  }, [router, authAttempt, pathname]);
+
+  // Permission changes take effect on the API immediately. Refresh the UI
+  // snapshot whenever the employee returns to the app so revoked menu/page
+  // access does not remain visible until a manual reload.
+  useEffect(() => {
+    function refreshSession() {
+      setVerifiedPath(null);
+      setAuthAttempt((attempt) => attempt + 1);
+    }
+    window.addEventListener("focus", refreshSession);
+    return () => window.removeEventListener("focus", refreshSession);
+  }, []);
 
   useEffect(() => {
     setNavOpen(false);
@@ -113,7 +136,7 @@ export default function AppShell({
 
   // The session is intact; the request simply did not get through. Offer a
   // retry instead of a spinner that never resolves or a silent logout.
-  if (!employee && authFailed) {
+  if (authFailed && (!employee || verifiedPath !== (pathname ?? ""))) {
     return (
       <div className="full-page-loading">
         <div className="empty">
@@ -133,7 +156,7 @@ export default function AppShell({
   // A blank page while /auth/me is in flight (which can take a few seconds
   // against a cold-started free-tier backend) read as "did my click even
   // land" -- show a spinner instead of nothing.
-  if (!employee) {
+  if (!employee || verifiedPath !== (pathname ?? "")) {
     return (
       <div className="full-page-loading">
         <span className="spinner spinner-lg" />
@@ -141,23 +164,23 @@ export default function AppShell({
     );
   }
 
-  const canViewEmployees =
-    employee.permissions.includes("emp.view") || employee.permissions.includes("emp.manage");
+  const canViewEmployees = hasAnyPermission(employee.permissions, ["emp.view", "emp.manage"]);
   const canManageStructure = employee.permissions.includes("emp.structure");
-  const canViewWarehouse =
-    employee.permissions.includes("wh.view") || employee.permissions.includes("wh.request");
-  const canViewInvoices = employee.permissions.includes("wh.invoices");
+  const canViewWarehouse = hasAnyPermission(employee.permissions, ["wh.view", "wh.items", "wh.qty"]);
+  const canViewInvoices = hasAnyPermission(employee.permissions, ["wh.invoices", "wh.invoices.edit"]);
   const canManageWarehouseItems = employee.permissions.includes("wh.items");
   const canViewCosts = employee.permissions.includes("wh.costs");
   const canManageTranslations = employee.permissions.includes("sys.translations");
-  const canViewMaintenance =
-    employee.permissions.includes("mt.view") || employee.permissions.includes("mt.request");
-  const canViewAssets =
-    employee.permissions.includes("as.view") || employee.permissions.includes("as.request");
-  const canViewAssetRecords = employee.permissions.includes("as.view");
+  const canViewWarehouseRequests = hasAnyPermission(employee.permissions, WAREHOUSE_REQUEST_PAGE_PERMISSIONS);
+  const canViewMaintenance = hasAnyPermission(employee.permissions, MAINTENANCE_REQUEST_PAGE_PERMISSIONS);
+  const canViewMaintenanceParts = hasAnyPermission(employee.permissions, ["mt.view", "wh.view", "wh.items", "wh.qty"]);
+  const canViewAssets = hasAnyPermission(employee.permissions, ["as.view", "as.manage"]);
+  const canViewAssetRecords = hasAnyPermission(employee.permissions, ["as.view", "as.manage"]);
+  const canViewAssetRequests = hasAnyPermission(employee.permissions, ASSET_REQUEST_PAGE_PERMISSIONS);
   const canManageBranding = employee.permissions.includes("sys.branding");
   const canManageBackups = employee.permissions.includes("sys.backup");
   const canManageSiteMaintenance = employee.permissions.includes("sys.maintenance");
+  const canViewAuditLog = employee.permissions.includes("sys.audit.view");
   const officialHolidaysLabel = dict.officialHolidaysNav
     || (currentLocale === "ar" ? "الإجازات الرسمية" : currentLocale === "hi" ? "आधिकारिक छुट्टियां" : "Official holidays");
 
@@ -196,7 +219,7 @@ export default function AppShell({
         ...(canViewWarehouse ? [{ href: "/warehouse/items", label: dict.warehouseItemsNav }] : []),
         ...(canViewInvoices ? [{ href: "/warehouse/invoices", label: dict.warehouseInvoicesNav }] : []),
         ...(canViewCosts ? [{ href: "/warehouse/costs", label: dict.warehouseCostsNav }] : []),
-        ...(canViewWarehouse ? [{ href: "/warehouse/requests", label: dict.warehouseRequestsNav }] : []),
+        ...(canViewWarehouseRequests ? [{ href: "/warehouse/requests", label: dict.warehouseRequestsNav }] : []),
       ],
     },
     {
@@ -204,7 +227,7 @@ export default function AppShell({
       icon: IconWrench,
       label: dict.maintenanceGroupNav,
       items: [
-        ...(canViewWarehouse ? [{ href: "/maintenance/parts", label: dict.maintenancePartsNav }] : []),
+        ...(canViewMaintenanceParts ? [{ href: "/maintenance/parts", label: dict.maintenancePartsNav }] : []),
         ...(canViewInvoices ? [{ href: "/maintenance/invoices", label: dict.maintenanceInvoicesNav }] : []),
         ...(canViewCosts ? [{ href: "/maintenance/costs", label: dict.maintenanceCostsNav }] : []),
         ...(canViewMaintenance ? [{ href: "/maintenance/requests", label: dict.maintenanceRequestsNav }] : []),
@@ -221,7 +244,7 @@ export default function AppShell({
         ...(canViewAssets ? [{ href: "/rooms", label: dict.roomsNav }] : []),
         ...(canViewAssets ? [{ href: "/assets", label: dict.assetsNav }] : []),
         ...(canViewAssetRecords ? [{ href: "/assets/acquisitions", label: dict.assetAcquisitionsNav }] : []),
-        ...(canViewAssets ? [{ href: "/asset-requests", label: dict.assetRequestsNav }] : []),
+        ...(canViewAssetRequests ? [{ href: "/asset-requests", label: dict.assetRequestsNav }] : []),
       ],
     },
   ].filter((g) => g.items.length > 0);
@@ -236,6 +259,7 @@ export default function AppShell({
     ...(employee.permissions.includes("sys.review.policy")
       ? [{ href: "/admin/review-policy", label: dict.reviewPolicyNav }]
       : []),
+    ...(canViewAuditLog ? [{ href: "/admin/audit-log", label: dict.auditLogNav }] : []),
   ];
 
   // Pick the single longest href that matches the current path (e.g. on
@@ -371,7 +395,7 @@ export default function AppShell({
           {/* Every page below already has the signed-in employee here, so
               none of them needs its own /auth/me round trip. */}
           <SessionProvider value={{ id: employee.id, name: employee.name, permissions: employee.permissions }}>
-            {children}
+            {canAccessAppPath(pathname, employee.permissions) ? children : <AccessRedirect />}
           </SessionProvider>
         </main>
       </div>
@@ -389,4 +413,10 @@ export default function AppShell({
       )}
     </div>
   );
+}
+
+function AccessRedirect() {
+  const router = useRouter();
+  useEffect(() => router.replace("/dashboard"), [router]);
+  return <div className="full-page-loading"><span className="spinner spinner-lg" /></div>;
 }

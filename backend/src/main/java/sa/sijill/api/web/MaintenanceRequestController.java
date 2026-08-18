@@ -17,9 +17,9 @@ import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.MaintenanceRequest;
 import sa.sijill.api.domain.MaintenanceRequestStatus;
-import sa.sijill.api.domain.Permission;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.AttachmentRepository;
+import sa.sijill.api.service.DepartmentScopeService;
 import sa.sijill.api.service.MaintenanceRequestService;
 import sa.sijill.api.web.dto.*;
 
@@ -29,15 +29,19 @@ public class MaintenanceRequestController {
 
     private final MaintenanceRequestService maintenanceRequestService;
     private final AttachmentRepository attachmentRepository;
+    private final DepartmentScopeService departmentScopeService;
 
     public MaintenanceRequestController(
-            MaintenanceRequestService maintenanceRequestService, AttachmentRepository attachmentRepository) {
+            MaintenanceRequestService maintenanceRequestService,
+            AttachmentRepository attachmentRepository,
+            DepartmentScopeService departmentScopeService) {
         this.maintenanceRequestService = maintenanceRequestService;
         this.attachmentRepository = attachmentRepository;
+        this.departmentScopeService = departmentScopeService;
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request', 'mt.act.approve', 'mt.act.reject', 'mt.act.postpone', 'mt.act.start', 'mt.act.finish', 'mt.act.countersign')")
     public PagedResponse<MaintenanceRequestListItem> search(
             @RequestParam(required = false) MaintenanceRequestStatus status,
             @RequestParam(required = false) String q,
@@ -46,7 +50,7 @@ public class MaintenanceRequestController {
             @RequestParam(defaultValue = "false") boolean underReview,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal Employee actor) {
-        UUID restrictToRequesterId = mine || !hasPermission(actor, "mt.view") ? actor.getId() : null;
+        UUID restrictToRequesterId = mine || !canReadDecisionQueue(actor) ? actor.getId() : null;
         Page<MaintenanceRequest> page =
                 maintenanceRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         Set<UUID> ids = page.getContent().stream().map(MaintenanceRequest::getId).collect(Collectors.toSet());
@@ -60,7 +64,7 @@ public class MaintenanceRequestController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request', 'mt.act.approve', 'mt.act.reject', 'mt.act.postpone', 'mt.act.start', 'mt.act.finish', 'mt.act.countersign')")
     public MaintenanceRequestDetail get(@PathVariable UUID id, @AuthenticationPrincipal Employee actor) {
         MaintenanceRequest request = maintenanceRequestService.get(id);
         requireOwnerOrView(request, actor);
@@ -161,13 +165,14 @@ public class MaintenanceRequestController {
     }
 
     private void requireOwnerOrView(MaintenanceRequest request, Employee actor) {
-        if (hasPermission(actor, "mt.view")) return;
-        if (!request.getRequester().getId().equals(actor.getId())) {
-            throw ApiException.forbidden("You do not have permission to view this request");
-        }
+        if (request.getRequester().getId().equals(actor.getId())) return;
+        if (canReadDecisionQueue(actor) && departmentScopeService.covers(actor, request.getDepartment())) return;
+        throw ApiException.forbidden("You do not have permission to view this request");
     }
 
-    private boolean hasPermission(Employee employee, String key) {
-        return employee.getPermissions().stream().map(Permission::getKey).anyMatch(key::equals);
+    private boolean canReadDecisionQueue(Employee employee) {
+        List<String> keys = List.of(
+                "mt.view", "mt.act.approve", "mt.act.reject", "mt.act.postpone", "mt.act.start", "mt.act.finish", "mt.act.countersign");
+        return employee.getPermissions().stream().map(permission -> permission.getKey()).anyMatch(keys::contains);
     }
 }

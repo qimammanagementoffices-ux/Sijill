@@ -3,7 +3,7 @@
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
-import type { AttachmentDto, FaultTypeDto, LocalizedEntityDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomDto } from "@/lib/types";
+import type { AttachmentDto, FaultTypeDto, LocalizedEntityDto, LocalizedRef, MaintenanceRequestDetail, MaintenancePriority, RoomOption } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
@@ -33,7 +33,7 @@ export default function NewMaintenanceRequestView({
   const entityLocale = useEntityLocale();
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
-  const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [rooms, setRooms] = useState<RoomOption[] | null>(null);
   const [faultTypes, setFaultTypes] = useState<FaultTypeDto[] | null>(null);
   const [departmentId, setDepartmentId] = useState("");
   const [roomId, setRoomId] = useState("");
@@ -57,7 +57,7 @@ export default function NewMaintenanceRequestView({
     Promise.all([
       apiFetch<MeData>("/auth/me"),
       apiFetch<LocalizedEntityDto[]>("/departments"),
-      apiFetch<RoomDto[]>("/rooms"),
+      apiFetch<RoomOption[]>("/rooms/options"),
       apiFetch<FaultTypeDto[]>("/maintenance/fault-types"),
     ]).then(([me, departmentRows, roomRows, faultTypeRows]) => {
       const assignedIds = new Set(me.departments.map((department) => department.id));

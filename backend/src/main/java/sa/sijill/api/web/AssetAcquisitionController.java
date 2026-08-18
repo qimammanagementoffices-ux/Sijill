@@ -21,7 +21,7 @@ public class AssetAcquisitionController {
     public AssetAcquisitionController(AssetAcquisitionService service) { this.service = service; }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('as.view')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public PagedResponse<AssetAcquisitionDto> list(@RequestParam(required = false) String q,
             @RequestParam(required = false) UUID assetId, @RequestParam(required = false) LocalDate dateFrom,
             @RequestParam(required = false) LocalDate dateTo,
@@ -29,7 +29,7 @@ public class AssetAcquisitionController {
         return PagedResponse.from(service.search(q, assetId, dateFrom, dateTo, pageable), AssetAcquisitionDto::from);
     }
 
-    @GetMapping("/{id}") @PreAuthorize("hasAuthority('as.view')")
+    @GetMapping("/{id}") @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public AssetAcquisitionDto get(@PathVariable UUID id) { return AssetAcquisitionDto.from(service.get(id)); }
 
     @PostMapping @PreAuthorize("hasAuthority('as.manage')")

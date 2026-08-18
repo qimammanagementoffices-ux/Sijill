@@ -38,8 +38,13 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     }
 
     private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
+        return createEmployeeAndLogin(adminToken, phone, permissions, null);
+    }
+
+    private String createEmployeeAndLogin(
+            String adminToken, String phone, Set<String> permissions, List<UUID> departmentIds) throws Exception {
         var create = new CreateEmployeeRequest(
-                "Requester", phone, "1234", "1234", null, null, null, null, null, permissions, null);
+                "Requester", phone, "1234", "1234", null, null, null, null, departmentIds, permissions, null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -52,6 +57,19 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .getResponse()
                 .getContentAsString();
         return objectMapper.readTree(loginBody).get("token").asText();
+    }
+
+    private UUID createDepartment(String adminToken, String name, UUID parentId) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/departments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpsertLocalizedEntityRequest(name, name, null, null, parentId))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return UUID.fromString(objectMapper.readTree(body).get("id").asText());
     }
 
     private String createItemWithStock(String adminToken, int stock) throws Exception {
@@ -82,9 +100,13 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/warehouse/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/warehouse/items").param("size", "200")
+        mockMvc.perform(get("/api/v1/warehouse/items/request-options").param("size", "200")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].lastPurchasePrice").doesNotExist());
+        mockMvc.perform(get("/api/v1/warehouse/items")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isForbidden());
 
         var submit = new CreateNeedRequestRequest(
                 null, null, null, "need some", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
@@ -366,5 +388,53 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].actions[0].action").value("SUBMIT"))
                 .andExpect(jsonPath("$.content[0].attachments.length()").value(0));
+    }
+
+    @Test
+    void scopedOfficialCannotBypassDepartmentFilterWithRequestOrAttachmentId() throws Exception {
+        String adminToken = createAdminAndGetToken("0596555501");
+        UUID root = createDepartment(adminToken, "Root", null);
+        UUID departmentA = createDepartment(adminToken, "Department A", root);
+        UUID departmentB = createDepartment(adminToken, "Department B", root);
+
+        String requesterToken = createEmployeeAndLogin(
+                adminToken, "0596555502", Set.of("wh.request"), List.of(root, departmentA));
+        String otherDepartmentOfficial = createEmployeeAndLogin(
+                adminToken,
+                "0596555503",
+                Set.of("wh.view", "wh.act.finish"),
+                List.of(root, departmentB));
+        String itemId = createItemWithStock(adminToken, 10);
+
+        var submit = new CreateNeedRequestRequest(
+                departmentA,
+                null,
+                null,
+                "department-confidential request",
+                List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 1)));
+        String requestBody = mockMvc.perform(post("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submit)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String requestId = objectMapper.readTree(requestBody).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/warehouse/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherDepartmentOfficial))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+
+        mockMvc.perform(get("/api/v1/warehouse/requests/" + requestId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherDepartmentOfficial))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/attachments")
+                        .param("ownerType", "NEED_REQUEST")
+                        .param("ownerId", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherDepartmentOfficial))
+                .andExpect(status().isForbidden());
     }
 }

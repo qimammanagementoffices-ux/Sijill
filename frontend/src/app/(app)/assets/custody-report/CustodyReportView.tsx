@@ -8,7 +8,7 @@ import { exportToXlsx } from "@/lib/exportXlsx";
 import PrintReportHeader from "@/components/PrintReportHeader";
 import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
-import type { AssetListItem, EmployeeListItem, PagedResponse } from "@/lib/types";
+import type { AssetListItem, EmployeeOption } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 export default function CustodyReportView({
@@ -19,7 +19,7 @@ export default function CustodyReportView({
   commonDict: Dictionary["common"];
 }) {
   const router = useRouter();
-  const [employees, setEmployees] = useState<EmployeeListItem[] | null>(null);
+  const [employees, setEmployees] = useState<EmployeeOption[] | null>(null);
   const [employeeId, setEmployeeId] = useState("");
   const [assets, setAssets] = useState<AssetListItem[] | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -29,8 +29,8 @@ export default function CustodyReportView({
       router.replace("/login");
       return;
     }
-    apiFetch<PagedResponse<EmployeeListItem>>("/employees?size=200")
-      .then((p) => setEmployees(p.content))
+    apiFetch<EmployeeOption[]>("/employees/options")
+      .then(setEmployees)
       .catch(() => router.replace("/assets"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);

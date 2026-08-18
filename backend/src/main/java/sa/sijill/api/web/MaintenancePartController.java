@@ -22,8 +22,8 @@ import sa.sijill.api.web.dto.*;
 // InventoryItemService warehouse items use (master spec §7: "one reusable
 // inventory module... not two copied code paths"). Same wh.* permissions
 // per the Phase 4 decision record note — the spec's mt.* catalogue has no
-// items/qty equivalent. Read access also follows the maintenance request
-// workflow so requesters can resolve parts referenced by their requests.
+// items/qty equivalent. Finish officials get a reduced picker projection;
+// full catalogue and pricing metadata stays with inventory/maintenance views.
 @RestController
 @RequestMapping("/api/v1/maintenance/parts")
 public class MaintenancePartController {
@@ -38,7 +38,7 @@ public class MaintenancePartController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request', 'wh.view')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'wh.view', 'wh.items', 'wh.qty')")
     public PagedResponse<InventoryItemListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "false") boolean lowStockOnly,
@@ -52,8 +52,19 @@ public class MaintenancePartController {
         return PagedResponse.from(page, item -> InventoryItemListItem.from(item, images.get(item.getId()), 0));
     }
 
+    @GetMapping("/finish-options")
+    @PreAuthorize("hasAuthority('mt.act.finish')")
+    public PagedResponse<InventoryRequestOption> finishOptions(
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
+        Page<InventoryItem> page =
+                inventoryItemService.search(Domain.MAINTENANCE, q, false, false, null, null, null, pageable);
+        Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
+        return PagedResponse.from(page, item -> InventoryRequestOption.from(item, images.get(item.getId())));
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('mt.view', 'mt.request', 'wh.view')")
+    @PreAuthorize("hasAnyAuthority('mt.view', 'wh.view', 'wh.items', 'wh.qty')")
     public InventoryItemDetail get(@PathVariable UUID id) {
         return InventoryItemDetail.from(inventoryItemService.get(id));
     }

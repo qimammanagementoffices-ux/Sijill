@@ -12,9 +12,9 @@ import QueueShortcuts from "@/components/QueueShortcuts";
 type EmployeeSummary = { name: string; permissions: string[] };
 
 type DashboardStats = {
-  warehouse: { itemCount: number; totalQuantity: number; lowStockCount: number; pendingRequestCount: number };
-  maintenance: { openCount: number; inProgressCount: number; completedCount: number; urgentOpenCount: number };
-  assets: { roomCount: number; assetCount: number; pendingRequestCount: number };
+  warehouse: { itemCount: number; totalQuantity: number; lowStockCount: number; pendingRequestCount: number | null } | null;
+  maintenance: { openCount: number; inProgressCount: number; completedCount: number; urgentOpenCount: number } | null;
+  assets: { roomCount: number; assetCount: number; pendingRequestCount: number | null } | null;
 };
 
 function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
@@ -154,7 +154,7 @@ export default function DashboardView({
         </div>
       )}
 
-      {stats && isAdmin && (
+      {stats?.warehouse && isAdmin && (
         <div style={{ marginTop: 20 }}>
           <h2 className="disp" style={{ fontSize: 18, marginBottom: 4 }}>
             {statsDict.warehouseTitle}
@@ -172,16 +172,18 @@ export default function DashboardView({
               label={statsDict.warehouseLowStock}
               color="var(--amber)"
             />
-            <StatCard
-              value={stats.warehouse.pendingRequestCount}
-              label={statsDict.warehousePendingRequests}
-              color="var(--seal)"
-            />
+            {stats.warehouse.pendingRequestCount !== null && (
+              <StatCard
+                value={stats.warehouse.pendingRequestCount}
+                label={statsDict.warehousePendingRequests}
+                color="var(--seal)"
+              />
+            )}
           </div>
         </div>
       )}
 
-      {stats && isAdmin && (
+      {stats?.maintenance && isAdmin && (
         <div style={{ marginTop: 8 }}>
           <h2 className="disp" style={{ fontSize: 18, marginBottom: 4 }}>
             {statsDict.maintenanceTitle}
@@ -208,14 +210,16 @@ export default function DashboardView({
         </div>
       )}
 
-      {stats && isAdmin && (
+      {stats?.assets && isAdmin && (
         <div style={{ marginTop: 8 }}>
           <h2 className="disp" style={{ fontSize: 18, marginBottom: 4 }}>
             {statsDict.assetsTitle}
           </h2>
           <p className="section-desc">{statsDict.assetsSubtitle}</p>
           <div className="cards-row">
-            <StatCard value={stats.assets.pendingRequestCount} label={statsDict.assetsPendingRequests} color="var(--amber)" />
+            {stats.assets.pendingRequestCount !== null && (
+              <StatCard value={stats.assets.pendingRequestCount} label={statsDict.assetsPendingRequests} color="var(--amber)" />
+            )}
             <StatCard value={stats.assets.assetCount} label={statsDict.assetsAssets} color="var(--sage)" />
             <StatCard value={stats.assets.roomCount} label={statsDict.assetsRooms} color="var(--sage)" />
           </div>

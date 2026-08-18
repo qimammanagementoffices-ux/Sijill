@@ -41,7 +41,7 @@ public class AssetController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public PagedResponse<AssetListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) AssetStatus status,
@@ -60,8 +60,19 @@ public class AssetController {
         return PagedResponse.from(page, a -> AssetListItem.from(a, thumbnails.get(a.getId())));
     }
 
+    @GetMapping("/request-options")
+    @PreAuthorize("hasAuthority('as.request')")
+    public PagedResponse<AssetRequestOption> requestOptions(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) AssetStatus status,
+            @RequestParam(required = false) UUID roomId,
+            @RequestParam(required = false) UUID categoryId,
+            @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
+        return PagedResponse.from(assetService.search(q, status, roomId, categoryId, pageable), AssetRequestOption::from);
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public AssetDetail get(@PathVariable UUID id) {
         return AssetDetail.from(assetService.get(id));
     }
@@ -93,7 +104,7 @@ public class AssetController {
     // Custody report — every currently-active asset assigned to an
     // employee, per master spec §7 "employee-assets custody report."
     @GetMapping("/custody-report/{employeeId}")
-    @PreAuthorize("hasAuthority('as.view')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public List<AssetListItem> custodyReport(@PathVariable UUID employeeId) {
         return assetRepository.findByCustodianId(employeeId).stream()
                 .map(AssetListItem::from)

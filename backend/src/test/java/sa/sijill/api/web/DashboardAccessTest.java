@@ -3,6 +3,7 @@ package sa.sijill.api.web;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Set;
@@ -37,6 +38,32 @@ class DashboardAccessTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void employeeAdministratorDoesNotReceiveUnrelatedModuleStatistics() throws Exception {
+        String adminToken = createAdminAndGetToken();
+        String employeeToken = createEmployeeAndLogin(adminToken, "0599888803", Set.of("emp.manage"));
+
+        mockMvc.perform(get("/api/v1/dashboard/stats")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + employeeToken))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.warehouse").isEmpty())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.maintenance").isEmpty())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.assets").isEmpty());
+    }
+
+    @Test
+    void itemManagerDoesNotReceiveWarehouseRequestAggregate() throws Exception {
+        String adminToken = createAdminAndGetToken();
+        String employeeToken = createEmployeeAndLogin(
+                adminToken, "0599888804", Set.of("emp.manage", "wh.items"));
+
+        mockMvc.perform(get("/api/v1/dashboard/stats")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + employeeToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.warehouse.itemCount").isNumber())
+                .andExpect(jsonPath("$.warehouse.pendingRequestCount").isEmpty());
+    }
+
     private String createAdminAndGetToken() throws Exception {
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -50,8 +77,12 @@ class DashboardAccessTest extends AbstractIntegrationTest {
     }
 
     private String createEmployeeAndLogin(String adminToken) throws Exception {
+        return createEmployeeAndLogin(adminToken, "0599888802", Set.of("wh.view"));
+    }
+
+    private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
         var request = new CreateEmployeeRequest(
-                "Employee", "0599888802", "1234", "1234", null, null, null, null, null, Set.of("wh.view"), null);
+                "Employee", phone, "1234", "1234", null, null, null, null, null, permissions, null);
         mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -60,7 +91,7 @@ class DashboardAccessTest extends AbstractIntegrationTest {
 
         String body = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0599888802", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()

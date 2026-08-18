@@ -23,6 +23,9 @@ public class NameTranslationService {
         if (request.text() == null || request.text().isBlank()) {
             throw ApiException.validation("Text is required", Map.of("text", "must not be blank"));
         }
+        if (request.text().length() > 300) {
+            throw ApiException.validation("Text is too long", Map.of("text", "must be at most 300 characters"));
+        }
         String ar = request.text();
         String en = request.text();
         String hi = request.text();

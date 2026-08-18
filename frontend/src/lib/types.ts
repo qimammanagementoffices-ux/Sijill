@@ -66,6 +66,17 @@ export type CostDashboardDto = {
 
 export type PermissionDto = { key: string; description: string };
 export type PermissionOverviewDto = { key: string; employeeCount: number };
+export type EmployeeOption = { id: string; name: string };
+export type AuditLogDto = {
+  id: string;
+  actorName: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  beforeState: string | null;
+  afterState: string | null;
+  createdAt: string;
+};
 
 export type LocalizedEntityDto = {
   id: string;
@@ -371,6 +382,29 @@ export type AssetListItem = {
   status: AssetStatusValue;
   thumbnailUrl: string | null;
 };
+
+export type RoomOption = Pick<
+  RoomDto,
+  | "id"
+  | "roomNumber"
+  | "nameAr"
+  | "nameEn"
+  | "nameHi"
+  | "departmentId"
+  | "departmentNameAr"
+  | "departmentNameEn"
+  | "active"
+>;
+
+export type InventoryRequestOption = Pick<
+  InventoryItemListItem,
+  "id" | "code" | "nameAr" | "nameEn" | "category" | "quantity" | "unit" | "imageUrl" | "active"
+>;
+
+export type AssetRequestOption = Pick<
+  AssetListItem,
+  "id" | "assetNumber" | "nameAr" | "nameEn" | "category" | "room" | "status"
+>;
 
 export type AssetAcquisitionDto = {
   id: string;

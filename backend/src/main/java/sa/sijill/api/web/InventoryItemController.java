@@ -41,7 +41,7 @@ public class InventoryItemController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.request')")
+    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.items', 'wh.qty')")
     public PagedResponse<InventoryItemListItem> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "false") boolean lowStockOnly,
@@ -75,8 +75,20 @@ public class InventoryItemController {
                         item, images.get(item.getId()), requestedQuantities.getOrDefault(item.getId(), 0L)));
     }
 
+    @GetMapping("/request-options")
+    @PreAuthorize("hasAuthority('wh.request')")
+    public PagedResponse<InventoryRequestOption> requestOptions(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) UUID categoryId,
+            @PageableDefault(size = 20, sort = "nameEn") Pageable pageable) {
+        Page<InventoryItem> page = inventoryItemService.search(
+                Domain.WAREHOUSE, q, false, false, categoryId, null, null, pageable);
+        Map<UUID, String> images = ItemImages.firstImageByItem(attachmentRepository, page.getContent());
+        return PagedResponse.from(page, item -> InventoryRequestOption.from(item, images.get(item.getId())));
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.request')")
+    @PreAuthorize("hasAnyAuthority('wh.view', 'wh.items', 'wh.qty')")
     public InventoryItemDetail get(@PathVariable UUID id) {
         return InventoryItemDetail.from(inventoryItemService.get(id));
     }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
-  AssetListItem,
+  AssetRequestOption,
   AssetRequestDetail,
   AssetRequestListItem,
   AssetRequestPurpose,
@@ -13,7 +13,7 @@ import type {
   LocalizedEntityDto,
   LocalizedRef,
   PagedResponse,
-  RoomDto,
+  RoomOption,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
@@ -42,9 +42,9 @@ export default function NewAssetRequestView({
   const entityLocale = useEntityLocale();
   const [me, setMe] = useState<MeData | null>(null);
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
-  const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [rooms, setRooms] = useState<RoomOption[] | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
-  const [assets, setAssets] = useState<AssetListItem[] | null>(null);
+  const [assets, setAssets] = useState<AssetRequestOption[] | null>(null);
   const [departmentId, setDepartmentId] = useState(editing?.department?.id ?? "");
   const [roomId, setRoomId] = useState(editing?.room?.id ?? "");
   const [destinationRoomId, setDestinationRoomId] = useState(editing?.destinationRoom?.id ?? "");
@@ -76,9 +76,9 @@ export default function NewAssetRequestView({
     Promise.all([
       apiFetch<MeData>("/auth/me"),
       apiFetch<LocalizedEntityDto[]>("/departments"),
-      apiFetch<RoomDto[]>("/rooms"),
+      apiFetch<RoomOption[]>("/rooms/options"),
       apiFetch<CategoryDto[]>("/assets/categories"),
-      apiFetch<PagedResponse<AssetListItem>>("/assets?size=1000"),
+      apiFetch<PagedResponse<AssetRequestOption>>("/assets/request-options?size=1000"),
     ])
       .then(([meData, departmentRows, roomRows, categoryRows, assetPage]) => {
         setMe(meData);

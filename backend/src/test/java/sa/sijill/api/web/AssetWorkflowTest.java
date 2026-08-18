@@ -276,6 +276,18 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                 .getContentAsString();
         UUID assetId = UUID.fromString(objectMapper.readTree(assetBody).get("id").asText());
 
+        mockMvc.perform(get("/api/v1/assets/request-options")
+                        .param("size", "1000")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(assetId.toString()))
+                .andExpect(jsonPath("$.content[0].acquisitionCost").doesNotExist())
+                .andExpect(jsonPath("$.content[0].publicToken").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/assets/" + assetId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isForbidden());
+
         var submit = new SubmitAssetRequestRequest(
                 null,
                 "Move the printer",

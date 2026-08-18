@@ -15,6 +15,7 @@ import sa.sijill.api.repository.AssetRepository;
 import sa.sijill.api.repository.RoomAssetCount;
 import sa.sijill.api.service.RoomService;
 import sa.sijill.api.web.dto.RoomDto;
+import sa.sijill.api.web.dto.RoomOption;
 import sa.sijill.api.web.dto.PagedResponse;
 import sa.sijill.api.web.dto.UpsertRoomRequest;
 
@@ -31,7 +32,7 @@ public class RoomController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'mt.view', 'mt.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public List<RoomDto> list() {
         Map<UUID, Long> counts = assetRepository.countAssetsByRoom().stream()
                 .collect(Collectors.toMap(RoomAssetCount::getRoomId, RoomAssetCount::getCount));
@@ -41,8 +42,14 @@ public class RoomController {
                 .toList();
     }
 
+    @GetMapping("/options")
+    @PreAuthorize("hasAnyAuthority('as.request', 'mt.request')")
+    public List<RoomOption> options() {
+        return roomService.list().stream().map(RoomOption::from).toList();
+    }
+
     @GetMapping("/search")
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'mt.view', 'mt.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public PagedResponse<RoomDto> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) UUID departmentId,
@@ -54,7 +61,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'mt.view', 'mt.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.manage')")
     public RoomDto get(@PathVariable UUID id) {
         Room room = roomService.get(id);
         return RoomDto.from(room, assetRepository.countByRoom_Id(room.getId()));

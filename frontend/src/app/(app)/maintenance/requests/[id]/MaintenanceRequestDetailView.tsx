@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
-import type { InventoryItemListItem, MaintenanceRequestDetail, PagedResponse } from "@/lib/types";
+import type { InventoryRequestOption, MaintenanceRequestDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import AttachmentUploader from "@/components/AttachmentUploader";
@@ -37,7 +37,7 @@ export default function MaintenanceRequestDetailView({
   const router = useRouter();
   const [request, setRequest] = useState<MaintenanceRequestDetail | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [parts, setParts] = useState<InventoryItemListItem[] | null>(null);
+  const [parts, setParts] = useState<InventoryRequestOption[] | null>(null);
   const [partDrafts, setPartDrafts] = useState<PartDraft[]>([{ inventoryItemId: "", quantity: "1" }]);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -54,10 +54,14 @@ export default function MaintenanceRequestDetailView({
     }
     load();
     apiFetch<{ permissions: string[] }>("/auth/me")
-      .then((me) => setPermissions(me.permissions))
-      .catch(() => {});
-    apiFetch<PagedResponse<InventoryItemListItem>>("/maintenance/parts?size=100")
-      .then((p) => setParts(p.content))
+      .then((me) => {
+        setPermissions(me.permissions);
+        if (me.permissions.includes("mt.act.finish")) {
+          apiFetch<PagedResponse<InventoryRequestOption>>("/maintenance/parts/finish-options?size=100")
+            .then((p) => setParts(p.content))
+            .catch(() => setParts([]));
+        }
+      })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, id]);

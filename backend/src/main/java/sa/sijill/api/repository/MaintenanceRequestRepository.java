@@ -65,5 +65,19 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
             """)
     long countByStatus(@Param("status") MaintenanceRequestStatus status, @Param("today") LocalDate today);
 
-    long countByPriorityAndStatusNot(MaintenancePriority priority, MaintenanceRequestStatus status);
+    @Query("""
+            select count(r) from MaintenanceRequest r
+            where r.archivedAt is null
+              and r.priority = :priority
+              and r.status <> :excludedStatus
+              and (:unscoped = true
+                or r.department.id in :departmentIds
+                or r.requester.id = :actorId)
+            """)
+    long countByPriorityAndStatusNotInScope(
+            @Param("priority") MaintenancePriority priority,
+            @Param("excludedStatus") MaintenanceRequestStatus excludedStatus,
+            @Param("departmentIds") java.util.Collection<UUID> departmentIds,
+            @Param("unscoped") boolean unscoped,
+            @Param("actorId") UUID actorId);
 }

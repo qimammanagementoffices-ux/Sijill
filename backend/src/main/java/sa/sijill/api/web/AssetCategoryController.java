@@ -23,7 +23,7 @@ public class AssetCategoryController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('as.view', 'as.request')")
+    @PreAuthorize("hasAnyAuthority('as.view', 'as.request', 'as.manage')")
     public List<CategoryDto> list() {
         return categoryService.list(Domain.ASSET).stream().map(CategoryDto::from).toList();
     }

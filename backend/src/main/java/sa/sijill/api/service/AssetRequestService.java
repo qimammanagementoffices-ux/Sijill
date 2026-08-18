@@ -180,6 +180,9 @@ public class AssetRequestService {
         if (!canEdit(assetRequest, actor)) {
             throw RequestWorkflowErrors.editWindowClosed();
         }
+        if (!assetRequest.getRequester().getId().equals(actor.getId())) {
+            requireWithinScope(assetRequest, actor);
+        }
         applyLegacyStyle(assetRequest, request, assetRequest.getRequester());
         return save(assetRequest, actor, "ASSET_REQUEST_UPDATED");
     }
@@ -378,6 +381,7 @@ public class AssetRequestService {
     @Transactional
     public AssetRequest archive(UUID id, Employee actor) {
         AssetRequest request = get(id);
+        requireWithinScope(request, actor);
         if (request.getArchivedAt() != null) {
             throw RequestWorkflowErrors.alreadyArchived();
         }
@@ -391,6 +395,7 @@ public class AssetRequestService {
     @Transactional
     public AssetRequest restore(UUID id, Employee actor) {
         AssetRequest request = get(id);
+        requireWithinScope(request, actor);
         if (request.getArchivedAt() == null) {
             throw RequestWorkflowErrors.notArchived();
         }
@@ -468,6 +473,7 @@ public class AssetRequestService {
     public AssetRequest finish(UUID id, Employee actor) {
         AssetRequest request = openRequest(id);
         requireStatus(request, AssetRequestStatus.APPROVED);
+        requireWithinScope(request, actor);
 
         if (request.getPurpose() == AssetRequestPurpose.TRANSFER) {
             for (AssetRequestLine line : request.getLines()) {

@@ -82,6 +82,7 @@ export type Dictionary = {
     officialHolidaysNav: string;
     languagesNav: string;
     permissionsOverviewNav: string;
+    auditLogNav: string;
     quickActionsTitle: string;
     assetRequestsShortcut: string;
     newAssetRequestShortcut: string;
@@ -186,6 +187,16 @@ export type Dictionary = {
   permissionsOverview: {
     title: string;
     nav: string;
+  };
+  auditLog: {
+    title: string;
+    actor: string;
+    action: string;
+    entity: string;
+    changedAt: string;
+    before: string;
+    after: string;
+    noResults: string;
   };
   reviewPolicy: {
     title: string;
