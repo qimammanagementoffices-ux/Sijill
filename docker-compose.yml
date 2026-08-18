@@ -85,21 +85,12 @@ services:
       # Browser-facing, so localhost rather than the compose hostname.
       OBJECT_STORAGE_PUBLIC_URL_BASE: http://localhost:9000/sijill-public
 
-  frontend:
-    profiles: ["app"]
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        # Baked at build time by Next, so changing this needs a rebuild.
-        NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
-        NEXT_PUBLIC_QR_BASE_URL: http://localhost:3000/public/assets
-    container_name: sijill-frontend
-    restart: unless-stopped
-    depends_on:
-      - api
-    ports:
-      - "3000:3000"
+  # No frontend service: Next bakes NEXT_PUBLIC_API_URL at build time for the
+  # browser, so a containerised frontend would need "localhost:8080" for the
+  # browser and "api:8080" for its own server-side rendering -- one variable,
+  # two required values. Run the UI on the host instead (npm run dev), where
+  # both share the same localhost, and get hot reload as well. See
+  # docs/local-development.md.
 
 volumes:
   sijill-postgres-data:

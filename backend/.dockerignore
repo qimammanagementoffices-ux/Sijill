@@ -1,0 +1,6 @@
+# Gradle builds inside the container; shipping local build output only slows
+# the context transfer and risks baking a stale jar into the image.
+build
+.gradle
+.git
+*.log

@@ -1,28 +1,31 @@
 # Local copy of production
 
-Run the whole system on your machine, try a change, then deploy only once it
-works. Production is `riyadh.sijill.digital`; nothing here touches it.
+Run the system on your machine, try a change, then deploy only once it works.
+Production is `riyadh.sijill.digital`; nothing here touches it.
 
-## One-time setup
+## Prerequisites
 
-**Install Docker Desktop** — https://www.docker.com/products/docker-desktop/
+- **Docker Desktop** — https://www.docker.com/products/docker-desktop/ (keep
+  "Use WSL 2" checked, reboot after installing)
+- **Node** — already present
 
-That is the only prerequisite. There is no Gradle wrapper in this repo, so
-building the backend natively would need a JDK *and* Gradle; the `app` profile
-builds it inside a container instead.
+No JDK or Gradle needed: the API builds inside a container.
 
-## Start it
+## Start
+
+Backend, database and object storage in containers:
 
 ```bash
 cd "C:\Users\X-ThinkPad\Desktop\@@haytham\Sijill - New\sijill"
 docker compose --profile app up -d --build
 ```
 
-Keep the quotes — the path contains spaces and `@@`. Docker Desktop must be
-running (whale icon in the tray), not merely installed.
+Frontend on the host, in a second terminal:
 
-First run takes several minutes (it downloads the Gradle image and the whole
-dependency graph). Later runs are fast.
+```bash
+cd "C:\Users\X-ThinkPad\Desktop\@@haytham\Sijill - New\sijill\frontend"
+$env:NEXT_PUBLIC_API_URL="http://localhost:8080/api/v1"; npm run dev
+```
 
 | Service | URL |
 |---|---|
@@ -31,22 +34,32 @@ dependency graph). Later runs are fast.
 | MinIO console | http://localhost:9001 (`sijill_minio` / `sijill_minio_local_dev`) |
 | Postgres | `localhost:5432` (`sijill` / `sijill_local_dev`) |
 
-An empty database lands on `/onboarding` to create the first admin.
+An empty database lands on `/onboarding` to create the first admin. That
+account is entirely separate from production.
 
-Stop with `docker compose --profile app down`. Add `-v` to also wipe the
-database and start clean.
+Stop with `docker compose --profile app down`, plus `-v` to wipe the database.
+
+## Why the frontend is not in a container
+
+Next bakes `NEXT_PUBLIC_API_URL` into the browser bundle at build time. A
+containerised frontend would need `localhost:8080` for the browser and
+`api:8080` for its own server-side rendering — one variable, two required
+values. A server-side override does not help either: `apiClient.ts` is imported
+by `"use client"` components, and Next replaces every non-`NEXT_PUBLIC_`
+variable with `undefined` in the client bundle, even when that code runs on the
+server during SSR.
+
+Running it on the host removes the split — browser and Node share one
+`localhost` — and gives hot reload. Production is unaffected: there Caddy
+serves the site and API from a single public origin, so one value works for
+both.
 
 ## Load a copy of production data
 
-This is the point of the exercise — testing against real records, not an empty
-database.
-
-**First:** the local Postgres is 16 and production is 18. `pg_restore` refuses a
-dump made by a newer `pg_dump`, so edit `docker-compose.yml` and change
-`image: postgres:16` to `image: postgres:18`, then `docker compose down -v` and
-start again.
-
-Take a dump on the VPS and copy it down:
+Local Postgres is 16, production is 18, and `pg_restore` refuses a dump made by
+a newer `pg_dump`. Change `image: postgres:16` to `postgres:18` in
+`docker-compose.yml`, then `docker compose --profile app down -v` and start
+again.
 
 ```bash
 # on the VPS
@@ -57,82 +70,63 @@ cd ~/Sijill/infra/vps && set -a && . ./.env && set +a && \
 ```bash
 # on your machine
 scp root@YOUR_VPS_IP:~/prod.dump ./prod.dump
-```
-
-Load it locally:
-
-```bash
 docker compose exec -T postgres psql -U sijill -d sijill < ./prod.dump
 ```
 
-If the local database already has data, reset it first:
+Attachments live in MinIO, not the dump, so images 404 locally. Harmless for
+everything else.
 
-```bash
-docker compose down -v && docker compose --profile app up -d --build
-```
-
-Attachments are **not** in the dump — they live in MinIO. Images will 404
-locally, which is harmless for testing everything else. To copy them, mirror the
-production bucket with `mc`.
-
-## Normal workflow
+## Workflow
 
 ```bash
 git checkout -b my-feature
-# edit code
-docker compose --profile app up -d --build   # rebuild and try it
-# once it works:
+# edit; the frontend hot-reloads, the backend needs:
+docker compose --profile app up -d --build api
 git add <specific files>
 git commit
 git push -u origin my-feature
 ```
 
-Merge to `main` only after it works locally. Then deploy:
+Merge to `main` only once it works locally, then on the VPS:
 
 ```bash
-# on the VPS
 cd ~/Sijill && git pull && cd infra/vps && docker compose up -d --build && docker compose restart caddy
 ```
 
-## Faster frontend loop
+## Checking a migration before production sees it
 
-Rebuilding the frontend container for every CSS tweak is slow. Run Next
-natively against the containerised API instead — Node is already installed:
-
-```bash
-docker compose up -d                 # Postgres + MinIO
-docker compose --profile app up -d api
-cd frontend
-npm install
-NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1 npm run dev
-```
-
-That gives hot reload on http://localhost:3000. Backend changes still need
-`docker compose --profile app up -d --build api`.
-
-## Things that differ from production
-
-- **No Caddy and no TLS.** Production serves the API and site from one origin
-  (`/api/*` to the API); locally they are two origins on different ports, so
-  CORS is live locally and absent in production. `FRONTEND_ORIGIN` is set to
-  `http://localhost:3000` to allow it.
-- **Postgres 16 vs 18** unless you change the image as above.
-- **Local secrets are throwaway.** The JWT secret and MinIO credentials in
-  `docker-compose.yml` are for local use only — never reuse them on the VPS.
-- **Migrations run identically.** Flyway applies on API startup, so a bad
-  migration fails here first, which is the main thing this setup buys you.
-
-## Checking a migration before it reaches production
-
-The most valuable use of this setup. After writing a new `V___.sql`:
+The main thing this setup buys. After writing a new `V___.sql`:
 
 ```bash
 docker compose --profile app up -d --build api
 docker compose logs api --tail 40 | grep -i "flyway\|migrat\|error"
 ```
 
-Look for `Successfully applied 1 migration`. If Flyway fails, the API will not
-start — exactly what would otherwise take production down, caught locally.
+Look for `Successfully applied 1 migration`. A bad migration stops the API
+here instead of taking production down.
 
-Pick the next version number from `origin/main`, not from your local tree;
+Pick the next version number from `origin/main`, not your local tree —
 parallel branches collide otherwise.
+
+## Differences from production
+
+- **Two origins, so CORS is live.** Production serves site and API from one
+  origin through Caddy and has no CORS at all. `FRONTEND_ORIGIN` is set to
+  `http://localhost:3000` here to allow it.
+- **Postgres 16 vs 18** unless changed as above.
+- **Local secrets are throwaway** — never reuse the JWT secret or MinIO
+  credentials in `docker-compose.yml` on the VPS.
+
+## Docker Desktop troubleshooting
+
+`request returned 500 Internal Server Error ... dockerDesktopLinuxEngine`
+means the engine is wedged, not that anything is wrong with the project:
+
+```bash
+wsl --shutdown
+```
+
+then quit Docker Desktop from the tray and reopen it. Wait for
+`docker version` to print a `Server:` section before running compose. A very
+large build context can trigger this — `.dockerignore` in `frontend/` and
+`backend/` keeps it small.

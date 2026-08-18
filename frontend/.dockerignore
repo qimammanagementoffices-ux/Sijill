@@ -1,0 +1,11 @@
+# Without this the build context carries node_modules (455MB) and .next
+# (346MB) to the daemon on every build -- ~800MB that the image does not use,
+# since `npm ci` installs inside the container and Next rebuilds there. Large
+# enough to fail the transfer outright on a slow daemon connection.
+node_modules
+.next
+out
+.git
+.env
+.env.local
+*.log
