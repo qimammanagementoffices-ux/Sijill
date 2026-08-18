@@ -20,7 +20,11 @@ export default async function RootPage() {
   // backend) turns a few-second blip into a hard outage for every visitor.
   let needsOnboarding = false;
   try {
-    const status = await apiFetch<SystemStatus>("/system/status");
+    // no-store, or Next caches the fetch and keeps routing to whichever
+    // answer it saw first: after the first admin is created the page would
+    // still send everyone to /onboarding. force-dynamic above governs the
+    // route, not the fetches inside it.
+    const status = await apiFetch<SystemStatus>("/system/status", { cache: "no-store" });
     needsOnboarding = status.needsOnboarding;
   } catch {
     // fall through to /login
