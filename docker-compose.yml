@@ -11,10 +11,12 @@
 #
 # Postgres is 16 here against 18 in production (infra/vps). That gap only
 # matters for restoring a production dump: pg_restore refuses a dump made by
-# a newer pg_dump. Use `postgres:18` below if you want to load one.
+# a newer pg_dump; the image below is already 18 to match.
 services:
   postgres:
-    image: postgres:16
+    # 18 to match production: pg_restore refuses a dump made by a newer
+    # pg_dump, and production reports 18.6.
+    image: postgres:18
     container_name: sijill-postgres
     restart: unless-stopped
     environment:
@@ -24,7 +26,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - sijill-postgres-data:/var/lib/postgresql/data
+      # /var/lib/postgresql, NOT .../data: from 18 the image keeps data in a
+      # major-version subdirectory and refuses to start on the old path.
+      - sijill-postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sijill -d sijill"]
       interval: 5s
