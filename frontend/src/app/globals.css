@@ -3104,6 +3104,20 @@ body.lang-en .modal-head h3 {
   padding: 32px 30px;
   text-align: center;
 }
+/* The card centres the seal, title and subtitle. Form fields must not
+   inherit that: labels belong on the reading edge -- right in Arabic, left in
+   English and Hindi -- which is what start means. The submit button centres
+   its own text via justify-content, so it is unaffected. */
+.login-card form {
+  text-align: start;
+}
+/* Chrome forces direction:ltr on tel inputs, which left-aligned the phone
+   field inside an otherwise right-aligned Arabic form. Digits still render
+   left-to-right inside an RTL field -- bidi handles that -- so only the
+   alignment changes. */
+.login-card form input[type="tel"] {
+  direction: inherit;
+}
 .login-seal {
   width: 56px;
   height: 56px;
