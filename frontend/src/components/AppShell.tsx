@@ -87,7 +87,11 @@ export default function AppShell({
         // response without CORS headers surfaces as a failed fetch rather
         // than a status code, that was every transient failure.
         // (apiFetch already clears the token and redirects on a real 401.)
-        if (error instanceof ApiError && error.status === 403) {
+        // 401 means apiFetch has already cleared the token and is navigating
+        // to /login. Flagging authFailed here painted the retry screen over the
+        // top of that for the seconds the navigation took, so every expired
+        // session opened with a spurious "something went wrong, retry".
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           router.replace("/login");
           return;
         }
