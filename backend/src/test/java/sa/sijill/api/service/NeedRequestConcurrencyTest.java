@@ -152,6 +152,10 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         Employee actor = createEmployee("0597700001");
         Employee approver = grantAllRequestDepartments(createEmployee("0597700003"));
         Employee senior = grantAllRequestDepartments(createEmployee("0597700004"));
+        // finish() issues stock and is department-scoped, so the finisher needs
+        // scope over the request. Calling the service directly bypasses the
+        // controller permission check a real warehouse keeper would pass.
+        Employee finisher = grantAllRequestDepartments(createEmployee("0597700005"));
         InventoryItem item = createItem("CONC-001", 1);
 
         NeedRequest requestA = submitAndApprove(item.getId(), actor, approver, senior);
@@ -163,8 +167,8 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch go = new CountDownLatch(1);
         try {
-            Callable<Boolean> taskA = () -> attemptFinish(requestA.getId(), lineA, actor, ready, go);
-            Callable<Boolean> taskB = () -> attemptFinish(requestB.getId(), lineB, actor, ready, go);
+            Callable<Boolean> taskA = () -> attemptFinish(requestA.getId(), lineA, finisher, ready, go);
+            Callable<Boolean> taskB = () -> attemptFinish(requestB.getId(), lineB, finisher, ready, go);
 
             Future<Boolean> resultA = pool.submit(taskA);
             Future<Boolean> resultB = pool.submit(taskB);

@@ -277,6 +277,9 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
         UUID assetId = UUID.fromString(objectMapper.readTree(assetBody).get("id").asText());
 
         mockMvc.perform(get("/api/v1/assets/request-options")
+                        // Migrations seed demo assets, so an unfiltered first page
+                        // is not this test's asset. Narrow to the one just created.
+                        .param("q", "Printer")
                         .param("size", "1000")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
                 .andExpect(status().isOk())
