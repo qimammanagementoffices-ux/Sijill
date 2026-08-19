@@ -52,4 +52,12 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Without this a CI failure prints only "AssertionError at Foo.java:283",
+    // which is unreadable from the log alone -- you cannot tell what was
+    // expected without checking out the commit and re-running locally.
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+    }
 }

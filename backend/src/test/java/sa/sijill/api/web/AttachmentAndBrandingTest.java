@@ -15,9 +15,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.domain.MaintenancePriority;
 import sa.sijill.api.web.dto.CreateEmployeeRequest;
 import sa.sijill.api.web.dto.FirstAdminRequest;
 import sa.sijill.api.web.dto.LoginRequest;
+import sa.sijill.api.web.dto.SubmitMaintenanceRequestRequest;
 import sa.sijill.api.web.dto.UpdateBrandingRequest;
 
 @Transactional
@@ -133,7 +135,20 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0599900010");
         String requesterToken = createEmployeeAndLogin(adminToken, "0599900011", Set.of("mt.request"));
         var unsupportedFile = new MockMultipartFile("file", "notes.txt", "text/plain", "hello".getBytes());
-        String requestId = UUID.randomUUID().toString();
+
+        // A real request the requester owns: attachment access is now scoped to
+        // the owning record, so a synthetic id is indistinguishable from an
+        // enumeration attempt and is refused before any media check runs.
+        var submit = new SubmitMaintenanceRequestRequest(null, null, "Room 3", MaintenancePriority.LOW, "flickering light");
+        String submitBody = mockMvc.perform(post("/api/v1/maintenance/requests")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submit)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String requestId = objectMapper.readTree(submitBody).get("id").asText();
 
         mockMvc.perform(get("/api/v1/attachments")
                         .param("ownerType", "MAINTENANCE")

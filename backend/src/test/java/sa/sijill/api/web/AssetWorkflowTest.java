@@ -276,13 +276,16 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                 .getContentAsString();
         UUID assetId = UUID.fromString(objectMapper.readTree(assetBody).get("id").asText());
 
+        String option = "$.content[?(@.id=='" + assetId + "')]";
         mockMvc.perform(get("/api/v1/assets/request-options")
                         .param("size", "1000")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(assetId.toString()))
-                .andExpect(jsonPath("$.content[0].acquisitionCost").doesNotExist())
-                .andExpect(jsonPath("$.content[0].publicToken").doesNotExist());
+                // Migrations seed demo assets, so page order is not this test's to
+                // control. Assert on the created asset wherever it lands.
+                .andExpect(jsonPath(option).exists())
+                .andExpect(jsonPath(option + ".acquisitionCost").doesNotExist())
+                .andExpect(jsonPath(option + ".publicToken").doesNotExist());
 
         mockMvc.perform(get("/api/v1/assets/" + assetId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
