@@ -100,7 +100,12 @@ export default function AppShell({
   // access does not remain visible until a manual reload.
   useEffect(() => {
     function refreshSession() {
-      setVerifiedPath(null);
+      // Re-run /auth/me but leave verifiedPath alone. Clearing it swaps the
+      // whole tree for the full-page spinner below, which unmounts every open
+      // dialog and discards typed form state -- and opening a file picker
+      // blurs the window, so choosing a PDF closed the very form it was for.
+      // The refreshed permissions still gate the page once /auth/me returns,
+      // and the API enforces them regardless of what the UI shows.
       setAuthAttempt((attempt) => attempt + 1);
     }
     window.addEventListener("focus", refreshSession);
