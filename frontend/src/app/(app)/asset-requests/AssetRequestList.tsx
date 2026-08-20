@@ -11,7 +11,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
-import { useSession } from "@/lib/session";
+import { usePermissions } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
 import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
@@ -28,8 +28,6 @@ import type {
   RequestDecisionBody,
 } from "@/lib/types";
 import { withCount } from "@/lib/withCount";
-import { formatEditDeadline } from "@/lib/formatEditDeadline";
-import { useLiveEditAvailability } from "@/lib/useLiveEditAvailability";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 // The printed sheet names what the request actually is. One generic
@@ -106,7 +104,7 @@ export default function AssetRequestList({
   const failToast = (error: unknown) =>
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
-  const { id: currentEmployeeId, permissions } = useSession();
+  const permissions = usePermissions();
   const canViewRequestQueue = hasAnyPermission(permissions, ASSET_REQUEST_QUEUE_PERMISSIONS);
   const { counts, refreshCounts } = useQueueCounts(
     "/asset-requests",
@@ -118,7 +116,6 @@ export default function AssetRequestList({
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
   const [editRequest, setEditRequest] = useState<AssetRequestListItem | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
-  const canEditNow = useLiveEditAvailability(page?.content, currentEmployeeId);
 
   function queryFor(nextView: AssetRequestView, query: string) {
     const params = new URLSearchParams();
@@ -363,23 +360,6 @@ export default function AssetRequestList({
                 {/* The reason moved into the submission entry below: it is
                     something the requester said when they raised this, not a
                     loose fact about the request. */}
-                {/* The window and the button appear and disappear together --
-                    when the hour lapses, and the moment an official decides.
-                    Nothing is said afterwards: a note about a button that is
-                    already gone only helps someone hunting for it. */}
-                {canEditNow(request) && (
-                  <p className="edit-note">
-                    {request.requesterId === currentEmployeeId &&
-                      cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => setEditRequest(request)}
-                    >
-                      {actionsDict.edit}
-                    </button>
-                  </p>
-                )}
                 {/* Only while the request is still waiting -- see the same
                     guard on the warehouse and maintenance cards. */}
                 {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
@@ -389,6 +369,11 @@ export default function AssetRequestList({
                   systemActorLabel={cardDict.systemActor}
                   submissionNote={request.reason} />
                 <div className="request-card-actions">
+                  {permissions.includes("emp.manage") && request.canEdit && (
+                    <button type="button" className="btn btn-outline btn-sm request-admin-edit" onClick={() => setEditRequest(request)}>
+                      {actionsDict.edit}
+                    </button>
+                  )}
                   {request.status === "PENDING" && !request.archivedAt && (
                     <>
                       {permissions.includes("as.act.approve") && <button type="button" className="btn btn-sm request-decision request-decision-approve" disabled={busyAction !== null} onClick={() => setDecision({ request, kind: "approve" })}>{actionsDict.approve}</button>}

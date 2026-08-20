@@ -147,16 +147,9 @@ public class NeedRequestService {
         return request.getStatus();
     }
 
-    /**
-     * The requester edits within an hour of submitting; an admin edits any
-     * still-pending request. Nobody edits once a decision has been taken —
-     * otherwise the lines change under the approvers' names after the fact.
-     */
+    /** Only moderators edit, and only before a decision is taken. */
     public static boolean canEdit(NeedRequest request, Employee actor) {
         if (request.getArchivedAt() != null || effectiveStatus(request) != NeedRequestStatus.PENDING) return false;
-        if (request.getRequester().getId().equals(actor.getId())) {
-            return Instant.now().isBefore(editableUntil(request));
-        }
         return actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals);
     }
 
@@ -181,9 +174,7 @@ public class NeedRequestService {
         if (!canEdit(request, actor)) {
             throw RequestWorkflowErrors.editWindowClosed();
         }
-        if (!request.getRequester().getId().equals(actor.getId())) {
-            requireWithinScope(request, actor);
-        }
+        requireWithinScope(request, actor);
 
         request.setDepartment(resolveRequesterDepartment(update.departmentId(), request.getRequester()));
         request.setCategory(resolveCategory(update.categoryId()));

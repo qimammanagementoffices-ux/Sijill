@@ -1544,6 +1544,9 @@ img[data-viewable] {
   padding-top: 12px;
   border-top: 1px dashed var(--line);
 }
+.request-admin-edit {
+  margin-inline-start: auto;
+}
 .request-decision {
   min-height: 36px;
   padding-inline: 13px;
@@ -3793,14 +3796,6 @@ body.lang-en .modal-head h3 {
   font-size: 12px;
   line-height: 1.6;
 }
-.edit-note {
-  margin: 8px 0 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: var(--amber-soft);
-  color: var(--amber);
-  font-size: 12px;
-}
 /* The expired notice stays on the card rather than vanishing: a control that
    silently disappears reads as a bug. */
 /* Printed signature blocks: the name sits under the rule, so the sheet says
@@ -3819,20 +3814,6 @@ body.lang-en .modal-head h3 {
   max-width: 280px;
 }
 
-/* The edit button lives inside the note that explains the deadline, so the
-   two always appear and disappear together. */
-.edit-note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.edit-note.expired {
-  background: var(--slate-soft);
-  color: var(--slate);
-}
 /* A line an approver dropped is struck through, not hidden -- the card has to
    keep showing what was asked for. */
 .chip-removed {
