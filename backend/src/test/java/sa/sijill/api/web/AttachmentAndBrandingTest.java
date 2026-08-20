@@ -15,7 +15,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.domain.Attachment;
+import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.MaintenancePriority;
+import sa.sijill.api.repository.AttachmentRepository;
+import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.web.dto.CreateEmployeeRequest;
 import sa.sijill.api.web.dto.FirstAdminRequest;
 import sa.sijill.api.web.dto.LoginRequest;
@@ -27,6 +31,8 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private AttachmentRepository attachmentRepository;
+    @Autowired private EmployeeRepository employeeRepository;
 
     private String createAdminAndGetToken(String phone) throws Exception {
         var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
@@ -107,6 +113,33 @@ class AttachmentAndBrandingTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void listReturnsUploaderNameWithoutLoadingTheUploaderEntityGraph() throws Exception {
+        String token = createAdminAndGetToken("0599900014");
+        var uploader = employeeRepository.findByPhone("0599900014").orElseThrow();
+        UUID ownerId = UUID.randomUUID();
+
+        var attachment = new Attachment();
+        attachment.setOwnerType(AttachmentOwnerType.ASSET);
+        attachment.setOwnerId(ownerId);
+        attachment.setStorageKey("asset/evidence.png");
+        attachment.setUrl("https://files.example/evidence.png");
+        attachment.setFilename("evidence.png");
+        attachment.setContentType("image/png");
+        attachment.setSizeBytes(1234);
+        attachment.setUploadedBy(uploader);
+        attachmentRepository.saveAndFlush(attachment);
+
+        mockMvc.perform(get("/api/v1/attachments")
+                        .param("ownerType", "ASSET")
+                        .param("ownerId", ownerId.toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].uploadedByName").value("Admin"))
+                .andExpect(jsonPath("$[0].filename").value("evidence.png"));
     }
 
     @Test

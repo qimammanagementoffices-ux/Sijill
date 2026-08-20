@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.MaintenanceRequest;
+import sa.sijill.api.repository.AttachmentSummary;
 import sa.sijill.api.service.MaintenanceRequestService;
 
 public record MaintenanceRequestListItem(
@@ -29,7 +29,7 @@ public record MaintenanceRequestListItem(
         List<MaintenanceRequestActionDto> actions,
         List<AttachmentDto> attachments) {
 
-    public static MaintenanceRequestListItem from(MaintenanceRequest request, List<Attachment> attachments) {
+    public static MaintenanceRequestListItem from(MaintenanceRequest request, List<AttachmentSummary> attachments) {
         return new MaintenanceRequestListItem(
                 request.getId(),
                 request.getRequestNumber(),

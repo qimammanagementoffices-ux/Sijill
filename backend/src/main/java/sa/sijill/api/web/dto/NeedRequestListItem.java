@@ -5,10 +5,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.Category;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.NeedRequest;
+import sa.sijill.api.repository.AttachmentSummary;
 import sa.sijill.api.service.NeedRequestService;
 
 // Carries the request's lines because the list renders cards, not rows: each
@@ -40,8 +40,8 @@ public record NeedRequestListItem(
 
     public static NeedRequestListItem from(
             NeedRequest request,
-            List<Attachment> attachments,
-            List<Attachment> deliveryAttachments,
+            List<AttachmentSummary> attachments,
+            List<AttachmentSummary> deliveryAttachments,
             Employee actor) {
         Category category = request.getCategory();
         if (category == null) {

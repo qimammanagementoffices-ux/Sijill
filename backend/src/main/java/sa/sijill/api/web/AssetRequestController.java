@@ -53,7 +53,7 @@ public class AssetRequestController {
         List<UUID> ids = page.getContent().stream().map(AssetRequest::getId).toList();
         Map<UUID, List<AttachmentDto>> attachments = ids.isEmpty()
                 ? Map.of()
-                : attachmentRepository.findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.ASSET_REQUEST, ids).stream()
+                : attachmentRepository.findSummariesByOwners(AttachmentOwnerType.ASSET_REQUEST, ids).stream()
                         .map(AttachmentDto::from)
                         .collect(Collectors.groupingBy(AttachmentDto::ownerId));
         return PagedResponse.from(
@@ -68,7 +68,7 @@ public class AssetRequestController {
         AssetRequest request = assetRequestService.get(id);
         requireOwnerOrView(request, actor);
         List<AttachmentDto> attachments = attachmentRepository
-                .findByOwnerTypeAndOwnerIdOrderByCreatedAtAsc(AttachmentOwnerType.ASSET_REQUEST, id)
+                .findSummariesByOwner(AttachmentOwnerType.ASSET_REQUEST, id)
                 .stream()
                 .map(AttachmentDto::from)
                 .toList();

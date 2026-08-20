@@ -12,13 +12,13 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.domain.MaintenanceRequest;
 import sa.sijill.api.domain.MaintenanceRequestStatus;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.AttachmentRepository;
+import sa.sijill.api.repository.AttachmentSummary;
 import sa.sijill.api.service.DepartmentScopeService;
 import sa.sijill.api.service.MaintenanceRequestService;
 import sa.sijill.api.web.dto.*;
@@ -54,11 +54,11 @@ public class MaintenanceRequestController {
         Page<MaintenanceRequest> page =
                 maintenanceRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         Set<UUID> ids = page.getContent().stream().map(MaintenanceRequest::getId).collect(Collectors.toSet());
-        Map<UUID, List<Attachment>> attachments = ids.isEmpty()
+        Map<UUID, List<AttachmentSummary>> attachments = ids.isEmpty()
                 ? Map.of()
-                : attachmentRepository.findByOwnerTypeAndOwnerIdIn(AttachmentOwnerType.MAINTENANCE, ids).stream()
-                        .sorted(Comparator.comparing(Attachment::getCreatedAt))
-                        .collect(Collectors.groupingBy(Attachment::getOwnerId));
+                : attachmentRepository.findSummariesByOwners(AttachmentOwnerType.MAINTENANCE, ids).stream()
+                        .sorted(Comparator.comparing(AttachmentSummary::getCreatedAt))
+                        .collect(Collectors.groupingBy(AttachmentSummary::getOwnerId));
         return PagedResponse.from(page, request ->
                 MaintenanceRequestListItem.from(request, attachments.getOrDefault(request.getId(), List.of())));
     }

@@ -12,6 +12,7 @@ import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.Employee;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.AttachmentRepository;
+import sa.sijill.api.repository.AttachmentSummary;
 
 // Master spec §8: "upload size/type limits, safe filenames." Type
 // allowlist and size cap enforced here, before anything touches storage;
@@ -32,8 +33,9 @@ public class AttachmentService {
         this.storageService = storageService;
     }
 
-    public List<Attachment> list(AttachmentOwnerType ownerType, UUID ownerId) {
-        return attachmentRepository.findByOwnerTypeAndOwnerIdOrderByCreatedAtAsc(ownerType, ownerId);
+    @Transactional(readOnly = true)
+    public List<AttachmentSummary> list(AttachmentOwnerType ownerType, UUID ownerId) {
+        return attachmentRepository.findSummariesByOwner(ownerType, ownerId);
     }
 
     @Transactional
