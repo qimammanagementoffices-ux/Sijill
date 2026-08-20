@@ -93,7 +93,7 @@ class BackupTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/backups/" + UUID.randomUUID() + "/restore")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pin\":\"1234\"}"))
+                        .content("{\"pin\":\"482913\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -137,7 +137,7 @@ class BackupTest extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pin\":\"1234\"}"))
+                        .content("{\"pin\":\"482913\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -159,7 +159,7 @@ class BackupTest extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pin\":\"1234\"}"))
+                        .content("{\"pin\":\"482913\"}"))
                 .andExpect(status().isNotFound());
     }
 }
