@@ -13,12 +13,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import sa.sijill.api.domain.Employee;
-import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.AttachmentOwnerType;
 import sa.sijill.api.domain.NeedRequest;
 import sa.sijill.api.domain.NeedRequestStatus;
 import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.AttachmentRepository;
+import sa.sijill.api.repository.AttachmentSummary;
 import sa.sijill.api.service.DepartmentScopeService;
 import sa.sijill.api.service.NeedRequestService;
 import sa.sijill.api.web.dto.*;
@@ -55,10 +55,10 @@ public class NeedRequestController {
         Page<NeedRequest> page =
                 needRequestService.search(status, restrictToRequesterId, q, archived, underReview, actor, pageable);
         Set<UUID> ids = page.getContent().stream().map(NeedRequest::getId).collect(Collectors.toSet());
-        Map<UUID, List<Attachment>> attachments = attachmentsByRequest(AttachmentOwnerType.NEED_REQUEST, ids);
+        Map<UUID, List<AttachmentSummary>> attachments = attachmentsByRequest(AttachmentOwnerType.NEED_REQUEST, ids);
         // Proof of delivery is kept apart from the requester's own evidence so
         // the card can label each for what it is.
-        Map<UUID, List<Attachment>> deliveryAttachments =
+        Map<UUID, List<AttachmentSummary>> deliveryAttachments =
                 attachmentsByRequest(AttachmentOwnerType.NEED_REQUEST_DELIVERY, ids);
         return PagedResponse.from(page, request -> NeedRequestListItem.from(
                 request,
@@ -179,11 +179,11 @@ public class NeedRequestController {
         return detail(needRequestService.archive(id, actor), actor);
     }
 
-    private Map<UUID, List<Attachment>> attachmentsByRequest(AttachmentOwnerType ownerType, Set<UUID> ids) {
+    private Map<UUID, List<AttachmentSummary>> attachmentsByRequest(AttachmentOwnerType ownerType, Set<UUID> ids) {
         if (ids.isEmpty()) return Map.of();
-        return attachmentRepository.findByOwnerTypeAndOwnerIdIn(ownerType, ids).stream()
-                .sorted(Comparator.comparing(Attachment::getCreatedAt))
-                .collect(Collectors.groupingBy(Attachment::getOwnerId));
+        return attachmentRepository.findSummariesByOwners(ownerType, ids).stream()
+                .sorted(Comparator.comparing(AttachmentSummary::getCreatedAt))
+                .collect(Collectors.groupingBy(AttachmentSummary::getOwnerId));
     }
 
     private NeedRequestDetail detail(NeedRequest request, Employee actor) {

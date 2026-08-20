@@ -29,21 +29,11 @@ spring:
         # Batching collapses those into "where fk in (...)" reads instead of
         # restructuring the entity graph and its serialisation contract.
         default_batch_fetch_size: 32
-        # Employee.photoAttachment is EAGER, and Attachment.uploadedBy is EAGER
-        # back to Employee: a cycle. Hibernate's join depth is unlimited by
-        # default, so loading one employee joins their photo, its uploader,
-        # that uploader's photo, and onwards -- each hop also widening the
-        # result by that employee's permissions and departments. The rows
-        # multiply rather than add, which is how a database holding eight
-        # requests filled a 2.7GB heap and killed the JVM on every asset
-        # request approval.
-        #
-        # Two is enough for every real read (an employee and their photo, a
-        # request and its requester); past that Hibernate issues separate
-        # selects, which the persistence context de-duplicates. Capping the
-        # depth rather than making either side LAZY keeps AttachmentDto and
-        # the employee DTOs working -- both traverse these associations after
-        # their transaction has closed, and open-in-view is off.
+        # Defense-in-depth against future accidental eager cycles. The known
+        # Employee.photoAttachment -> Attachment.uploadedBy loop is now broken
+        # structurally: uploadedBy is LAZY and attachment responses obtain the
+        # uploader name through a scalar projection. Keeping this cap prevents
+        # another mapping change from silently restoring an unbounded graph.
         max_fetch_depth: 2
 
   servlet:

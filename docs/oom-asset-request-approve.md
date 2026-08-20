@@ -1,7 +1,7 @@
 # OOM on asset request approval — investigation handoff
 
-**Status:** unresolved. A candidate fix is committed (`85b0965`) but production
-verification is pending.
+**Status:** the eager cycle now has a structural fix; production reproduction
+verification is pending. `max_fetch_depth: 2` remains as defense-in-depth.
 
 ## Symptom
 
@@ -43,7 +43,7 @@ That last row is the important one. This is **not** corrupt legacy data — it i
 4. **Infinite loop in `DepartmentScopeService.scopeFor`.** Disproven — the cycle guard (`if (!scope.add(current)) continue;`) is correct and terminates.
 5. **Cartesian product duplicating the `actions` bag, re-persisted by `cascade = ALL`.** Disproven by measurement — `select asset_request_id, count(*) from asset_request_action group by 1` showed max 3 rows. No duplication in the database.
 
-## Current hypothesis (shipped as `85b0965`, unverified)
+## Root-cause hypothesis and remediation
 
 **An EAGER association cycle between `Employee` and `Attachment`.**
 
@@ -72,7 +72,7 @@ Why it fits every observation:
 - **Never visible in the code** — it is in the mappings, not the logic.
 - **Warehouse and maintenance work** — same mapping shape (`NeedRequest`, `MaintenanceRequest`), but the chains happened to be shorter. **They are equally exposed.**
 
-### The fix applied
+### Initial containment
 
 `backend/src/main/resources/application.yml`:
 
@@ -80,18 +80,30 @@ Why it fits every observation:
 spring.jpa.properties.hibernate.max_fetch_depth: 2
 ```
 
-Chosen over making either side `LAZY` because both are traversed after the transaction closes with `open-in-view: false`:
+This capped the graph while the affected response paths were identified.
 
-- `AttachmentDto.from()` reads `attachment.getUploadedBy().getName()`
-- `EmployeeDetail` / `EmployeeListItem` read the photo
+### Structural fix
 
-Making either lazy trades the OOM for `LazyInitializationException` in production.
+- `Attachment.uploadedBy` is now `LAZY`, breaking the reverse edge back into
+  `Employee` for asset, warehouse, and maintenance request histories.
+- Attachment list and request-card responses select only attachment scalars and
+  `uploadedBy.name` through `AttachmentSummary` projection queries.
+- Upload responses use the already-authenticated actor name, so no DTO path
+  traverses `Attachment.uploadedBy` after the transaction closes.
+- `max_fetch_depth: 2` stays in place as a guard against a future accidental
+  eager cycle; correctness no longer depends on it.
+
+This avoids both failure modes that prevented a direct LAZY change before:
+
+- employee DTOs may still read their eager profile attachment;
+- attachment DTOs no longer dereference the lazy uploader.
 
 ## What is NOT verified
 
-- The fix was never compiled or run — there is no JDK on the development machine. It is a properties value, so it cannot fail compilation, but it can fail at startup if Hibernate rejects the key. **`backend-ci` must be green before deploying.**
-- The fix was never tested against the OOM. It addresses a real cycle consistent with all evidence; it is not proven to be *the* cause.
-- Whether `max_fetch_depth: 2` is sufficient, or whether the mappings need restructuring, is unknown.
+- The structural fix must pass backend integration CI before deployment.
+- It still must be tested against the production reproduction. It removes the
+  only cyclic eager mapping found, but the original heap dump was lost before
+  a dominator-tree analysis could prove that this was the retained graph.
 
 ## Reproduction
 
@@ -112,12 +124,13 @@ Making either lazy trades the OOM for `LazyInitializationException` in productio
 ## Recommended next steps
 
 1. **Analyse the heap dump.** MAT's dominator tree will name the retained class in minutes and settle this definitively. Everything above is inference; this is measurement.
-2. Verify the deployed fix against the reproduction above.
-3. If insufficient, the structural fix is to stop `Employee` being reachable through `Attachment`. Options, in increasing order of work:
-   - `Attachment.uploadedBy` → `LAZY`, and change `AttachmentDto` to take the uploader name from a projection query instead of traversing the entity.
-   - Give the action DTOs a projection for the actor's name rather than mapping the full `Employee`.
-   - Reconsider `Employee.permissions` being EAGER; it exists for `JwtAuthenticationFilter`, which could load permissions via a dedicated query instead of dragging them into every graph that touches an employee.
-4. Once resolved, remove `-XX:+HeapDumpOnOutOfMemoryError` from `infra/vps/docker-compose.yml`. It writes 3.5 GB and takes 94 seconds, which makes any recurrence considerably worse. **Keep `-XX:+ExitOnOutOfMemoryError`** — without it the JVM stays alive but deaf, Tomcat's acceptor threads dead, and the site reads as slow rather than down while `restart: unless-stopped` never fires.
+2. Verify the deployed structural fix against the reproduction above.
+3. If it is still slow, give action DTOs projections for actor names and load
+   authentication permissions through a dedicated query. Those are further
+   graph reductions, not prerequisites for breaking the known cycle.
+4. Once the production reproduction remains stable, remove
+   `-XX:+HeapDumpOnOutOfMemoryError` from `infra/vps/docker-compose.yml`. Keep
+   `-XX:+ExitOnOutOfMemoryError`.
 
 ## Related commits
 

@@ -40,7 +40,12 @@ public class Attachment {
     @Column(name = "size_bytes", nullable = false)
     private long sizeBytes;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    // Keep the reverse edge lazy. Employee.photoAttachment is eager, so making
+    // this eager as well creates Employee -> Attachment -> Employee cycles and
+    // multiplies every employee's departments and permissions at each hop.
+    // Attachment list responses obtain the uploader name through a bounded
+    // scalar projection instead of traversing this association.
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by_employee_id")
     private Employee uploadedBy;
 

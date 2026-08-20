@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 import sa.sijill.api.domain.Attachment;
 import sa.sijill.api.domain.AttachmentOwnerType;
+import sa.sijill.api.repository.AttachmentSummary;
 
 public record AttachmentDto(
         UUID id,
@@ -16,7 +17,7 @@ public record AttachmentDto(
         String uploadedByName,
         Instant createdAt) {
 
-    public static AttachmentDto from(Attachment attachment) {
+    public static AttachmentDto fromUploaded(Attachment attachment, String uploadedByName) {
         return new AttachmentDto(
                 attachment.getId(),
                 attachment.getOwnerType(),
@@ -25,7 +26,20 @@ public record AttachmentDto(
                 attachment.getFilename(),
                 attachment.getContentType(),
                 attachment.getSizeBytes(),
-                attachment.getUploadedBy() == null ? null : attachment.getUploadedBy().getName(),
+                uploadedByName,
+                attachment.getCreatedAt());
+    }
+
+    public static AttachmentDto from(AttachmentSummary attachment) {
+        return new AttachmentDto(
+                attachment.getId(),
+                attachment.getOwnerType(),
+                attachment.getOwnerId(),
+                attachment.getUrl(),
+                attachment.getFilename(),
+                attachment.getContentType(),
+                attachment.getSizeBytes(),
+                attachment.getUploadedByName(),
                 attachment.getCreatedAt());
     }
 }

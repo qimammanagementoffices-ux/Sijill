@@ -70,7 +70,7 @@ public class AttachmentController {
             requirePermission(actor, managePermissionFor(ownerType, ownerId));
             requireRequestRecordScope(actor, ownerType, ownerId);
         }
-        return AttachmentDto.from(attachmentService.upload(ownerType, ownerId, file, actor));
+        return AttachmentDto.fromUploaded(attachmentService.upload(ownerType, ownerId, file, actor), actor.getName());
     }
 
     @DeleteMapping("/{id}")
