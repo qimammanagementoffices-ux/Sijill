@@ -12,7 +12,7 @@ import type {
   NeedRequestDetail,
   NeedRequestListItem,
   PagedResponse,
-  RoomDto,
+  RoomOption,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
@@ -47,7 +47,7 @@ export default function NewRequestView({
   const entityLocale = useEntityLocale();
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
   const [items, setItems] = useState<InventoryRequestOption[] | null>(null);
-  const [rooms, setRooms] = useState<RoomDto[] | null>(null);
+  const [rooms, setRooms] = useState<RoomOption[] | null>(null);
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
 
@@ -81,7 +81,7 @@ export default function NewRequestView({
       apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<CategoryDto[]>("/warehouse/categories"),
       apiFetch<PagedResponse<InventoryRequestOption>>("/warehouse/items/request-options?size=200"),
-      apiFetch<RoomDto[]>("/rooms"),
+      apiFetch<RoomOption[]>("/rooms/options"),
     ]).then(([m, departmentRows, c, i, r]) => {
       const assignedIds = new Set(m.departments.map((department) => department.id));
       setMe(m);

@@ -107,6 +107,14 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/warehouse/items")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/rooms/options")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].custodianId").doesNotExist())
+                .andExpect(jsonPath("$[0].assetCount").doesNotExist());
+        mockMvc.perform(get("/api/v1/rooms")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isForbidden());
 
         var submit = new CreateNeedRequestRequest(
                 null, null, null, "need some", List.of(new NeedRequestLineRequest(UUID.fromString(itemId), 5)));
