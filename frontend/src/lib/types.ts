@@ -228,6 +228,7 @@ export type NeedRequestListItem = {
   requesterJobTitle: string | null;
   department: LocalizedRef | null;
   category: LocalizedRef | null;
+  room: LocalizedRef | null;
   status: NeedRequestStatusValue;
   suggestedStartDate: string | null;
   postponedUntil: string | null;
