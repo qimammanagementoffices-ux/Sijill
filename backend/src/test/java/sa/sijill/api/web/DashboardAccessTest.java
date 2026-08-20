@@ -68,7 +68,7 @@ class DashboardAccessTest extends AbstractIntegrationTest {
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new FirstAdminRequest("Admin", "0599888801", "1234", "1234"))))
+                                new FirstAdminRequest("Admin", "0599888801", "482913", "482913"))))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -82,7 +82,7 @@ class DashboardAccessTest extends AbstractIntegrationTest {
 
     private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
         var request = new CreateEmployeeRequest(
-                "Employee", phone, "1234", "1234", null, null, null, null, null, permissions, null);
+                "Employee", phone, "482913", "482913", null, null, null, null, null, permissions, null);
         mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +91,7 @@ class DashboardAccessTest extends AbstractIntegrationTest {
 
         String body = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "482913"))))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()

@@ -28,7 +28,7 @@ class TranslationAdminTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -44,7 +44,7 @@ class TranslationAdminTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0597111111");
 
         var noPermsEmployee = new CreateEmployeeRequest(
-                "No Perms", "0597222222", "1234", "1234", null, null, null, null, null, Set.of(), null);
+                "No Perms", "0597222222", "482913", "482913", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +52,7 @@ class TranslationAdminTest extends AbstractIntegrationTest {
 
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0597222222", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0597222222", "482913"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

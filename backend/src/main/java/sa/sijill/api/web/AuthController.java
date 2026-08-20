@@ -14,6 +14,7 @@ import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.security.JwtService;
 import sa.sijill.api.service.AuthService;
 import sa.sijill.api.service.EmployeeService;
+import sa.sijill.api.web.dto.ChangeOwnPinRequest;
 import sa.sijill.api.web.dto.AuthResponse;
 import sa.sijill.api.web.dto.EmployeeSummary;
 import sa.sijill.api.web.dto.LoginRequest;
@@ -57,6 +58,15 @@ public class AuthController {
     // (see UpdateSelfRequest), so this reuses EmployeeService.update() with
     // the actor's own current values spliced in for the fields this
     // endpoint doesn't expose.
+    // No @PreAuthorize: every authenticated employee may change their own PIN,
+    // and someone flagged by the policy must be able to even though the app
+    // blocks the rest of the UI until they do.
+    @PutMapping("/me/pin")
+    public EmployeeSummary changeOwnPin(
+            @AuthenticationPrincipal Employee actor, @RequestBody ChangeOwnPinRequest request) {
+        return EmployeeSummary.from(authService.changeOwnPin(actor, request));
+    }
+
     @PutMapping("/me")
     public EmployeeSummary updateSelf(@AuthenticationPrincipal Employee actor, @RequestBody UpdateSelfRequest request) {
         var fullRequest = new UpdateEmployeeRequest(

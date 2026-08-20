@@ -29,7 +29,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -45,7 +45,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
         String token = createAdminAndGetToken("0571111111");
 
         var request = new CreateEmployeeRequest(
-                "Limited User", "0572222222", "1234", "1234", null, null, null, null, null,
+                "Limited User", "0572222222", "482913", "482913", null, null, null, null, null,
                 Set.of("emp.view", "wh.view"), null);
 
         mockMvc.perform(post("/api/v1/employees")
@@ -62,7 +62,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
         String token = createAdminAndGetToken("0573333333");
 
         var create = new CreateEmployeeRequest(
-                "Edit Me", "0574444444", "1234", "1234", null, null, null, null, null, Set.of(), null);
+                "Edit Me", "0574444444", "482913", "482913", null, null, null, null, null, Set.of(), null);
         String createBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +88,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
         String token = createAdminAndGetToken("0575555555");
 
         var create = new CreateEmployeeRequest(
-                "Soon Deactivated", "0576666666", "1234", "1234", null, null, null, null, null, Set.of(), null);
+                "Soon Deactivated", "0576666666", "482913", "482913", null, null, null, null, null, Set.of(), null);
         String createBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -108,7 +108,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0576666666", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0576666666", "482913"))))
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/api/v1/employees/" + id + "/reactivate")
@@ -117,7 +117,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0576666666", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0576666666", "482913"))))
                 .andExpect(status().isOk());
     }
 
@@ -126,7 +126,7 @@ class EmployeeLifecycleTest extends AbstractIntegrationTest {
         String token = createAdminAndGetToken("0577777777");
 
         var create = new CreateEmployeeRequest(
-                "Perm Target", "0578888888", "1234", "1234", null, null, null, null, null, Set.of("emp.view"), null);
+                "Perm Target", "0578888888", "482913", "482913", null, null, null, null, null, Set.of("emp.view"), null);
         String createBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)

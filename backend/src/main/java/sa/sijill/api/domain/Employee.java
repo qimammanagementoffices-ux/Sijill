@@ -48,6 +48,11 @@ public class Employee {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
+    // Raised at login when the PIN presented fails the current policy -- see
+    // PinValidator. Stored PINs are hashes, so this cannot be decided at rest.
+    @Column(name = "must_change_pin", nullable = false)
+    private boolean mustChangePin = false;
+
     // EAGER: EmployeeListItem/EmployeeDetail always render this, and the
     // DTO mapping happens in the controller after the request's
     // transaction closes — LAZY here throws LazyInitializationException

@@ -28,19 +28,19 @@ class AuditLogAccessTest extends AbstractIntegrationTest {
         String adminBody = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new FirstAdminRequest("Admin", "0581000001", "1234", "1234"))))
+                                new FirstAdminRequest("Admin", "0581000001", "482913", "482913"))))
                 .andReturn().getResponse().getContentAsString();
         String adminToken = objectMapper.readTree(adminBody).get("token").asText();
 
         var employee = new CreateEmployeeRequest(
-                "Employee", "0581000002", "1234", "1234", null, null, null, null, null, Set.of(), null);
+                "Employee", "0581000002", "482913", "482913", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(employee)));
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0581000002", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0581000002", "482913"))))
                 .andReturn().getResponse().getContentAsString();
         String employeeToken = objectMapper.readTree(loginBody).get("token").asText();
 

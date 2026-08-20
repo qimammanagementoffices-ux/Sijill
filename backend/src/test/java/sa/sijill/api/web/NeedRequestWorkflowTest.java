@@ -26,7 +26,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -44,7 +44,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
     private String createEmployeeAndLogin(
             String adminToken, String phone, Set<String> permissions, List<UUID> departmentIds) throws Exception {
         var create = new CreateEmployeeRequest(
-                "Requester", phone, "1234", "1234", null, null, null, null, departmentIds, permissions, null);
+                "Requester", phone, "482913", "482913", null, null, null, null, departmentIds, permissions, null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +52,7 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
 
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "482913"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -105,6 +105,14 @@ class NeedRequestWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].lastPurchasePrice").doesNotExist());
         mockMvc.perform(get("/api/v1/warehouse/items")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/rooms/options")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].custodianId").doesNotExist())
+                .andExpect(jsonPath("$[0].assetCount").doesNotExist());
+        mockMvc.perform(get("/api/v1/rooms")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken))
                 .andExpect(status().isForbidden());
 

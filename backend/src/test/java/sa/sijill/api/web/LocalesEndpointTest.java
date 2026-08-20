@@ -35,7 +35,7 @@ class LocalesEndpointTest extends AbstractIntegrationTest {
 
     @Test
     void includesAdminAddedLanguages() throws Exception {
-        var request = new FirstAdminRequest("Admin", "0599900401", "1234", "1234");
+        var request = new FirstAdminRequest("Admin", "0599900401", "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
