@@ -11,10 +11,11 @@ import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
-import { usePermissions } from "@/lib/session";
+import { useSession } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
 import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
+import { ASSET_REQUEST_QUEUE_PERMISSIONS, hasAnyPermission } from "@/lib/permissions";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
@@ -28,6 +29,7 @@ import type {
 } from "@/lib/types";
 import { withCount } from "@/lib/withCount";
 import { formatEditDeadline } from "@/lib/formatEditDeadline";
+import { useLiveEditAvailability } from "@/lib/useLiveEditAvailability";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 // The printed sheet names what the request actually is. One generic
@@ -104,7 +106,8 @@ export default function AssetRequestList({
   const failToast = (error: unknown) =>
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
-  const permissions = usePermissions();
+  const { id: currentEmployeeId, permissions } = useSession();
+  const canViewRequestQueue = hasAnyPermission(permissions, ASSET_REQUEST_QUEUE_PERMISSIONS);
   const { counts, refreshCounts } = useQueueCounts(
     "/asset-requests",
     permissions.includes("as.act.countersign")
@@ -115,6 +118,7 @@ export default function AssetRequestList({
   const [viewRequest, setViewRequest] = useState<AssetRequestListItem | null>(null);
   const [editRequest, setEditRequest] = useState<AssetRequestListItem | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const canEditNow = useLiveEditAvailability(page?.content, currentEmployeeId);
 
   function queryFor(nextView: AssetRequestView, query: string) {
     const params = new URLSearchParams();
@@ -311,7 +315,9 @@ export default function AssetRequestList({
               {permissions.includes("as.act.countersign") && reviewPolicy?.assetTwoLevel && (
                 <button type="button" className={`btn btn-sm ${view === "review" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("review")}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
-              <button type="button" className={`btn btn-sm ${view === "all" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("all")}>{dict.allTab}</button>
+              {canViewRequestQueue && (
+                <button type="button" className={`btn btn-sm ${view === "all" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("all")}>{dict.allTab}</button>
+              )}
               <button type="button" className={`btn btn-sm ${view === "mine" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("mine")}>{dict.mineTab}</button>
               {permissions.includes("emp.manage") && (
                 <button type="button" className={`btn btn-sm ${view === "archive" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("archive")}>{cardDict.archiveTab}</button>
@@ -361,9 +367,10 @@ export default function AssetRequestList({
                     when the hour lapses, and the moment an official decides.
                     Nothing is said afterwards: a note about a button that is
                     already gone only helps someone hunting for it. */}
-                {request.canEdit && (
+                {canEditNow(request) && (
                   <p className="edit-note">
-                    {cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
+                    {request.requesterId === currentEmployeeId &&
+                      cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
                     <button
                       type="button"
                       className="btn btn-outline btn-sm"

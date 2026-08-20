@@ -15,6 +15,7 @@ import { useSession } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
 import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
+import { hasAnyPermission, MAINTENANCE_REQUEST_QUEUE_PERMISSIONS } from "@/lib/permissions";
 import RequestCardActivity, { formatActionDate } from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
@@ -102,6 +103,7 @@ export default function MaintenanceRequestList({
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
   const { id: currentEmployeeId, permissions } = useSession();
+  const canViewRequestQueue = hasAnyPermission(permissions, MAINTENANCE_REQUEST_QUEUE_PERMISSIONS);
   const { counts, refreshCounts } = useQueueCounts(
     "/maintenance/requests",
     permissions.includes("mt.act.countersign")
@@ -345,7 +347,9 @@ export default function MaintenanceRequestList({
               {permissions.includes("mt.act.countersign") && reviewPolicy?.maintenanceTwoLevel && (
                 <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
-              <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              {canViewRequestQueue && (
+                <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              )}
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
               {permissions.includes("emp.manage") && (
                 <button type="button" className={`btn btn-sm ${archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false, true)}>{cardDict.archiveTab}</button>

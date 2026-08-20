@@ -1,6 +1,5 @@
-export const WAREHOUSE_REQUEST_PAGE_PERMISSIONS = [
+export const WAREHOUSE_REQUEST_QUEUE_PERMISSIONS = [
   "wh.view",
-  "wh.request",
   "wh.act.approve",
   "wh.act.reject",
   "wh.act.postpone",
@@ -8,9 +7,13 @@ export const WAREHOUSE_REQUEST_PAGE_PERMISSIONS = [
   "wh.act.countersign",
 ] as const;
 
-export const MAINTENANCE_REQUEST_PAGE_PERMISSIONS = [
+export const WAREHOUSE_REQUEST_PAGE_PERMISSIONS = [
+  "wh.request",
+  ...WAREHOUSE_REQUEST_QUEUE_PERMISSIONS,
+] as const;
+
+export const MAINTENANCE_REQUEST_QUEUE_PERMISSIONS = [
   "mt.view",
-  "mt.request",
   "mt.act.approve",
   "mt.act.reject",
   "mt.act.postpone",
@@ -19,14 +22,23 @@ export const MAINTENANCE_REQUEST_PAGE_PERMISSIONS = [
   "mt.act.countersign",
 ] as const;
 
-export const ASSET_REQUEST_PAGE_PERMISSIONS = [
+export const MAINTENANCE_REQUEST_PAGE_PERMISSIONS = [
+  "mt.request",
+  ...MAINTENANCE_REQUEST_QUEUE_PERMISSIONS,
+] as const;
+
+export const ASSET_REQUEST_QUEUE_PERMISSIONS = [
   "as.view",
-  "as.request",
   "as.act.approve",
   "as.act.reject",
   "as.act.postpone",
   "as.act.finish",
   "as.act.countersign",
+] as const;
+
+export const ASSET_REQUEST_PAGE_PERMISSIONS = [
+  "as.request",
+  ...ASSET_REQUEST_QUEUE_PERMISSIONS,
 ] as const;
 
 export function hasAnyPermission(permissions: readonly string[], required: readonly string[]): boolean {
