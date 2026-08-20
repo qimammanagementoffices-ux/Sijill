@@ -30,6 +30,8 @@ import type {
 } from "@/lib/types";
 import { withCount } from "@/lib/withCount";
 import { formatEditDeadline } from "@/lib/formatEditDeadline";
+import { useLiveEditAvailability } from "@/lib/useLiveEditAvailability";
+import { hasAnyPermission, WAREHOUSE_REQUEST_QUEUE_PERMISSIONS } from "@/lib/permissions";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 function formatCardDate(value: string | undefined, locale: string) {
@@ -122,6 +124,7 @@ export default function RequestList({
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
   const { id: currentEmployeeId, permissions } = useSession();
+  const canViewRequestQueue = hasAnyPermission(permissions, WAREHOUSE_REQUEST_QUEUE_PERMISSIONS);
   const { counts, refreshCounts } = useQueueCounts(
     "/warehouse/requests",
     permissions.includes("wh.act.countersign")
@@ -133,6 +136,7 @@ export default function RequestList({
   const [viewRequest, setViewRequest] = useState<NeedRequestListItem | null>(null);
   const [editRequest, setEditRequest] = useState<NeedRequestListItem | null>(null);
   const [archived, setArchived] = useState(false);
+  const canEditNow = useLiveEditAvailability(page?.content, currentEmployeeId);
 
   function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
     const params = new URLSearchParams();
@@ -452,7 +456,9 @@ export default function RequestList({
               {permissions.includes("wh.act.countersign") && reviewPolicy?.warehouseTwoLevel && (
                 <button type="button" className={`btn btn-sm ${status === "UNDER_REVIEW" ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("UNDER_REVIEW", false)}>{cardDict.reviewTab}{counts ? ` (${counts.underReview})` : ""}</button>
               )}
-              <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              {canViewRequestQueue && (
+                <button type="button" className={`btn btn-sm ${status === "" && !mine && !archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false)}>{dict.allTab}</button>
+              )}
               <button type="button" className={`btn btn-sm ${mine ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", true)}>{dict.mineTab}</button>
               {permissions.includes("emp.manage") && (
                 <button type="button" className={`btn btn-sm ${archived ? "btn-primary" : "btn-outline"}`} onClick={() => selectView("", false, true)}>{cardDict.archiveTab}</button>
@@ -541,9 +547,10 @@ export default function RequestList({
                     Once it closes there is nothing to say: a note explaining
                     that editing is no longer possible is only useful to
                     someone looking for a button that is already gone. */}
-                {request.canEdit && (
+                {canEditNow(request) && (
                   <p className="edit-note">
-                    {cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
+                    {request.requesterId === currentEmployeeId &&
+                      cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
                     <button
                       type="button"
                       className="btn btn-outline btn-sm"

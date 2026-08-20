@@ -1428,9 +1428,18 @@ img[data-viewable] {
   margin-top: 10px;
 }
 .request-card-notes {
-  margin: 10px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-soft);
+  margin: 9px 0 1px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--request-state) 35%, var(--line));
+  border-inline-start: 4px solid var(--request-state);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--request-state) 8%, var(--card));
+  color: var(--ink);
+  font-size: 15.5px;
+  font-weight: 750;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .request-card-banner {
   margin: 12px 0 0;
