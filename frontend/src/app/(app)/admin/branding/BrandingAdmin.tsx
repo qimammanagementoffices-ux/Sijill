@@ -208,7 +208,7 @@ export default function BrandingAdmin({ dict }: { dict: Dictionary["branding"] }
       <div className="eyebrow">{dict.title}</div>
       <h1 className="section-title disp">{dict.title}</h1>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}

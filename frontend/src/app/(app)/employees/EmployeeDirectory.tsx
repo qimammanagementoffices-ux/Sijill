@@ -116,7 +116,6 @@ export default function EmployeeDirectory({
             <select
               value={departmentFilter}
               onChange={(e) => applyDepartmentFilter(e.target.value)}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
             >
               <option value="">{dict.filterAllDepartments || dict.columnDepartments}</option>
               {departmentOptions.map(({ item, path }) => (

@@ -185,13 +185,13 @@ export default function BackupAdmin({
       <div className="eyebrow">{dict.title}</div>
       <h1 className="section-title disp">{dict.title}</h1>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}
 
       <div className="panel">
-        <div className="panel-head" style={{ justifyContent: "flex-end" }}>
+        <div className="panel-head panel-head-actions">
           <button type="button" className="btn btn-primary btn-sm" onClick={handleRunNow} disabled={running}>
             {running && <span className="spinner" />}
             {running ? dict.running : dict.runNow}
@@ -223,7 +223,7 @@ export default function BackupAdmin({
                       <span className="chip chip-sm">{triggeredByLabel(b.triggeredBy)}</span>
                     </td>
                     <td className="mono">{new Date(b.createdAt).toLocaleString()}</td>
-                    <td style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                    <td className="table-actions">
                       <button type="button" className="btn btn-outline btn-sm" onClick={() => handleDownload(b)}>
                         {dict.download}
                       </button>
@@ -264,7 +264,7 @@ export default function BackupAdmin({
                 />
               </div>
               {restoreError && (
-                <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginTop: 10 }}>
+                <p role="alert" className="form-error form-error-block">
                   {restoreError}
                 </p>
               )}
@@ -304,7 +304,7 @@ export default function BackupAdmin({
                 />
               </div>
               {deleteError && (
-                <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginTop: 10 }}>
+                <p role="alert" className="form-error form-error-block">
                   {deleteError}
                 </p>
               )}

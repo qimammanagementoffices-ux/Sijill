@@ -67,7 +67,7 @@ export default function ForcePinChange({ onDone }: { onDone: () => void }) {
             />
           </div>
           {error && (
-            <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginTop: 10 }}>
+            <p role="alert" className="form-error form-error-block">
               {error}
             </p>
           )}

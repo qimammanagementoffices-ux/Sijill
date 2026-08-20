@@ -265,7 +265,6 @@ export default function ItemDirectory({
             <select
               value={filters.categoryId}
               onChange={(e) => applyFilter({ categoryId: e.target.value })}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
             >
               <option value="">{dict.filterAllCategories}</option>
               {(categories ?? []).map((c) => (

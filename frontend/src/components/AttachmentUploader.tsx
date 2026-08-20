@@ -81,7 +81,7 @@ export default function AttachmentUploader({
     <div className="panel-body" style={{ padding: "14px 0 0" }}>
       <h3 style={{ margin: "0 0 10px", fontSize: 13.5 }}>{dict.title}</h3>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 8 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}

@@ -95,7 +95,7 @@ export default function TranslationTable({
       <div className="eyebrow">{dict.title}</div>
       <h1 className="section-title disp">{dict.title}</h1>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}
@@ -142,7 +142,7 @@ export default function TranslationTable({
                         type="text"
                         value={edited.valueEn}
                         onChange={(e) => setEdits({ ...edits, [row.key]: { ...edited, valueEn: e.target.value } })}
-                        style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                        className="table-input"
                       />
                     </td>
                     <td>
@@ -150,7 +150,7 @@ export default function TranslationTable({
                         type="text"
                         value={edited.valueAr}
                         onChange={(e) => setEdits({ ...edits, [row.key]: { ...edited, valueAr: e.target.value } })}
-                        style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                        className="table-input"
                         dir="rtl"
                       />
                     </td>
@@ -159,7 +159,7 @@ export default function TranslationTable({
                         type="text"
                         value={edited.valueHi}
                         onChange={(e) => setEdits({ ...edits, [row.key]: { ...edited, valueHi: e.target.value } })}
-                        style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                        className="table-input"
                       />
                     </td>
                     <td>
