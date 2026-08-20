@@ -1,6 +1,7 @@
 package sa.sijill.api.service;
 
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sa.sijill.api.domain.Employee;
@@ -22,6 +23,11 @@ public class AuthService {
     private final PhoneNormalizer phoneNormalizer;
     private final JwtService jwtService;
     private final LoginRateLimiter rateLimiter;
+    // A throwaway hash to verify against when the phone matches nobody, so an
+    // unknown phone costs the same BCrypt round as a wrong PIN. Without it the
+    // no-such-employee path skips hashing and returns in a fraction of the
+    // time, which tells an attacker which phone numbers are staff.
+    private final String absentEmployeeHash;
 
     public AuthService(
             EmployeeRepository employeeRepository,
@@ -34,6 +40,7 @@ public class AuthService {
         this.phoneNormalizer = phoneNormalizer;
         this.jwtService = jwtService;
         this.rateLimiter = rateLimiter;
+        this.absentEmployeeHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     public String login(LoginRequest request) {
@@ -44,11 +51,12 @@ public class AuthService {
         }
 
         Optional<Employee> employee = employeeRepository.findByPhone(phone);
-        boolean valid =
-                employee.isPresent()
-                        && employee.get().isActive()
-                        && request.pin() != null
-                        && passwordEncoder.matches(request.pin(), employee.get().getPinHash());
+        String pin = request.pin() == null ? "" : request.pin();
+        // Always hash, even with nobody to compare against -- see
+        // absentEmployeeHash. The result of the decoy round is discarded.
+        String hashToCheck = employee.map(Employee::getPinHash).orElse(absentEmployeeHash);
+        boolean pinMatches = passwordEncoder.matches(pin, hashToCheck);
+        boolean valid = employee.isPresent() && employee.get().isActive() && request.pin() != null && pinMatches;
 
         if (!valid) {
             throw ApiException.unauthenticated(GENERIC_LOGIN_FAILURE);
