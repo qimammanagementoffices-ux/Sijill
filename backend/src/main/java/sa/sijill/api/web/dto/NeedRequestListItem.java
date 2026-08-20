@@ -25,6 +25,7 @@ public record NeedRequestListItem(
         String requesterJobTitle,
         LocalizedRef department,
         LocalizedRef category,
+        LocalizedRef room,
         String status,
         LocalDate suggestedStartDate,
         LocalDate postponedUntil,
@@ -64,6 +65,7 @@ public record NeedRequestListItem(
                         : request.getRequester().getJobTitle().getNameAr(),
                 request.getDepartment() == null ? null : LocalizedRef.from(request.getDepartment()),
                 category == null ? null : LocalizedRef.from(category),
+                request.getRoom() == null ? null : LocalizedRef.from(request.getRoom()),
                 // Effective, not stored: a postponed request whose date has
                 // arrived reads as pending everywhere.
                 NeedRequestService.effectiveStatus(request).name(),

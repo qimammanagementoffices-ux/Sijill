@@ -38,9 +38,8 @@ export default function NewRequestView({
   onSubmitted: (request: NeedRequestDetail) => void;
   onSubmittingChange?: (submitting: boolean) => void;
   onCancel?: () => void;
-  // The requester correcting their own request inside the edit window. Same
-  // form, PUT instead of POST -- a second, near-identical form would drift
-  // from this one the first time either changed.
+  // Moderators use the same form for a pending request, with PUT instead of
+  // POST. Keeping one form prevents the create and edit fields from drifting.
   editing?: NeedRequestListItem;
 }) {
   const [me, setMe] = useState<MeData | null>(null);
@@ -54,7 +53,7 @@ export default function NewRequestView({
   const [step, setStep] = useState(1);
   const [departmentId, setDepartmentId] = useState(editing?.department?.id ?? "");
   const [categoryId, setCategoryId] = useState(editing?.category?.id ?? "");
-  const [roomId, setRoomId] = useState("");
+  const [roomId, setRoomId] = useState(editing?.room?.id ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
@@ -84,15 +83,37 @@ export default function NewRequestView({
       apiFetch<RoomOption[]>("/rooms/options"),
     ]).then(([m, departmentRows, c, i, r]) => {
       const assignedIds = new Set(m.departments.map((department) => department.id));
+      // A moderator edits the request in its existing department. Their own
+      // assignments define what they may moderate, but must not replace the
+      // requester's stored department inside the form.
+      const selectableDepartmentIds = editing?.department?.id
+        ? new Set([editing.department.id])
+        : assignedIds;
+      const selectedDepartmentId = editing?.department?.id
+        ?? (assignedIds.size === 1 ? assignedIds.values().next().value ?? "" : "");
+      const selectedItemIds = new Set(
+        editing?.lines.filter((line) => !line.removed).map((line) => line.inventoryItemId) ?? []
+      );
+      // Older requests may have derived their category from their first item
+      // without storing category_id on the request itself.
+      const inferredCategoryId = i.content.find(
+        (item) => selectedItemIds.has(item.id) && item.category?.id
+      )?.category?.id ?? "";
+      const selectedRoomId = editing?.room?.id && r.some(
+        (room) => room.id === editing.room?.id && room.departmentId === selectedDepartmentId
+      ) ? editing.room.id : "";
+
       setMe(m);
       setDepartments(departmentRows);
-      setAssignedDepartmentIds(assignedIds);
-      setDepartmentId(assignedIds.size === 1 ? assignedIds.values().next().value ?? "" : "");
+      setAssignedDepartmentIds(selectableDepartmentIds);
+      setDepartmentId(selectedDepartmentId);
+      setCategoryId(editing?.category?.id ?? inferredCategoryId);
+      setRoomId(selectedRoomId);
       setCategories(c);
       setItems(i.content);
       setRooms(r);
     });
-  }, [entityLocale]);
+  }, [editing, entityLocale]);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
