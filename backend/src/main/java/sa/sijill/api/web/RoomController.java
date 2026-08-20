@@ -43,7 +43,7 @@ public class RoomController {
     }
 
     @GetMapping("/options")
-    @PreAuthorize("hasAnyAuthority('as.request', 'mt.request')")
+    @PreAuthorize("hasAnyAuthority('as.request', 'mt.request', 'wh.request')")
     public List<RoomOption> options() {
         return roomService.list().stream().map(RoomOption::from).toList();
     }
