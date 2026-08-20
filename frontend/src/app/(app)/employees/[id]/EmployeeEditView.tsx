@@ -8,6 +8,7 @@ import EmployeeForm from "@/components/EmployeeForm";
 import SectionLoading from "@/components/SectionLoading";
 import Toast from "@/components/Toast";
 import type { EmployeeDetail, LocalizedEntityDto, PermissionDto } from "@/lib/types";
+import PinPromptDialog from "@/components/PinPromptDialog";
 import type { Dictionary } from "@/i18n/getDictionary";
 
 export default function EmployeeEditView({
@@ -32,6 +33,7 @@ export default function EmployeeEditView({
   const [allPermissions, setAllPermissions] = useState<PermissionDto[] | null>(null);
   const [conflict, setConflict] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [pinPromptOpen, setPinPromptOpen] = useState(false);
 
   function loadAll() {
     Promise.all([
@@ -72,15 +74,12 @@ export default function EmployeeEditView({
     setToast(commonDict.actionSuccess);
   }
 
-  async function handleResetPin() {
-    const pin = window.prompt(dict.pinLabel);
-    if (!pin) return;
-    const pinConfirm = window.prompt(dict.pinConfirmLabel);
-    if (pinConfirm !== pin) return;
+  async function handleResetPin(pin: string, pinConfirm: string) {
     await apiFetch<void>(`/employees/${id}/pin`, {
       method: "PUT",
       body: JSON.stringify({ pin, pinConfirm }),
     });
+    setPinPromptOpen(false);
     setToast(commonDict.actionSuccess);
   }
 
@@ -109,7 +108,7 @@ export default function EmployeeEditView({
         </h1>
       </div>
       {conflict && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {dict.conflictNotice}
         </p>
       )}
@@ -131,7 +130,7 @@ export default function EmployeeEditView({
         onConflict={() => setConflict(true)}
       />
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-        <button type="button" className="btn btn-outline btn-sm" onClick={handleResetPin}>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => setPinPromptOpen(true)}>
           {dict.resetPin}
         </button>
         {employee.active && (
@@ -145,6 +144,19 @@ export default function EmployeeEditView({
           </button>
         )}
       </div>
+
+      {pinPromptOpen && (
+        <PinPromptDialog
+          title={dict.resetPin}
+          pinLabel={dict.pinLabel}
+          pinConfirmLabel={dict.pinConfirmLabel}
+          submitLabel={commonDict.save}
+          cancelLabel={commonDict.cancel}
+          mismatchMessage={errorsDict.generic}
+          onSubmit={handleResetPin}
+          onCancel={() => setPinPromptOpen(false)}
+        />
+      )}
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </>

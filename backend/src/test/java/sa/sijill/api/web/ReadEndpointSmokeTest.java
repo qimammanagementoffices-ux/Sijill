@@ -84,7 +84,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
 
     @Test
     void listEndpointsRenderNestedAssociationsWithoutLazyInitializationException() throws Exception {
-        var onboarding = new FirstAdminRequest("Admin", "0598111111", "1234", "1234");
+        var onboarding = new FirstAdminRequest("Admin", "0598111111", "482913", "482913");
         String onboardBody = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(onboarding)))
@@ -106,7 +106,7 @@ class ReadEndpointSmokeTest extends AbstractIntegrationTest {
         String jobTitleId = objectMapper.readTree(jobTitleBody).get("id").asText();
 
         var employee = new CreateEmployeeRequest(
-                "Smoke Test Employee", "0598222222", "1234", "1234", null, null, null,
+                "Smoke Test Employee", "0598222222", "482913", "482913", null, null, null,
                 UUID.fromString(jobTitleId), null, java.util.Set.of(), null);
         String employeeBody = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/apiClient";
+import ForcePinChange from "@/components/ForcePinChange";
 import { clearToken, getToken } from "@/lib/auth";
 import { SessionProvider } from "@/lib/session";
 import {
@@ -30,6 +31,7 @@ type EmployeeSummary = {
   photoAttachmentId: string | null;
   version: number;
   permissions: string[];
+  mustChangePin: boolean;
 };
 
 // Persistent sidebar + topbar wrapping every route under app/(app)/ -- the
@@ -171,6 +173,13 @@ export default function AppShell({
         <span className="spinner spinner-lg" />
       </div>
     );
+  }
+
+  // Before anything else the shell would render: an account flagged by the PIN
+  // policy gets one screen and no way past it. The API still honours the
+  // session -- this is a nudge with teeth, not an authorization boundary.
+  if (employee.mustChangePin) {
+    return <ForcePinChange onDone={() => setAuthAttempt((attempt) => attempt + 1)} />;
   }
 
   const canViewEmployees = hasAnyPermission(employee.permissions, ["emp.view", "emp.manage"]);

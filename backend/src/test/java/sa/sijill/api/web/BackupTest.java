@@ -28,7 +28,7 @@ class BackupTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -40,7 +40,7 @@ class BackupTest extends AbstractIntegrationTest {
     }
 
     private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
-        var create = new CreateEmployeeRequest("Someone", phone, "1234", "1234", null, null, null, null, null, permissions, null);
+        var create = new CreateEmployeeRequest("Someone", phone, "482913", "482913", null, null, null, null, null, permissions, null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -48,7 +48,7 @@ class BackupTest extends AbstractIntegrationTest {
 
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "482913"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -93,7 +93,7 @@ class BackupTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/v1/backups/" + UUID.randomUUID() + "/restore")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pin\":\"1234\"}"))
+                        .content("{\"pin\":\"482913\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -137,7 +137,7 @@ class BackupTest extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + noPermToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pin\":\"1234\"}"))
+                        .content("{\"pin\":\"482913\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -159,7 +159,7 @@ class BackupTest extends AbstractIntegrationTest {
         mockMvc.perform(delete("/api/v1/backups/" + UUID.randomUUID())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pin\":\"1234\"}"))
+                        .content("{\"pin\":\"482913\"}"))
                 .andExpect(status().isNotFound());
     }
 }

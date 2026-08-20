@@ -29,7 +29,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -41,7 +41,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
     }
 
     private String createEmployeeAndLogin(String adminToken, String phone, Set<String> permissions) throws Exception {
-        var create = new CreateEmployeeRequest("Requester", phone, "1234", "1234", null, null, null, null, null, permissions, null);
+        var create = new CreateEmployeeRequest("Requester", phone, "482913", "482913", null, null, null, null, null, permissions, null);
         String body = mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +52,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
 
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "482913"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -68,7 +68,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateEmployeeRequest(
-                                "Requester", "0599888222", "1234", "1234", null, null, null, null, null,
+                                "Requester", "0599888222", "482913", "482913", null, null, null, null, null,
                                 Set.of("as.request"), null))))
                 .andReturn()
                 .getResponse()
@@ -76,7 +76,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
         String requesterId = objectMapper.readTree(requesterBody).get("id").asText();
         String requesterToken = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0599888222", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0599888222", "482913"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -195,8 +195,8 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
         var employee = new CreateEmployeeRequest(
                 "Transfer requester",
                 "0599888444",
-                "1234",
-                "1234",
+                "482913",
+                "482913",
                 null,
                 null,
                 null,
@@ -211,7 +211,7 @@ class AssetWorkflowTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LoginRequest("0599888444", "1234"))))
+                        .content(objectMapper.writeValueAsString(new LoginRequest("0599888444", "482913"))))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()

@@ -25,7 +25,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -71,7 +71,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0582222222");
 
         var noPermsEmployee = new sa.sijill.api.web.dto.CreateEmployeeRequest(
-                "No Structure Perm", "0583333333", "1234", "1234", null, null, null, null, null,
+                "No Structure Perm", "0583333333", "482913", "482913", null, null, null, null, null,
                 java.util.Set.of("emp.view"), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -81,7 +81,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new sa.sijill.api.web.dto.LoginRequest("0583333333", "1234"))))
+                                new sa.sijill.api.web.dto.LoginRequest("0583333333", "482913"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -117,7 +117,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString());
 
         var validAssignment = new sa.sijill.api.web.dto.CreateEmployeeRequest(
-                "Hierarchy Employee", "0585555555", "1234", "1234", null, null, null, null,
+                "Hierarchy Employee", "0585555555", "482913", "482913", null, null, null, null,
                 java.util.List.of(
                         java.util.UUID.fromString(parent.get("id").asText()),
                         java.util.UUID.fromString(child.get("id").asText())),
@@ -129,7 +129,7 @@ class StructureCrudTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
 
         var missingAdministration = new sa.sijill.api.web.dto.CreateEmployeeRequest(
-                "Invalid Hierarchy Employee", "0586666666", "1234", "1234", null, null, null, null,
+                "Invalid Hierarchy Employee", "0586666666", "482913", "482913", null, null, null, null,
                 java.util.List.of(java.util.UUID.fromString(child.get("id").asText())),
                 java.util.Set.of("emp.view"), null);
         mockMvc.perform(post("/api/v1/employees")

@@ -29,7 +29,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
     @Autowired private DepartmentRepository departmentRepository;
 
     private String createAdminAndGetToken(String phone) throws Exception {
-        var request = new FirstAdminRequest("Admin", phone, "1234", "1234");
+        var request = new FirstAdminRequest("Admin", phone, "482913", "482913");
         String body = mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -45,7 +45,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         String token = createAdminAndGetToken("0561111111");
 
         var newEmployee = new CreateEmployeeRequest(
-                "Sara Ahmed", "0562222222", "1234", "1234", null, null, null, null, null, Set.of(), null);
+                "Sara Ahmed", "0562222222", "482913", "482913", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -72,7 +72,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         String adminToken = createAdminAndGetToken("0563333333");
 
         var limited = new CreateEmployeeRequest(
-                "No Permissions", "0564444444", "1234", "1234", null, null, null, null, null, Set.of(), null);
+                "No Permissions", "0564444444", "482913", "482913", null, null, null, null, null, Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -81,7 +81,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new sa.sijill.api.web.dto.LoginRequest("0564444444", "1234"))))
+                                new sa.sijill.api.web.dto.LoginRequest("0564444444", "482913"))))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -98,7 +98,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
     void employeeManagerCanReadDirectoryWithoutSeparateViewPermission() throws Exception {
         String adminToken = createAdminAndGetToken("0563333334");
         var manager = new CreateEmployeeRequest(
-                "Employee Manager", "0564444445", "1234", "1234", null, null, null, null, null,
+                "Employee Manager", "0564444445", "482913", "482913", null, null, null, null, null,
                 Set.of("emp.manage"), null);
         mockMvc.perform(post("/api/v1/employees")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -108,7 +108,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         String loginBody = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new sa.sijill.api.web.dto.LoginRequest("0564444445", "1234"))))
+                                new sa.sijill.api.web.dto.LoginRequest("0564444445", "482913"))))
                 .andReturn().getResponse().getContentAsString();
 
         mockMvc.perform(get("/api/v1/employees")
@@ -125,7 +125,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         department = departmentRepository.save(department);
 
         var assigned = new CreateEmployeeRequest(
-                "Assigned Employee", "0566666666", "1234", "1234", null, null, null, null,
+                "Assigned Employee", "0566666666", "482913", "482913", null, null, null, null,
                 List.of(department.getId()), Set.of(), null);
         mockMvc.perform(post("/api/v1/employees")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -166,7 +166,7 @@ class EmployeeDirectoryTest extends AbstractIntegrationTest {
         humanResources = departmentRepository.save(humanResources);
 
         var employee = new CreateEmployeeRequest(
-                "Multi Administration Employee", "0568888888", "1234", "1234", null, null, null, null,
+                "Multi Administration Employee", "0568888888", "482913", "482913", null, null, null, null,
                 List.of(education.getId(), primary.getId(), administration.getId(), humanResources.getId()),
                 Set.of(), null);
 

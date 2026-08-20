@@ -90,7 +90,7 @@ class NeedRequestConcurrencyTest extends AbstractIntegrationTest {
         employee.setEmployeeNumber("EMP-" + UUID.randomUUID().toString().substring(0, 8));
         employee.setName("Concurrency Test");
         employee.setPhone(phone);
-        employee.setPinHash(passwordEncoder.encode("1234"));
+        employee.setPinHash(passwordEncoder.encode("482913"));
         employee.setJoinedDate(LocalDate.now());
         employee.setActive(true);
         Employee saved = employeeRepository.save(employee);

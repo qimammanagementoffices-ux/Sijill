@@ -9,6 +9,7 @@ import sa.sijill.api.error.ApiException;
 import sa.sijill.api.repository.EmployeeRepository;
 import sa.sijill.api.security.JwtService;
 import sa.sijill.api.security.LoginRateLimiter;
+import sa.sijill.api.web.dto.ChangeOwnPinRequest;
 import sa.sijill.api.web.dto.LoginRequest;
 
 @Service
@@ -23,6 +24,7 @@ public class AuthService {
     private final PhoneNormalizer phoneNormalizer;
     private final JwtService jwtService;
     private final LoginRateLimiter rateLimiter;
+    private final PinValidator pinValidator;
     // A throwaway hash to verify against when the phone matches nobody, so an
     // unknown phone costs the same BCrypt round as a wrong PIN. Without it the
     // no-such-employee path skips hashing and returns in a fraction of the
@@ -34,12 +36,14 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             PhoneNormalizer phoneNormalizer,
             JwtService jwtService,
-            LoginRateLimiter rateLimiter) {
+            LoginRateLimiter rateLimiter,
+            PinValidator pinValidator) {
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.phoneNormalizer = phoneNormalizer;
         this.jwtService = jwtService;
         this.rateLimiter = rateLimiter;
+        this.pinValidator = pinValidator;
         this.absentEmployeeHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -62,13 +66,43 @@ public class AuthService {
             throw ApiException.unauthenticated(GENERIC_LOGIN_FAILURE);
         }
 
-        return jwtService.issueAccessToken(employee.get().getId());
+        // The one moment the plaintext exists: judge the stored PIN against the
+        // current policy and flag it if it falls short. Login still succeeds --
+        // locking people out over a PIN they were previously told was fine
+        // would be its own outage -- but the app makes them change it.
+        Employee found = employee.get();
+        if (!pinValidator.meetsPolicy(pin) && !found.isMustChangePin()) {
+            found.setMustChangePin(true);
+            employeeRepository.save(found);
+        }
+
+        return jwtService.issueAccessToken(found.getId());
     }
 
     // For re-confirming a sensitive action against the already-authenticated
     // caller's own PIN (e.g. backup restore) — not a login, so no phone
     // lookup or rate limiting here; callers gate rate limiting themselves
     // since the limiter key/semantics differ per action.
+    /**
+     * Self-service PIN change. Proving the current PIN matters even though the
+     * caller already holds a valid token: it stops a borrowed or stolen session
+     * from locking the real owner out of their own account.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public Employee changeOwnPin(Employee actor, ChangeOwnPinRequest request) {
+        if (!verifyPin(actor, request.currentPin())) {
+            throw ApiException.unauthenticated("Current PIN is incorrect");
+        }
+        pinValidator.validate(request.pin(), request.pinConfirm());
+        if (verifyPin(actor, request.pin())) {
+            throw ApiException.validation(
+                    "New PIN must differ from the current one", java.util.Map.of("pin", "must be different"));
+        }
+        actor.setPinHash(passwordEncoder.encode(request.pin()));
+        actor.setMustChangePin(false);
+        return employeeRepository.save(actor);
+    }
+
     public boolean verifyPin(Employee actor, String pin) {
         return pin != null && passwordEncoder.matches(pin, actor.getPinHash());
     }

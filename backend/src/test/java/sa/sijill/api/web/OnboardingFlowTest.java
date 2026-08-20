@@ -25,7 +25,7 @@ class OnboardingFlowTest extends AbstractIntegrationTest {
     @Test
     void firstAdminCreationGrantsEveryPermissionAndLogsIn() throws Exception {
         long permissionCount = permissionRepository.count();
-        var request = new FirstAdminRequest("Admin Name", "0512345678", "1234", "1234");
+        var request = new FirstAdminRequest("Admin Name", "0512345678", "482913", "482913");
 
         mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -37,13 +37,13 @@ class OnboardingFlowTest extends AbstractIntegrationTest {
 
     @Test
     void secondFirstAdminAttemptIsRejected() throws Exception {
-        var first = new FirstAdminRequest("Admin One", "0511111111", "1234", "1234");
+        var first = new FirstAdminRequest("Admin One", "0511111111", "482913", "482913");
         mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(first)))
                 .andExpect(status().isOk());
 
-        var second = new FirstAdminRequest("Admin Two", "0522222222", "5678", "5678");
+        var second = new FirstAdminRequest("Admin Two", "0522222222", "571934", "571934");
         mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(second)))
@@ -53,7 +53,7 @@ class OnboardingFlowTest extends AbstractIntegrationTest {
 
     @Test
     void mismatchedPinConfirmationIsRejected() throws Exception {
-        var request = new FirstAdminRequest("Admin Name", "0533333333", "1234", "9999");
+        var request = new FirstAdminRequest("Admin Name", "0533333333", "482913", "736182");
 
         mockMvc.perform(post("/api/v1/onboarding/first-admin")
                         .contentType(MediaType.APPLICATION_JSON)
