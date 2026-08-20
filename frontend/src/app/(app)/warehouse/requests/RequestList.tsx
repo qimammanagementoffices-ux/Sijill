@@ -29,8 +29,6 @@ import type {
   RequestDecisionBody,
 } from "@/lib/types";
 import { withCount } from "@/lib/withCount";
-import { formatEditDeadline } from "@/lib/formatEditDeadline";
-import { useLiveEditAvailability } from "@/lib/useLiveEditAvailability";
 import { hasAnyPermission, WAREHOUSE_REQUEST_QUEUE_PERMISSIONS } from "@/lib/permissions";
 import type { Dictionary } from "@/i18n/getDictionary";
 
@@ -136,7 +134,6 @@ export default function RequestList({
   const [viewRequest, setViewRequest] = useState<NeedRequestListItem | null>(null);
   const [editRequest, setEditRequest] = useState<NeedRequestListItem | null>(null);
   const [archived, setArchived] = useState(false);
-  const canEditNow = useLiveEditAvailability(page?.content, currentEmployeeId);
 
   function load(statusFilter = status, query = appliedQuery, mineOnly = mine, showArchived = archived) {
     const params = new URLSearchParams();
@@ -543,23 +540,6 @@ export default function RequestList({
                   <p key={index} className="request-card-notice">{notice}</p>
                 ))}
 
-                {/* The window and the button appear and disappear together.
-                    Once it closes there is nothing to say: a note explaining
-                    that editing is no longer possible is only useful to
-                    someone looking for a button that is already gone. */}
-                {canEditNow(request) && (
-                  <p className="edit-note">
-                    {request.requesterId === currentEmployeeId &&
-                      cardDict.editNoteActive.replace("{time}", formatEditDeadline(request.editableUntil, locale))}
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => setEditRequest(request)}
-                    >
-                      {actionsDict.edit}
-                    </button>
-                  </p>
-                )}
                 {request.status === "POSTPONED" && request.postponedUntil && (
                   <p className="request-card-notice">
                     {cardDict.postponeResurfaceNote.replace("{date}", request.postponedUntil)}
@@ -598,6 +578,11 @@ export default function RequestList({
                 {/* Each stage shows only its own actions, and only to the
                     employee entitled to take them. */}
                 <div className="request-card-actions">
+                  {permissions.includes("emp.manage") && request.canEdit && (
+                    <button type="button" className="btn btn-outline btn-sm request-admin-edit" onClick={() => setEditRequest(request)}>
+                      {actionsDict.edit}
+                    </button>
+                  )}
                   {request.status === "PENDING" && !request.archivedAt && (
                     <>
                       {permissions.includes("wh.act.approve") && (

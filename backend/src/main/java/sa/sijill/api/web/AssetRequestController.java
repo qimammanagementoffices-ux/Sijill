@@ -82,11 +82,10 @@ public class AssetRequestController {
         return AssetRequestDetail.from(assetRequestService.submit(request, actor));
     }
 
-    // The requester's one-hour correction window, or an admin on a still
-    // pending request. The service is the authority on both -- never the
-    // browser clock.
+    // Editing changes the submitted request, so it is reserved for moderators.
+    // The service also enforces pending status and department scope.
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('as.request', 'emp.manage')")
+    @PreAuthorize("hasAuthority('emp.manage')")
     public AssetRequestDetail update(
             @PathVariable UUID id,
             @RequestBody SubmitAssetRequestRequest request,

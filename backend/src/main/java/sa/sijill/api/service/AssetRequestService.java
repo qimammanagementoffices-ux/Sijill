@@ -180,23 +180,14 @@ public class AssetRequestService {
         if (!canEdit(assetRequest, actor)) {
             throw RequestWorkflowErrors.editWindowClosed();
         }
-        if (!assetRequest.getRequester().getId().equals(actor.getId())) {
-            requireWithinScope(assetRequest, actor);
-        }
+        requireWithinScope(assetRequest, actor);
         applyLegacyStyle(assetRequest, request, assetRequest.getRequester());
         return save(assetRequest, actor, "ASSET_REQUEST_UPDATED");
     }
 
-    /**
-     * The requester edits within an hour of submitting; an admin edits any
-     * still-pending request. Nobody edits once a decision has been taken --
-     * otherwise the request changes under the approver's name after the fact.
-     */
+    /** Only moderators edit, and only before a decision is taken. */
     public static boolean canEdit(AssetRequest request, Employee actor) {
         if (request.getArchivedAt() != null || effectiveStatus(request) != AssetRequestStatus.PENDING) return false;
-        if (request.getRequester().getId().equals(actor.getId())) {
-            return Instant.now().isBefore(editableUntil(request));
-        }
         return actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals);
     }
 

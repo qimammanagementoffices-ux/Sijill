@@ -82,10 +82,10 @@ public class NeedRequestController {
         return detail(needRequestService.submit(request, actor), actor);
     }
 
-    // The requester's one-hour edit window, or an admin on a still-pending
-    // request. The service is the authority on both -- never the browser clock.
+    // Editing changes the submitted request, so it is reserved for moderators.
+    // The service also enforces pending status and department scope.
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('wh.request', 'emp.manage')")
+    @PreAuthorize("hasAuthority('emp.manage')")
     public NeedRequestDetail update(
             @PathVariable UUID id,
             @RequestBody CreateNeedRequestRequest request,
