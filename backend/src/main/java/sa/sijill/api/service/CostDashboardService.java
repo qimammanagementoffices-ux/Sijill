@@ -42,8 +42,7 @@ public class CostDashboardService {
                     .forEach(r -> add(r, maintenanceCost(r), departments, requesters));
         } else {
             needRequests.findAll().stream()
-                    .filter(r -> r.getStatus() == NeedRequestStatus.APPROVED
-                            || r.getStatus() == NeedRequestStatus.DELIVERED
+                    .filter(r -> r.getStatus() == NeedRequestStatus.DELIVERED
                             || r.getStatus() == NeedRequestStatus.CLOSED)
                     .filter(r -> inRange(r.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate(), from, to))
                     .forEach(r -> add(r, needCost(r), departments, requesters));
@@ -55,8 +54,13 @@ public class CostDashboardService {
     }
 
     private BigDecimal needCost(NeedRequest request) {
+        // Spend, not the ask: lines the approver removed never count, and
+        // the figure follows what the storekeeper actually issued at finish,
+        // which may be less than approved (decision-record.md D1). Only
+        // delivered requests reach here, so a null issued qty adds nothing.
         return request.getLines().stream()
-                .map(line -> price(line.getInventoryItem()).multiply(BigDecimal.valueOf(line.getQuantityRequested())))
+                .filter(line -> !line.isRemoved() && line.getQuantityIssued() != null)
+                .map(line -> price(line.getInventoryItem()).multiply(BigDecimal.valueOf(line.getQuantityIssued())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
