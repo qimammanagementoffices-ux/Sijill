@@ -30,6 +30,21 @@ const devProxyHost = (() => {
   }
 })();
 
+// A local database restored from a production dump still holds attachment URLs
+// on the production host, even though the API is local -- next/image then
+// throws "hostname is not configured" and takes the whole page down with it.
+// Allow that host for images alone: DEV_API_PROXY_TARGET would do it too, but
+// it also routes every API call, writes included, at production, which defeats
+// the point of having a local copy. Unset in production, where apiHost already
+// covers it.
+const devImageHost = (() => {
+  try {
+    return new URL(process.env.DEV_IMAGE_HOST).hostname;
+  } catch {
+    return null;
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -41,6 +56,7 @@ const nextConfig = {
     remotePatterns: [
       ...(apiHost ? [{ protocol: "https", hostname: apiHost, pathname: "/files/**" }] : []),
       ...(devProxyHost ? [{ protocol: "https", hostname: devProxyHost, pathname: "/files/**" }] : []),
+      ...(devImageHost ? [{ protocol: "https", hostname: devImageHost, pathname: "/files/**" }] : []),
       // Kept while the Supabase buckets remain as rollback; harmless once
       // they are gone.
       { protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" },
