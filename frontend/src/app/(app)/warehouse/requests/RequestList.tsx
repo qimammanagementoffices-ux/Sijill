@@ -20,6 +20,7 @@ import RequestCardActivity from "@/components/RequestCardActivity";
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
+import EditWindowNotice from "@/components/EditWindowNotice";
 import type {
   NeedRequestDetail,
   NeedRequestListItem,
@@ -546,6 +547,16 @@ export default function RequestList({
                   </p>
                 )}
                 {request.returnedBySenior && <p className="request-card-notice">{cardDict.returnedBySenior}</p>}
+
+                {/* Only the requester is on the clock, so only they are told about it. */}
+                {request.requesterId === currentEmployeeId && request.status === "PENDING" && !request.archivedAt && (
+                  <EditWindowNotice
+                    editableUntil={request.editableUntil}
+                    locale={locale}
+                    activeTemplate={cardDict.editNoteActive}
+                    expiredTemplate={cardDict.editNoteExpired}
+                  />
+                )}
                 {(request.deliveryAttachments?.length ?? 0) > 0 && (
                   <section className="request-card-section">
                     <h4>{cardDict.deliveryAttachments}</h4>

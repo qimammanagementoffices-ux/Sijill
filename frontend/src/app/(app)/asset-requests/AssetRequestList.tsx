@@ -11,7 +11,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ExportButton from "@/components/ExportButton";
 import NewAssetRequestView from "@/components/NewAssetRequestView";
 import { requestErrorMessage } from "@/lib/requestErrorMessage";
-import { usePermissions } from "@/lib/session";
+import { usePermissions, useSession } from "@/lib/session";
 import { useQueueCounts } from "@/lib/queueCounts";
 import { useReviewPolicy } from "@/lib/useReviewPolicy";
 import RequestDecisionDialog from "@/components/RequestDecisionDialog";
@@ -20,6 +20,7 @@ import RequestCardActivity, { formatActionDate } from "@/components/RequestCardA
 import Toast from "@/components/Toast";
 import TableSearch from "@/components/TableSearch";
 import SuggestedStartNotice from "@/components/SuggestedStartNotice";
+import EditWindowNotice from "@/components/EditWindowNotice";
 import type {
   AssetRequestDetail,
   AssetRequestListItem,
@@ -105,6 +106,7 @@ export default function AssetRequestList({
     setToastState({ message: requestErrorMessage(error, requestErrorsDict, errorsDict.generic), error: true });
   // From AppShell's /auth/me, not a second call of our own.
   const permissions = usePermissions();
+  const { id: currentEmployeeId } = useSession();
   const canViewRequestQueue = hasAnyPermission(permissions, ASSET_REQUEST_QUEUE_PERMISSIONS);
   const { counts, refreshCounts } = useQueueCounts(
     "/asset-requests",
@@ -364,6 +366,16 @@ export default function AssetRequestList({
                     guard on the warehouse and maintenance cards. */}
                 {request.suggestedStartDate && request.status === "PENDING" && !request.archivedAt && (
                   <SuggestedStartNotice date={request.suggestedStartDate} template={dict.startWorkNotice} locale={locale} />
+                )}
+
+                {/* Only the requester is on the clock, so only they are told about it. */}
+                {request.requesterId === currentEmployeeId && request.status === "PENDING" && !request.archivedAt && (
+                  <EditWindowNotice
+                    editableUntil={request.editableUntil}
+                    locale={locale}
+                    activeTemplate={cardDict.editNoteActive}
+                    expiredTemplate={cardDict.editNoteExpired}
+                  />
                 )}
                 <RequestCardActivity actions={request.actions} actionLabel={actionLabel} activityTitle={dict.activityTitle}
                   systemActorLabel={cardDict.systemActor}

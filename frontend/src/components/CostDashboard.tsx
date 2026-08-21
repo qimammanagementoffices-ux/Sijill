@@ -65,10 +65,36 @@ export default function CostDashboard({ domain, dict, commonDict }: {
   }
 
   if (!data) return <SectionLoading />;
-  const table = (title: string, label: string, rows: CostBreakdownRow[]) => (
-    <section>
-      <h3 className="ps-section-title">{title}</h3>
-      {rows.length === 0 ? <div className="empty">—</div> : <div className="table-scroll"><table><thead><tr><th>{label}</th><th>{dict.amount}</th></tr></thead><tbody>{rows.map((row, i) => <tr key={`${row.nameEn}-${i}`}><td>{name(row)}</td><td className="mono">{row.total.toFixed(2)} {commonDict.currency}</td></tr>)}</tbody></table></div>}
+  // One panel per breakdown, same shape as every other table page: a titled
+  // panel head over a scrollable table that veils itself while reloading.
+  const tablePanel = (title: string, label: string, rows: CostBreakdownRow[]) => (
+    <section className="panel">
+      <div className="panel-head"><h3>{title}</h3></div>
+      {rows.length === 0 ? (
+        <div className="empty">—</div>
+      ) : (
+        <div className="table-scroll table-loading-wrap">
+          {loading && (
+            <div className="table-loading-veil no-print"><span className="spinner spinner-lg" /></div>
+          )}
+          <table>
+            <thead>
+              <tr>
+                <th>{label}</th>
+                <th>{dict.amount}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={`${row.nameEn}-${i}`}>
+                  <td>{name(row)}</td>
+                  <td className="mono">{row.total.toFixed(2)} {commonDict.currency}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 
@@ -83,7 +109,6 @@ export default function CostDashboard({ domain, dict, commonDict }: {
             <label><span>{dict.to}</span><input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></label>
           </div>
           <button className="btn btn-outline btn-sm" type="submit">{dict.apply}</button>
-          {loading && <span className="spinner" />}
         </form>
         <div className="table-toolbar-actions">
           <ExportButton format="xlsx" label={commonDict.exportXlsx} onClick={exportRows} />
@@ -91,10 +116,17 @@ export default function CostDashboard({ domain, dict, commonDict }: {
         </div>
       </div>
       <div className="panel-body">
-        <div className="cards-row" style={{ gridTemplateColumns: "1fr", marginBottom: 16 }}><div className="stat-card"><div className="bar" style={{ background: "var(--seal)" }} /><div className="num mono">{data.total.toFixed(2)} {commonDict.currency}</div><div className="lbl">{dict.total}</div></div></div>
-        <div className="form-grid">{table(dict.byDepartment, dict.department, data.byDepartment)}{table(dict.byRequester, dict.requester, data.byRequester)}</div>
+        <div className="cards-row" style={{ gridTemplateColumns: "1fr" }}>
+          <div className="stat-card">
+            <div className="bar" style={{ background: "var(--seal)" }} />
+            <div className="num mono">{data.total.toFixed(2)} {commonDict.currency}</div>
+            <div className="lbl">{dict.total}</div>
+          </div>
+        </div>
       </div>
       <div className="panel-note">{dict.note}</div>
     </div>
+    {tablePanel(dict.byDepartment, dict.department, data.byDepartment)}
+    {tablePanel(dict.byRequester, dict.requester, data.byRequester)}
   </>;
 }
