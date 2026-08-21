@@ -36,12 +36,20 @@ public interface ItemHistoryRepository extends JpaRepository<PurchaseInvoiceLine
             """)
     List<sa.sijill.api.domain.NeedRequestLine> findRequestsByItem(@Param("itemId") UUID itemId);
 
+    /**
+     * How much of each item is currently spoken for. Once an approver trims a
+     * line, the trimmed figure is the one that is outstanding -- the original
+     * ask stopped being true the moment it was decided on -- and a line the
+     * approver dropped is not outstanding at all. Mirrors
+     * NeedRequestLine.effectiveQuantity().
+     */
     @Query("""
             select l.inventoryItem.id as itemId,
-                   sum(l.quantityRequested) as quantityRequested
+                   sum(coalesce(l.quantityApproved, l.quantityRequested)) as quantityRequested
             from NeedRequestLine l
             where l.inventoryItem.id in :itemIds
               and l.needRequest.status in :statuses
+              and l.removed = false
             group by l.inventoryItem.id
             """)
     List<RequestedQuantityTotal> sumActiveRequestedQuantities(
