@@ -1581,8 +1581,6 @@ img[data-viewable] {
 .request-decision:hover { filter: saturate(1.08) brightness(.97); }
 .acquisition-modal { max-width:760px; }
 .acquisition-form { gap:14px; }
-.acquisition-form .field { padding:12px; border-radius:10px; background:var(--paper-dim); }
-.acquisition-form input,.acquisition-form select,.acquisition-form textarea { background:#fff; }
 .request-view-modal .modal-body {
   display: grid;
   gap: 16px;
