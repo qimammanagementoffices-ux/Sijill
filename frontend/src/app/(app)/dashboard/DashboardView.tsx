@@ -35,11 +35,37 @@ function MaintenanceSparkIcon() {
   return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M29.5 9a10 10 0 0 0-9.2 13.9L9.5 33.7a3.4 3.4 0 0 0 4.8 4.8l10.8-10.8A10 10 0 0 0 39 18.5l-6 6-5.5-1.8-1.8-5.5Z" /><circle cx="13" cy="35" r="1.2" /></svg>;
 }
 
-function QuickActionCard({ tone, title, action, onOpen, icon }: { tone: "asset" | "warehouse" | "maintenance"; title: string; action: string; onOpen: () => void; icon: React.ReactNode }) {
+function QuickActionCard({ tone, title, action, onOpen, icon, count, countLabel, allHref, allLabel }: {
+  tone: "asset" | "warehouse" | "maintenance";
+  title: string;
+  action: string;
+  onOpen: () => void;
+  icon: React.ReactNode;
+  // Null when this person may not see the queue behind the card -- the
+  // line is then dropped rather than shown as a zero they cannot verify.
+  count: number | null;
+  countLabel: string;
+  allHref: string;
+  allLabel: string;
+}) {
   return <article className={`dashboard-quick-card dashboard-quick-${tone}`}>
     <span className="dashboard-quick-orb" />
-    <div className="dashboard-quick-icon">{icon}</div>
-    <div className="dashboard-quick-copy"><span className="dashboard-quick-kicker">{title}</span><button type="button" onClick={onOpen} className="dashboard-quick-link"><span>+</span>{action}<b aria-hidden="true">←</b></button></div>
+    <div className="dashboard-quick-head">
+      <div className="dashboard-quick-icon">{icon}</div>
+      <div>
+        <span className="dashboard-quick-kicker">{title}</span>
+        {count !== null && <div className="dashboard-quick-count">{count} {countLabel}</div>}
+      </div>
+    </div>
+    <div className="dashboard-quick-actions">
+      <button type="button" onClick={onOpen} className="dashboard-quick-primary">
+        {action}<span aria-hidden="true">+</span>
+      </button>
+      <a href={allHref} className="dashboard-quick-all">
+        {allLabel}
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+      </a>
+    </div>
   </article>;
 }
 
@@ -119,9 +145,9 @@ export default function DashboardView({
       {(canRequestAssets || canRequestWarehouse || canRequestMaintenance) && <section className="dashboard-quick-section no-print">
         <div className="dashboard-quick-heading"><span />{dict.quickActionsTitle}<span /></div>
         <div className="dashboard-quick-grid">
-          {canRequestAssets && <QuickActionCard tone="asset" title={dict.assetRequestsShortcut} action={dict.newAssetRequestShortcut} onOpen={() => setQuickModal("asset")} icon={<AssetSparkIcon />} />}
-          {canRequestWarehouse && <QuickActionCard tone="warehouse" title={dict.warehouseNeedsShortcut} action={dict.newWarehouseRequestShortcut} onOpen={() => setQuickModal("warehouse")} icon={<span aria-hidden="true">▣</span>} />}
-          {canRequestMaintenance && <QuickActionCard tone="maintenance" title={dict.maintenanceNeedsShortcut} action={dict.newMaintenanceRequestShortcut} onOpen={() => setQuickModal("maintenance")} icon={<MaintenanceSparkIcon />} />}
+          {canRequestAssets && <QuickActionCard tone="asset" title={dict.assetRequestsShortcut} action={dict.newAssetRequestShortcut} onOpen={() => setQuickModal("asset")} icon={<AssetSparkIcon />} count={stats?.assets?.pendingRequestCount ?? null} countLabel={statsDict.assetsPendingRequests} allHref="/asset-requests" allLabel={assetRequestsDict.allTab} />}
+          {canRequestWarehouse && <QuickActionCard tone="warehouse" title={dict.warehouseNeedsShortcut} action={dict.newWarehouseRequestShortcut} onOpen={() => setQuickModal("warehouse")} icon={<span aria-hidden="true">▣</span>} count={stats?.warehouse?.pendingRequestCount ?? null} countLabel={statsDict.warehousePendingRequests} allHref="/warehouse/requests" allLabel={warehouseRequestsDict.allTab} />}
+          {canRequestMaintenance && <QuickActionCard tone="maintenance" title={dict.maintenanceNeedsShortcut} action={dict.newMaintenanceRequestShortcut} onOpen={() => setQuickModal("maintenance")} icon={<MaintenanceSparkIcon />} count={stats?.maintenance?.openCount ?? null} countLabel={statsDict.maintenanceOpen} allHref="/maintenance/requests" allLabel={maintenanceRequestsDict.allTab} />}
         </div>
       </section>}
 
