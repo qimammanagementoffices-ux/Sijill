@@ -578,7 +578,10 @@ export default function RequestList({
                 {/* Each stage shows only its own actions, and only to the
                     employee entitled to take them. */}
                 <div className="request-card-actions">
-                  {permissions.includes("emp.manage") && request.canEdit && (
+                  {/* canEdit already carries the whole rule from the server -- moderator, or
+                      the requester still inside their edit window -- so re-checking a
+                      permission here would just hide the button from the requester. */}
+                  {request.canEdit && (
                     <button type="button" className="btn btn-outline btn-sm request-admin-edit" onClick={() => setEditRequest(request)}>
                       {actionsDict.edit}
                     </button>

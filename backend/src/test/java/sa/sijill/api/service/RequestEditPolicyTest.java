@@ -2,6 +2,10 @@ package sa.sijill.api.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import sa.sijill.api.domain.AssetRequest;
 import sa.sijill.api.domain.AssetRequestStatus;
@@ -13,19 +17,33 @@ import sa.sijill.api.domain.Permission;
 class RequestEditPolicyTest {
 
     @Test
-    void requesterCannotEditTheirOwnPendingRequests() {
+    void requesterCanCorrectTheirOwnRequestInsideTheWindow() {
         Employee requester = employeeWith("wh.request", "as.request");
 
-        NeedRequest needRequest = new NeedRequest();
-        needRequest.setRequester(requester);
-        needRequest.setStatus(NeedRequestStatus.PENDING);
+        assertThat(NeedRequestService.canEdit(needRequestFrom(requester, Instant.now()), requester))
+                .isTrue();
+        assertThat(AssetRequestService.canEdit(assetRequestFrom(requester, Instant.now()), requester))
+                .isTrue();
+    }
 
-        AssetRequest assetRequest = new AssetRequest();
-        assetRequest.setRequester(requester);
-        assetRequest.setStatus(AssetRequestStatus.PENDING);
+    @Test
+    void requesterLosesTheirOwnRequestOnceTheWindowCloses() {
+        Employee requester = employeeWith("wh.request", "as.request");
+        Instant tooLate = Instant.now().minus(Duration.ofHours(2));
 
-        assertThat(NeedRequestService.canEdit(needRequest, requester)).isFalse();
-        assertThat(AssetRequestService.canEdit(assetRequest, requester)).isFalse();
+        assertThat(NeedRequestService.canEdit(needRequestFrom(requester, tooLate), requester)).isFalse();
+        assertThat(AssetRequestService.canEdit(assetRequestFrom(requester, tooLate), requester)).isFalse();
+    }
+
+    @Test
+    void theWindowBelongsToTheRequesterAloneNotToEveryColleague() {
+        Employee requester = employeeWith("wh.request");
+        Employee colleague = employeeWith("wh.request");
+
+        assertThat(NeedRequestService.canEdit(needRequestFrom(requester, Instant.now()), colleague))
+                .isFalse();
+        assertThat(AssetRequestService.canEdit(assetRequestFrom(requester, Instant.now()), colleague))
+                .isFalse();
     }
 
     @Test
@@ -47,8 +65,25 @@ class RequestEditPolicyTest {
         assertThat(AssetRequestService.canEdit(assetRequest, moderator)).isFalse();
     }
 
+    private NeedRequest needRequestFrom(Employee requester, Instant createdAt) {
+        NeedRequest request = new NeedRequest();
+        request.setRequester(requester);
+        request.setStatus(NeedRequestStatus.PENDING);
+        request.setCreatedAt(createdAt);
+        return request;
+    }
+
+    private AssetRequest assetRequestFrom(Employee requester, Instant createdAt) {
+        AssetRequest request = new AssetRequest();
+        request.setRequester(requester);
+        request.setStatus(AssetRequestStatus.PENDING);
+        request.setCreatedAt(createdAt);
+        return request;
+    }
+
     private Employee employeeWith(String... permissionKeys) {
         Employee employee = new Employee();
+        employee.setId(UUID.randomUUID());
         for (String key : permissionKeys) {
             Permission permission = new Permission();
             permission.setKey(key);

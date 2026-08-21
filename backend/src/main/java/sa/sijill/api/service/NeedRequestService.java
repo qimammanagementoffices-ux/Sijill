@@ -147,10 +147,25 @@ public class NeedRequestService {
         return request.getStatus();
     }
 
-    /** Only moderators edit, and only before a decision is taken. */
+    /**
+     * Moderators edit any pending request. The requester may still correct
+     * their own inside the edit window -- which is what the card's
+     * "you can edit until HH:MM" note has always promised them.
+     */
     public static boolean canEdit(NeedRequest request, Employee actor) {
         if (request.getArchivedAt() != null || effectiveStatus(request) != NeedRequestStatus.PENDING) return false;
-        return actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals);
+        if (actor.getPermissions().stream().map(Permission::getKey).anyMatch("emp.manage"::equals)) return true;
+        // createdAt is null only for a request that was never persisted;
+        // there is no window to be inside of, so no edit.
+        return isRequester(request, actor)
+                && request.getCreatedAt() != null
+                && Instant.now().isBefore(editableUntil(request));
+    }
+
+    private static boolean isRequester(NeedRequest request, Employee actor) {
+        return request.getRequester() != null
+                && request.getRequester().getId() != null
+                && request.getRequester().getId().equals(actor.getId());
     }
 
     /**
