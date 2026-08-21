@@ -265,7 +265,7 @@ export default function ItemForm({
       </div>
 
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}

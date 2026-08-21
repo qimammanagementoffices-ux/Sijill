@@ -106,7 +106,7 @@ export default function LanguagesAdmin({
       <div className="eyebrow">{dict.title}</div>
       <h1 className="section-title disp">{dict.title}</h1>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}
@@ -139,7 +139,7 @@ export default function LanguagesAdmin({
                   <td className="mono">{l.code}</td>
                   <td>{l.name}</td>
                   <td>{l.direction === "rtl" ? dict.directionRtl : dict.directionLtr}</td>
-                  <td style={{ display: "flex", gap: 6 }}>
+                  <td className="table-actions">
                     <button type="button" className="btn btn-outline btn-sm" onClick={() => setReviewing(l.code)}>
                       {dict.review}
                     </button>
@@ -245,7 +245,7 @@ function LanguageReview({
       <div className="eyebrow">{code}</div>
       <h1 className="section-title disp">{dict.reviewTitle}</h1>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}
@@ -273,7 +273,7 @@ function LanguageReview({
                       type="text"
                       value={edits[v.key] ?? v.value}
                       onChange={(e) => setEdits({ ...edits, [v.key]: e.target.value })}
-                      style={{ border: "1.5px solid var(--line)", borderRadius: 8, padding: "6px 9px", width: "100%" }}
+                      className="table-input"
                     />
                   </td>
                   <td>

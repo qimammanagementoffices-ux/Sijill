@@ -291,7 +291,7 @@ export default function RoomAdmin({
         <PrintReportHeader title={dict.title} dict={commonDict} />
       </div>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}
@@ -303,7 +303,6 @@ export default function RoomAdmin({
             <select
               value={departmentFilter}
               onChange={(e) => applyDepartmentFilter(e.target.value)}
-              style={{ border: "1.5px solid var(--line)", borderRadius: 9, padding: "8px 12px" }}
             >
               <option value="">{dict.filterAllDepartments}</option>
               {departmentOptions.map(({ item, path }) => (

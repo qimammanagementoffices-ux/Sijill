@@ -888,6 +888,9 @@ body.lang-en .section-title {
   gap: 12px;
   flex-wrap: wrap;
 }
+.panel-head-actions {
+  justify-content: flex-end;
+}
 .panel-head h3 {
   margin: 0;
   font-size: 14.5px;
@@ -953,6 +956,13 @@ tbody td {
 }
 .table-center td {
   text-align: center;
+}
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 tbody tr:last-child td {
   border-bottom: none;
@@ -1161,6 +1171,7 @@ img[data-viewable] {
   color: var(--slate);
   font-weight: 400;
 }
+.field input:not([type]),
 .field input[type="text"],
 .field input[type="number"],
 .field input[type="date"],
@@ -1202,6 +1213,14 @@ img[data-viewable] {
 .field textarea {
   resize: vertical;
   min-height: 70px;
+}
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  background: var(--paper-dim);
+  color: var(--slate);
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 .filebox {
   border: 1.5px dashed var(--line);
@@ -1920,6 +1939,20 @@ img[data-viewable] {
   max-width: 100%;
   box-sizing: border-box;
 }
+.table-input {
+  width: 100%;
+  min-width: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+.table-input:focus {
+  border-color: var(--ink-soft);
+  box-shadow: 0 0 0 3px rgba(46, 66, 114, 0.1);
+}
 .translation-table code {
   overflow-wrap: anywhere;
 }
@@ -2308,7 +2341,8 @@ img[data-viewable] {
    paragraph text, indistinguishable from a label. They now carry the same
    weight as .form-error-alert below; the icon comes from ::before so every
    existing <p className="form-error"> picks it up untouched. */
-.form-error {
+.form-error,
+.modal-body > p[role="alert"] {
   display: flex;
   align-items: flex-start;
   gap: 9px;
@@ -2323,7 +2357,8 @@ img[data-viewable] {
   line-height: 1.65;
 }
 
-.form-error::before {
+.form-error::before,
+.modal-body > p[role="alert"]::before {
   content: "!";
   display: inline-grid;
   flex: 0 0 20px;
@@ -2336,6 +2371,10 @@ img[data-viewable] {
   font-size: 12px;
   font-weight: 800;
   line-height: 1;
+}
+.form-error-block,
+.modal-body > p[role="alert"] {
+  margin-block: 12px;
 }
 
 .form-error-alert {

@@ -135,13 +135,13 @@ export default function FaultTypeAdmin({
       <div className="eyebrow">{dict.title}</div>
       <h1 className="section-title disp">{dict.title}</h1>
       {error && (
-        <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, marginBottom: 12 }}>
+        <p role="alert" className="form-error form-error-block">
           {error}
         </p>
       )}
 
       <div className="panel">
-        <div className="panel-head" style={{ justifyContent: "flex-end" }}>
+        <div className="panel-head panel-head-actions">
           <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
             {dict.addNew}
           </button>

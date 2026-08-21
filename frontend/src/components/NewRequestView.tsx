@@ -416,7 +416,7 @@ export default function NewRequestView({
           />
 
           {error && (
-            <p role="alert" style={{ color: "var(--seal)", fontSize: 12.5, margin: "12px 0 0" }}>
+            <p role="alert" className="form-error form-error-block">
               {error}
             </p>
           )}
