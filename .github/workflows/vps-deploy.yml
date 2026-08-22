@@ -91,6 +91,23 @@ jobs:
           echo "The site did not answer within five minutes."
           exit 1
 
+      - name: Confirm the legacy IRAPP address redirects
+        run: |
+          set -euo pipefail
+          # Give Caddy time to provision/renew the legacy hostname's
+          # certificate, then require the redirect's final HTTPS response.
+          for attempt in $(seq 1 10); do
+            if curl --location --proto-redir =https -fsS -m 10 \
+              "https://irapp.sijill.digital/api/v1/i18n/locales" > /dev/null; then
+              echo "Legacy IRAPP address is live."
+              exit 0
+            fi
+            echo "Attempt $attempt: legacy IRAPP address is not up yet."
+            sleep 15
+          done
+          echo "The legacy IRAPP address did not answer within 150 seconds."
+          exit 1
+
       - name: Show proxy diagnostics after a failed health check
         if: failure()
         env:
