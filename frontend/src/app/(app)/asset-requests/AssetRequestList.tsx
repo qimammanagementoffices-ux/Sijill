@@ -526,7 +526,6 @@ export default function AssetRequestList({
                 actionLabel={actionLabel}
                 // Asset requests close on FINISH and never record RECEIVE, so
                 // the default left the purchasing-officer signature blank.
-                purchasingOfficerAction="FINISH"
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
                   { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: viewRequest.requesterJobTitle ?? "—" },
