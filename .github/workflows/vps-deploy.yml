@@ -63,8 +63,11 @@ jobs:
             # recreated. Git replaces the bind-mounted Caddyfile atomically,
             # so a restart can keep the old file mount and stale routes.
             # Recreating only Caddy remounts the current configuration; its
-            # certificates live in a named volume and survive the operation.
-            docker compose up -d --force-recreate caddy
+            # certificates live in named volumes and survive container
+            # removal. An explicit remove is intentional: this server's
+            # Compose version ignored --force-recreate for the running proxy.
+            docker compose rm --stop --force caddy
+            docker compose up -d --no-deps caddy
             # Old image layers accumulate fast under a JVM base image.
             docker image prune -f
           REMOTE
