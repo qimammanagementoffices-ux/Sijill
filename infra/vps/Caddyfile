@@ -8,7 +8,7 @@
 	# from the picture entirely -- no preflight, and a stalled response can
 	# no longer disguise itself as a CORS failure in the browser console.
 	handle /api/* {
-		reverse_proxy api:8080
+		reverse_proxy sijill-api:8080
 	}
 
 	# Public attachment reads. handle_path strips the /files prefix, so
@@ -19,11 +19,11 @@
 	# The backup bucket is never given it, so a guessed URL here returns 403
 	# rather than a database dump.
 	handle_path /files/* {
-		reverse_proxy minio:9000
+		reverse_proxy sijill-minio:9000
 	}
 
 	handle {
-		reverse_proxy frontend:3000
+		reverse_proxy sijill-frontend:3000
 	}
 
 	# Attachments and PDF uploads: the app's own limit is 2MB per file, so
@@ -34,6 +34,45 @@
 
 	log {
 		output file /data/access.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+	}
+}
+
+# IRAPP is a separate stack on the same VPS. This Caddy instance is the only
+# owner of ports 80/443; unique upstream aliases keep Docker DNS deterministic
+# even though both Compose projects have a service named `api`.
+irapp.sijill.digital {
+	encode zstd gzip
+
+	handle_path /auth/v1/* {
+		reverse_proxy irapp-auth:9999
+	}
+
+	handle_path /rest/v1/* {
+		reverse_proxy irapp-api:3000
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Cache-Control "no-store"
+		-Server
+	}
+
+	log {
+		output file /data/ir-access.log {
 			roll_size 10MB
 			roll_keep 5
 		}

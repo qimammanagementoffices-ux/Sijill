@@ -48,6 +48,9 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+    networks:
+      default:
+        aliases: [sijill-minio]
     # No ports: the API reaches it over the compose network, and the public
     # read path goes through Caddy. Only the attachment bucket is given
     # anonymous read; the backup bucket stays private and is reached solely by
@@ -100,6 +103,12 @@ services:
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
     volumes:
       - api-heap-dumps:/heap-dumps
+    networks:
+      default:
+        # Caddy also joins a network containing IRAPP's `api` service. Always
+        # use this unique name so a container restart cannot redirect Riyadh
+        # traffic to the other application.
+        aliases: [sijill-api]
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
@@ -121,6 +130,9 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    networks:
+      default:
+        aliases: [sijill-frontend]
 
   caddy:
     image: caddy:2-alpine
@@ -139,6 +151,9 @@ services:
     depends_on:
       - api
       - frontend
+    networks:
+      - default
+      - edge
 
 volumes:
   postgres-data:
@@ -146,3 +161,9 @@ volumes:
   api-heap-dumps:
   caddy-data:
   caddy-config:
+
+# The host has one public reverse proxy. IRAPP joins this network but never
+# publishes ports 80/443 itself.
+networks:
+  edge:
+    external: true

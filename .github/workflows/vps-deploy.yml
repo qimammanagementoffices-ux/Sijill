@@ -53,6 +53,44 @@ jobs:
             # match origin/main exactly rather than trying to merge.
             git reset --hard origin/main
             cd infra/vps
+            # Validate the candidate while the current proxy is still intact.
+            # A syntax error must never replace the known-good live config.
+            docker compose exec -T caddy sh -c 'cat > /tmp/Sijill-Caddyfile-candidate' < Caddyfile
+            docker compose exec -T caddy caddy validate \
+              --config /tmp/Sijill-Caddyfile-candidate --adapter caddyfile
+            # One public proxy serves both Compose projects. The IR stack was
+            # originally attached with generic Docker DNS names (`api` and
+            # `auth`), which collide with this stack after either app is
+            # recreated. Expand the running IR endpoints with stable aliases
+            # before Caddy starts using them. Future IR deploys declare the
+            # same aliases in their Compose file, so this is idempotent.
+            docker network inspect edge >/dev/null 2>&1 || docker network create edge
+            ensure_ir_alias() {
+              service="$1"
+              alias="$2"
+              container_id=$(docker ps \
+                --filter 'label=com.docker.compose.project=irdept' \
+                --filter "label=com.docker.compose.service=$service" \
+                --format '{{.ID}}' | head -n 1)
+              if [ -z "$container_id" ]; then
+                echo "IRAPP service '$service' is not running."
+                return 1
+              fi
+              if docker inspect --format '{{json (index .NetworkSettings.Networks "edge").Aliases}}' "$container_id" \
+                  | grep -Fq "\"$alias\""; then
+                echo "IRAPP alias '$alias' is already present."
+                return 0
+              fi
+              docker network disconnect edge "$container_id"
+              if ! docker network connect --alias "$alias" edge "$container_id"; then
+                # Restore connectivity even if adding the alias failed.
+                docker network connect edge "$container_id" || true
+                return 1
+              fi
+              echo "Added IRAPP alias '$alias'."
+            }
+            ensure_ir_alias auth irapp-auth
+            ensure_ir_alias api irapp-api
             docker compose up -d --build
             # A mounted but unwritable directory would fail only during the
             # next OOM, when it is too late to recover the evidence.
@@ -71,28 +109,40 @@ jobs:
             docker image prune -f
           REMOTE
 
-      - name: Confirm the site answers
+      - name: Confirm both sites answer
         env:
-          SIJILL_URL: ${{ secrets.SIJILL_URL }}
+          SIJILL_URL: ${{ secrets.SIJILL_URL || 'https://riyadh.sijill.digital' }}
+          IRAPP_URL: https://irapp.sijill.digital
         run: |
           set -euo pipefail
-          if [ -z "${SIJILL_URL:-}" ]; then
-            echo "SIJILL_URL is not set -- skipping the health check."
-            exit 0
-          fi
           # The API restarts as part of the deploy; give it room to come up
           # before calling the deploy broken.
+          sijill_live=false
           for attempt in $(seq 1 20); do
             # Follow the HTTP-to-HTTPS redirect. Without --location, Caddy's
             # 308 redirect counted as healthy even when TLS itself was down.
             if curl --location --proto-redir =https -fsS -m 10 "$SIJILL_URL/api/v1/i18n/locales" > /dev/null; then
-              echo "Deploy is live."
-              exit 0
+              echo "Sijill is live."
+              sijill_live=true
+              break
             fi
             echo "Attempt $attempt: not up yet."
             sleep 15
           done
-          echo "The site did not answer within five minutes."
+          if [ "$sijill_live" != true ]; then
+            echo "Sijill did not answer within five minutes."
+            exit 1
+          fi
+
+          for attempt in $(seq 1 20); do
+            if curl --location --proto-redir =https -fsS -m 10 "$IRAPP_URL/auth/v1/health" > /dev/null; then
+              echo "IRAPP is live."
+              exit 0
+            fi
+            echo "IRAPP attempt $attempt: not up yet."
+            sleep 15
+          done
+          echo "IRAPP did not answer within five minutes."
           exit 1
 
       - name: Show proxy diagnostics after a failed health check
