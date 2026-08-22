@@ -1746,10 +1746,9 @@ img[data-viewable] {
   flex-wrap: wrap;
   gap: 7px 14px;
   margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-soft);
   color: var(--ink-soft);
-  background: var(--paper-dim);
 }
 
 .maintenance-finish-summary strong {
@@ -1765,7 +1764,6 @@ img[data-viewable] {
   padding: 14px;
   border: 1px solid var(--line-soft);
   border-radius: 14px;
-  background: var(--paper-dim);
 }
 
 .maintenance-finish-quantity input {

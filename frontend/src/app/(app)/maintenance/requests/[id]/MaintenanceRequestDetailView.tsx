@@ -181,11 +181,16 @@ export default function MaintenanceRequestDetailView({
                 <div className="field">
                   <select value={draft.inventoryItemId} onChange={(e) => updatePartDraft(index, { inventoryItemId: e.target.value })}>
                     <option value="">—</option>
-                    {parts.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.code} — {item.nameAr}
-                      </option>
-                    ))}
+                    {/* A part already taken by another row is not offered again;
+                        this row's own choice stays so it can still render. */}
+                    {parts
+                      .filter((item) => item.id === draft.inventoryItemId
+                        || !partDrafts.some((row) => row.inventoryItemId === item.id))
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.code} — {item.nameAr}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -206,9 +211,11 @@ export default function MaintenanceRequestDetailView({
                 </div>
               </div>
             ))}
-            <button type="button" className="btn btn-outline btn-sm" onClick={addPartDraft}>
-              {dict.addPart}
-            </button>
+            {parts.some((item) => !partDrafts.some((row) => row.inventoryItemId === item.id)) && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={addPartDraft}>
+                {dict.addPart}
+              </button>
+            )}
           </div>
         )}
 

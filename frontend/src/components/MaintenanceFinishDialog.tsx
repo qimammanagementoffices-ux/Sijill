@@ -129,14 +129,19 @@ export default function MaintenanceFinishDialog({
                 );
               })}
 
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setDrafts((current) => [...current, { inventoryItemId: "", quantity: 1 }])}
-                disabled={submitting || drafts.length >= parts.length + 1}
-              >
-                {dict.addPart}
-              </button>
+              {/* Nothing left to pick means nothing to add: the row would open
+                  onto an empty list. Gone rather than disabled -- a button that
+                  can never be pressed again is just furniture. */}
+              {parts.some((part) => !drafts.some((row) => row.inventoryItemId === part.id)) && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setDrafts((current) => [...current, { inventoryItemId: "", quantity: 1 }])}
+                  disabled={submitting}
+                >
+                  {dict.addPart}
+                </button>
+              )}
             </div>
           )}
         </div>
