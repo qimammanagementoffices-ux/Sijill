@@ -84,7 +84,6 @@ export default function AssetAcquisitionList({ dict, commonDict, attachmentsDict
     try {
       const body = { ...draft, amount: Number(draft.amount) || 0, vendor: draft.vendor || null, notes: draft.notes || null, version: editing?.version ?? null };
       const saved = await apiFetch<AssetAcquisitionDto>(editing ? `/assets/acquisitions/${editing.id}` : "/assets/acquisitions", { method: editing ? "PUT" : "POST", body: JSON.stringify(body) });
-      setEditing(saved);
       for (const file of pendingFiles) {
         const formData = new FormData();
         formData.append("ownerType", "ASSET_ACQUISITION");
@@ -92,7 +91,13 @@ export default function AssetAcquisitionList({ dict, commonDict, attachmentsDict
         formData.append("file", file);
         await apiUpload(`/attachments?ownerType=ASSET_ACQUISITION&ownerId=${saved.id}`, formData);
       }
-      setPendingFiles([]); load(page?.page ?? 0); setToast(commonDict.actionSuccess);
+      // Close on success, like every other admin dialog here: the record is
+      // saved and its pending files are already uploaded, so leaving the
+      // dialog open just made a successful save look like it had not landed.
+      setPendingFiles([]);
+      setEditing(undefined);
+      load(page?.page ?? 0);
+      setToast(commonDict.actionSuccess);
     } catch (err) { setError(err instanceof ApiError ? err.message : String(err)); }
     finally { setSaving(false); }
   }
