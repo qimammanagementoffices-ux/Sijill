@@ -30,7 +30,6 @@ export default function LegacyRequestForm({
   attachments = [],
   actionLabel,
   deliveryReport,
-  purchasingOfficerAction = "RECEIVE",
 }: {
   title: [string, string, string];
   subtitle: [string, string, string];
@@ -49,8 +48,6 @@ export default function LegacyRequestForm({
   // What actually left the store, and who released it. Only present once a
   // delivery has been recorded.
   deliveryReport?: { lines: { name: string; issued: number; unit: string | null }[]; releasedBy: string | null };
-  // Maintenance is settled by FINISH; warehouse receipt remains RECEIVE.
-  purchasingOfficerAction?: string;
 }) {
   const [branding, setBranding] = useState<BrandingDto | null>(null);
   useEffect(() => { apiFetch<BrandingDto>("/branding").then(setBranding).catch(() => {}); }, []);
@@ -61,13 +58,16 @@ export default function LegacyRequestForm({
   // Whoever the log says raised it and settled it. The counter-signature is
   // the decision that stands, so it wins over the first-level approval.
   const requesterName = actions.find((entry) => entry.action === "SUBMIT")?.actorName ?? null;
+  //
+  // A refusal is a decision too: naming only approvers left a refused sheet
+  // with an empty authority line, so the form showed the request as unsigned
+  // instead of showing who turned it down.
   const approverName =
     actions.find((entry) => entry.action === "COUNTERSIGN_APPROVE")?.actorName ??
+    actions.find((entry) => entry.action === "COUNTERSIGN_REJECT")?.actorName ??
     actions.find((entry) => entry.action === "APPROVE")?.actorName ??
+    actions.find((entry) => entry.action === "REJECT")?.actorName ??
     null;
-  // Each workflow identifies its purchasing officer by the action that
-  // settles it: RECEIVE for stock, FINISH for maintenance.
-  const receivedByName = actions.find((entry) => entry.action === purchasingOfficerAction)?.actorName ?? null;
 
   return (
     <>
@@ -126,8 +126,8 @@ export default function LegacyRequestForm({
         <div className="legacy-form-actions">{[...actions].reverse().map((entry, index) => <div key={`${entry.createdAt}-${index}`}><span><b>{actionLabel(entry.action)}</b> — {entry.actorName}</span><time>{new Date(entry.createdAt).toLocaleString("ar-SA")}</time>{entry.reason && <p>{entry.reason}</p>}</div>)}</div>
       </>}
       {/* Named where the log knows who acted, so the sheet says who signed
-          rather than leaving three anonymous boxes. The purchasing officer
-          signs on paper, so that one stays blank by design. */}
+          rather than leaving anonymous boxes. There is no purchasing officer in
+          this organisation, so no line pretends to wait for one. */}
       <div className="legacy-form-signatures">
         <div>
           توقيع مقدّم الطلب<br /><small>Requester signature</small>
@@ -136,10 +136,6 @@ export default function LegacyRequestForm({
         <div>
           توقيع جهة الاعتماد<br /><small>Approver signature</small>
           {approverName && <em className="legacy-signature-name">{approverName}</em>}
-        </div>
-        <div>
-          توقيع مسؤول المشتريات<br /><small>Purchasing officer signature</small>
-          {receivedByName && <em className="legacy-signature-name">{receivedByName}</em>}
         </div>
       </div>
       <footer className="legacy-form-footer">مستند صادر آليًا من منصة سِجِلّ لإدارة المستودع والصيانة المدرسية</footer>

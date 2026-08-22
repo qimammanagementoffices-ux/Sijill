@@ -599,7 +599,6 @@ export default function MaintenanceRequestList({
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
                 actionLabel={actionLabel}
-                purchasingOfficerAction="FINISH"
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },
                   { label: ["المسمى الوظيفي", "Job Title", "पदनाम"], value: viewRequest.requesterJobTitle ?? "—" },
