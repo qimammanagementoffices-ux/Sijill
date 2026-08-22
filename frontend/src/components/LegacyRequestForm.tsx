@@ -30,6 +30,7 @@ export default function LegacyRequestForm({
   attachments = [],
   actionLabel,
   deliveryReport,
+  purchasingOfficerAction = "RECEIVE",
 }: {
   title: [string, string, string];
   subtitle: [string, string, string];
@@ -48,6 +49,8 @@ export default function LegacyRequestForm({
   // What actually left the store, and who released it. Only present once a
   // delivery has been recorded.
   deliveryReport?: { lines: { name: string; issued: number; unit: string | null }[]; releasedBy: string | null };
+  // The action that settles each workflow: RECEIVE for stock, FINISH for the rest.
+  purchasingOfficerAction?: string;
 }) {
   const [branding, setBranding] = useState<BrandingDto | null>(null);
   useEffect(() => { apiFetch<BrandingDto>("/branding").then(setBranding).catch(() => {}); }, []);
@@ -68,6 +71,11 @@ export default function LegacyRequestForm({
     actions.find((entry) => entry.action === "APPROVE")?.actorName ??
     actions.find((entry) => entry.action === "REJECT")?.actorName ??
     null;
+
+  // Only a handover produces this signature. A postponed or refused request
+  // never reaches RECEIVE/FINISH, so the line stays off those sheets instead
+  // of printing an empty box for a step that did not happen.
+  const receivedByName = actions.find((entry) => entry.action === purchasingOfficerAction)?.actorName ?? null;
 
   return (
     <>
@@ -126,8 +134,9 @@ export default function LegacyRequestForm({
         <div className="legacy-form-actions">{[...actions].reverse().map((entry, index) => <div key={`${entry.createdAt}-${index}`}><span><b>{actionLabel(entry.action)}</b> — {entry.actorName}</span><time>{new Date(entry.createdAt).toLocaleString("ar-SA")}</time>{entry.reason && <p>{entry.reason}</p>}</div>)}</div>
       </>}
       {/* Named where the log knows who acted, so the sheet says who signed
-          rather than leaving anonymous boxes. There is no purchasing officer in
-          this organisation, so no line pretends to wait for one. */}
+          rather than leaving anonymous boxes. The purchasing officer line appears
+          only once a handover happened -- never on a postponed or refused
+          sheet, where there is nothing for them to have signed. */}
       <div className="legacy-form-signatures">
         <div>
           توقيع مقدّم الطلب<br /><small>Requester signature</small>
@@ -137,6 +146,12 @@ export default function LegacyRequestForm({
           توقيع جهة الاعتماد<br /><small>Approver signature</small>
           {approverName && <em className="legacy-signature-name">{approverName}</em>}
         </div>
+        {receivedByName && (
+          <div>
+            توقيع مسؤول المشتريات<br /><small>Purchasing officer signature</small>
+            <em className="legacy-signature-name">{receivedByName}</em>
+          </div>
+        )}
       </div>
       <footer className="legacy-form-footer">مستند صادر آليًا من منصة سِجِلّ لإدارة المستودع والصيانة المدرسية</footer>
     </article>

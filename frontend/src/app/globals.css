@@ -1670,7 +1670,9 @@ img[data-viewable] {
 .legacy-form-actions > div { border:1px solid var(--line-soft); border-radius:8px; padding:7px 10px; font-size:11px; }
 .legacy-form-actions time { float:left; color:var(--slate); }
 .legacy-form-actions p { margin:5px 0 0; }
-.legacy-form-signatures { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:28px; text-align:center; color:var(--slate); font-size:11px; }
+/* Two or three columns depending on whether a handover was signed, without
+   a modifier class to keep in step with the markup. */
+.legacy-form-signatures { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:14px; margin-top:28px; text-align:center; color:var(--slate); font-size:11px; }
 .legacy-form-signatures > div { border-top:1.3px solid #999; padding-top:6px; }
 .legacy-form-footer { margin-top:14px; padding-top:7px; border-top:1px solid var(--line-soft); text-align:center; color:var(--slate); font-size:9.5px; }
 .legacy-attachment-page { display:flex; flex-direction:column; }

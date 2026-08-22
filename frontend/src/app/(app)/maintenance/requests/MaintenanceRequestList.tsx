@@ -598,6 +598,7 @@ export default function MaintenanceRequestList({
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
+                purchasingOfficerAction="FINISH"
                 actionLabel={actionLabel}
                 cells={[
                   { label: ["مقدّم الطلب", "Requested by", "अनुरोधकर्ता"], value: viewRequest.requesterName },

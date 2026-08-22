@@ -523,6 +523,7 @@ export default function AssetRequestList({
                 status={statusLabel(viewRequest.status) ?? viewRequest.status}
                 statusClass={STATUS_STAMP_CLASS[viewRequest.status] ?? "s-pending"}
                 actions={viewRequest.actions}
+                purchasingOfficerAction="FINISH"
                 actionLabel={actionLabel}
                 // Asset requests close on FINISH and never record RECEIVE, so
                 // the default left the purchasing-officer signature blank.
