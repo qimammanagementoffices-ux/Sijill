@@ -57,7 +57,8 @@ jobs:
             # A syntax error must never replace the known-good live config.
             docker compose exec -T caddy sh -c 'cat > /tmp/Sijill-Caddyfile-candidate' < Caddyfile
             docker compose exec -T caddy caddy validate \
-              --config /tmp/Sijill-Caddyfile-candidate --adapter caddyfile
+              --config /tmp/Sijill-Caddyfile-candidate --adapter caddyfile < /dev/null
+            echo "Candidate proxy config validated; continuing deployment."
             # One public proxy serves both Compose projects. The IR stack was
             # originally attached with generic Docker DNS names (`api` and
             # `auth`), which collide with this stack after either app is
@@ -94,7 +95,7 @@ jobs:
             docker compose up -d --build
             # A mounted but unwritable directory would fail only during the
             # next OOM, when it is too late to recover the evidence.
-            docker compose exec -T api sh -c 'test -w /heap-dumps'
+            docker compose exec -T api sh -c 'test -w /heap-dumps' < /dev/null
             # Caddy resolves api:8080 and holds on to the address. Rebuilding
             # the API gives it a new container IP, and Caddy keeps proxying to
             # the old one -- a healthy app behind a 502/503 until Caddy is
@@ -104,7 +105,8 @@ jobs:
             # zero-downtime reload instead of relying on container recreation.
             docker compose exec -T caddy sh -c 'cat > /tmp/Sijill-Caddyfile' < Caddyfile
             docker compose exec -T caddy caddy reload \
-              --config /tmp/Sijill-Caddyfile --adapter caddyfile
+              --config /tmp/Sijill-Caddyfile --adapter caddyfile < /dev/null
+            echo "Proxy reload completed."
             # Old image layers accumulate fast under a JVM base image.
             docker image prune -f
           REMOTE
