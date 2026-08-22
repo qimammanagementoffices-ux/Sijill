@@ -1,6 +1,13 @@
 # Caddy obtains and renews the TLS certificate on its own; there is nothing to
 # configure for HTTPS beyond pointing the domain at this server first.
 
+# Keep the original public hostname working after production moved to the
+# configured domain. Caddy provisions TLS for the legacy host, then sends the
+# browser to the canonical site while preserving the requested path/query.
+irapp.sijill.digital {
+	redir https://{$SIJILL_DOMAIN}{uri} permanent
+}
+
 {$SIJILL_DOMAIN} {
 	encode zstd gzip
 
