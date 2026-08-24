@@ -173,5 +173,5 @@ jobs:
             APP_DIR="$APP_DIR" bash -euo pipefail -s << 'REMOTE'
             cd "$APP_DIR/infra/vps"
             docker compose ps
-            docker compose logs --tail=200 caddy
+            docker compose logs --tail=200 translator api caddy
           REMOTE
