@@ -56,6 +56,32 @@ services:
     # anonymous read; the backup bucket stays private and is reached solely by
     # the API with credentials.
 
+  translator:
+    # Private, self-hosted translation for the short Arabic/English/Hindi
+    # labels entered in forms. No published port and no third-party quota.
+    image: libretranslate/libretranslate:v1.9.6
+    restart: unless-stopped
+    environment:
+      LT_LOAD_ONLY: ar,en,hi
+      LT_DISABLE_WEB_UI: "true"
+    volumes:
+      # Keep downloaded Argos models across image/container updates.
+      - translator-models:/home/libretranslate/.local:rw
+    healthcheck:
+      test: ["CMD-SHELL", "./venv/bin/python scripts/healthcheck.py"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      # The first deployment downloads the three language models. Later
+      # starts reuse the volume and become healthy much faster.
+      start_period: 10m
+    # A translation helper must never be able to starve the hospital app.
+    mem_limit: 2g
+    cpus: 1.5
+    networks:
+      default:
+        aliases: [sijill-translator]
+
   api:
     build:
       context: ../../backend
@@ -65,6 +91,8 @@ services:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      translator:
         condition: service_healthy
     environment:
       # An OutOfMemoryError kills the Tomcat acceptor threads but leaves the
@@ -100,6 +128,7 @@ services:
       TRANSLATION_HELPER_ENABLED: ${TRANSLATION_HELPER_ENABLED:-false}
       TRANSLATION_PROVIDER: ${TRANSLATION_PROVIDER:-anthropic}
       TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
+      NAME_TRANSLATION_BASE_URL: http://sijill-translator:5000
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
     volumes:
       - api-heap-dumps:/heap-dumps
@@ -161,6 +190,7 @@ volumes:
   api-heap-dumps:
   caddy-data:
   caddy-config:
+  translator-models:
 
 # The host has one public reverse proxy. IRAPP joins this network but never
 # publishes ports 80/443 itself.

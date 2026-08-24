@@ -92,7 +92,14 @@ jobs:
             }
             ensure_ir_alias auth irapp-auth
             ensure_ir_alias api irapp-api
-            docker compose up -d --build
+            docker compose up -d --build --remove-orphans
+            # Prove the model itself works, not merely that the HTTP process
+            # opened a port. Exercise every direction the form uses; all text
+            # is synthetic and contains no user data.
+            docker compose exec -T translator ./venv/bin/python -c \
+              'import requests; pairs=(("test","en","ar"),("test","en","hi"),("اختبار","ar","en"),("اختبار","ar","hi"),("परीक्षण","hi","en"),("परीक्षण","hi","ar")); responses=[requests.post("http://localhost:5000/translate", json={"q":q,"source":source,"target":target,"format":"text"}, timeout=30) for q,source,target in pairs]; [r.raise_for_status() for r in responses]; assert all(r.json().get("translatedText") for r in responses)' \
+              < /dev/null
+            echo "Private translation model is healthy."
             # A mounted but unwritable directory would fail only during the
             # next OOM, when it is too late to recover the evidence.
             docker compose exec -T api sh -c 'test -w /heap-dumps' < /dev/null
