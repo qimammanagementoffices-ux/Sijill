@@ -82,6 +82,9 @@ app:
     provider: ${TRANSLATION_PROVIDER:}
     api-key: ${TRANSLATION_API_KEY:}
     model: ${TRANSLATION_MODEL:claude-haiku-4-5-20251001}
+  name-translation:
+    # Private LibreTranslate service in the production Compose stack.
+    base-url: ${NAME_TRANSLATION_BASE_URL:http://localhost:5000}
   backup:
     storage-location: ${BACKUP_STORAGE_LOCATION:}
     retention-days: ${BACKUP_RETENTION_DAYS:30}

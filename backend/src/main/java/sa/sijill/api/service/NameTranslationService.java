@@ -13,10 +13,10 @@ import sa.sijill.api.web.dto.TranslateNameResponse;
 @Service
 public class NameTranslationService {
 
-    private final GoogleTranslateClient googleTranslateClient;
+    private final NameTranslationClient translationClient;
 
-    public NameTranslationService(GoogleTranslateClient googleTranslateClient) {
-        this.googleTranslateClient = googleTranslateClient;
+    public NameTranslationService(NameTranslationClient translationClient) {
+        this.translationClient = translationClient;
     }
 
     public TranslateNameResponse translate(TranslateNameRequest request) {
@@ -31,16 +31,16 @@ public class NameTranslationService {
         String hi = request.text();
         switch (request.sourceLang()) {
             case "ar" -> {
-                en = googleTranslateClient.translate(request.text(), "ar", "en");
-                hi = googleTranslateClient.translate(request.text(), "ar", "hi");
+                en = translationClient.translate(request.text(), "ar", "en");
+                hi = translationClient.translate(request.text(), "ar", "hi");
             }
             case "en" -> {
-                ar = googleTranslateClient.translate(request.text(), "en", "ar");
-                hi = googleTranslateClient.translate(request.text(), "en", "hi");
+                ar = translationClient.translate(request.text(), "en", "ar");
+                hi = translationClient.translate(request.text(), "en", "hi");
             }
             case "hi" -> {
-                ar = googleTranslateClient.translate(request.text(), "hi", "ar");
-                en = googleTranslateClient.translate(request.text(), "hi", "en");
+                ar = translationClient.translate(request.text(), "hi", "ar");
+                en = translationClient.translate(request.text(), "hi", "en");
             }
             default -> throw ApiException.validation(
                     "Unsupported sourceLang '" + request.sourceLang() + "'", Map.of("sourceLang", "must be ar, en, or hi"));
