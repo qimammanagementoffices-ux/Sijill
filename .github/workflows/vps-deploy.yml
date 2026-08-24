@@ -96,9 +96,48 @@ jobs:
             # Prove the model itself works, not merely that the HTTP process
             # opened a port. Exercise every direction the form uses; all text
             # is synthetic and contains no user data.
-            docker compose exec -T translator ./venv/bin/python -c \
-              'import requests; pairs=(("test","en","ar"),("test","en","hi"),("اختبار","ar","en"),("اختبار","ar","hi"),("परीक्षण","hi","en"),("परीक्षण","hi","ar")); responses=[requests.post("http://localhost:5000/translate", json={"q":q,"source":source,"target":target,"format":"text"}, timeout=30) for q,source,target in pairs]; [r.raise_for_status() for r in responses]; assert all(r.json().get("translatedText") for r in responses)' \
-              < /dev/null
+            docker compose exec -T translator ./venv/bin/python - <<'PY'
+          import time
+
+          import requests
+
+          pairs = (
+              ("test", "en", "ar"),
+              ("test", "en", "hi"),
+              ("اختبار", "ar", "en"),
+              ("اختبار", "ar", "hi"),
+              ("परीक्षण", "hi", "en"),
+              ("परीक्षण", "hi", "ar"),
+          )
+          deadline = time.monotonic() + 300
+          last_error = None
+
+          while time.monotonic() < deadline:
+              try:
+                  for query, source, target in pairs:
+                      response = requests.post(
+                          "http://localhost:5000/translate",
+                          json={
+                              "q": query,
+                              "source": source,
+                              "target": target,
+                              "format": "text",
+                          },
+                          timeout=30,
+                      )
+                      response.raise_for_status()
+                      if not response.json().get("translatedText"):
+                          raise RuntimeError("Translation result was empty.")
+                  break
+              except (requests.RequestException, RuntimeError, ValueError) as error:
+                  last_error = error
+                  print("Translation model is still starting; retrying in 5 seconds.")
+                  time.sleep(5)
+          else:
+              raise RuntimeError(
+                  "Translation model did not become ready within 5 minutes."
+              ) from last_error
+          PY
             echo "Private translation model is healthy."
             # A mounted but unwritable directory would fail only during the
             # next OOM, when it is too late to recover the evidence.
