@@ -8,6 +8,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import sa.sijill.api.error.ApiException;
@@ -20,6 +21,7 @@ public class LibreTranslateClient implements NameTranslationClient {
     private final HttpClient httpClient;
     private final URI translateUri;
 
+    @Autowired
     public LibreTranslateClient(
             ObjectMapper objectMapper,
             @Value("${app.name-translation.base-url:http://localhost:5000}") String baseUrl) {
