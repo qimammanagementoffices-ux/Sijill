@@ -54,6 +54,17 @@ irapp.sijill.digital {
 		reverse_proxy irapp-api:3000
 	}
 
+	# Scanned case documents. MinIO remains private; this narrow service moves
+	# bytes and asks Postgres, using the caller's token, whether the operation is
+	# allowed. The slightly larger proxy ceiling lets the service return its own
+	# clear 10 MB limit response.
+	handle_path /storage/v1/* {
+		request_body {
+			max_size 12MB
+		}
+		reverse_proxy irapp-storage:3001
+	}
+
 	handle {
 		respond "Not found" 404
 	}
