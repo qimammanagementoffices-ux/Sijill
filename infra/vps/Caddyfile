@@ -53,6 +53,15 @@ irapp.sijill.digital {
 	handle_path /rest/v1/* {
 		reverse_proxy irapp-api:3000
 	}
+	# Scanned case documents. The service behind this decides nothing: it asks
+	# Postgres, with the caller's own token, whether they may touch the case.
+	# MinIO itself has no route here and no published port.
+	handle_path /storage/v1/* {
+		request_body {
+			max_size 12MB
+		}
+		reverse_proxy irapp-storage:3001
+	}
 
 	# Scanned case documents. MinIO remains private; this narrow service moves
 	# bytes and asks Postgres, using the caller's token, whether the operation is
