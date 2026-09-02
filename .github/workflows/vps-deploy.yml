@@ -22,6 +22,8 @@ jobs:
     # workflow_run fires on failure too; only a green run may deploy.
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # One step, because the `secrets` context is not available to step-level
       # `if:` conditions -- guarding there would look right and do nothing.
@@ -32,6 +34,7 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           APP_DIR: ${{ secrets.VPS_APP_DIR || '~/Sijill' }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "$VPS_HOST" ]; then
@@ -45,10 +48,16 @@ jobs:
           # Pin the host key rather than trusting whatever answers first.
           ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
+          # The server checkout uses HTTPS and intentionally stores no GitHub
+          # credential. Supply this run's short-lived, read-only token only to
+          # the fetch command; do not write it into the remote or credential
+          # configuration.
+          GIT_AUTH_HEADER="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-            APP_DIR="$APP_DIR" bash -euo pipefail -s << 'REMOTE'
+            GIT_AUTH_HEADER="$GIT_AUTH_HEADER" APP_DIR="$APP_DIR" bash -euo pipefail -s << 'REMOTE'
             cd "$APP_DIR"
-            git fetch --prune origin
+            git -c http.extraheader="Authorization: Basic $GIT_AUTH_HEADER" fetch --prune origin
+            unset GIT_AUTH_HEADER
             # The server's checkout is a deploy artifact, not a workspace:
             # match origin/main exactly rather than trying to merge.
             git reset --hard origin/main
