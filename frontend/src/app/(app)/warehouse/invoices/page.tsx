@@ -13,6 +13,8 @@ export default async function WarehouseInvoicesPage() {
       attachmentOwnerType="WAREHOUSE_INVOICE"
       basePath="/warehouse/invoices"
       itemsPath="/warehouse/items"
+      itemSearchPlaceholder={dict.warehouseItems.searchPlaceholder}
+      itemSearchEmptyLabel={dict.warehouseItems.noResults}
     />
   );
 }

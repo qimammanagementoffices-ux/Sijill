@@ -28,6 +28,8 @@ export default function InvoiceList({
   commonDict,
   basePath,
   itemsPath,
+  itemSearchPlaceholder,
+  itemSearchEmptyLabel,
   attachmentsDict,
   attachmentOwnerType,
 }: {
@@ -36,6 +38,8 @@ export default function InvoiceList({
   commonDict: Dictionary["common"];
   basePath: string;
   itemsPath: string;
+  itemSearchPlaceholder: string;
+  itemSearchEmptyLabel: string;
   attachmentsDict?: Dictionary["attachments"];
   attachmentOwnerType?: AttachmentOwnerType;
 }) {
@@ -324,8 +328,11 @@ export default function InvoiceList({
               <NewInvoiceView
                 dict={dict}
                 errorsDict={errorsDict}
+                commonDict={commonDict}
                 basePath={basePath}
                 itemsPath={itemsPath}
+                itemSearchPlaceholder={itemSearchPlaceholder}
+                itemSearchEmptyLabel={itemSearchEmptyLabel}
                 onSubmitted={handleAdded}
                 formId="invoice-add-form"
                 onSubmittingChange={setAddSubmitting}

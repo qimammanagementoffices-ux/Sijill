@@ -2341,6 +2341,30 @@ img[data-viewable] {
 }
 .asset-autocomplete { position: relative; }
 .asset-autocomplete > input { width: 100%; }
+.asset-autocomplete.has-clear > input { padding-inline-end: 40px; }
+.asset-autocomplete-clear {
+  position: absolute;
+  z-index: 21;
+  top: 7px;
+  inset-inline-end: 7px;
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--slate);
+  cursor: pointer;
+  font-size: 18px;
+}
+.asset-autocomplete-clear:hover,
+.asset-autocomplete-clear:focus-visible {
+  outline: none;
+  background: var(--paper-dim);
+  color: var(--ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sage) 18%, transparent);
+}
 .asset-autocomplete-selected { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .asset-autocomplete-options {
   position: absolute;
@@ -2369,7 +2393,8 @@ img[data-viewable] {
   cursor: pointer;
   text-align: start;
 }
-.asset-autocomplete-options button:hover { background: var(--paper-dim); }
+.asset-autocomplete-options button:hover,
+.asset-autocomplete-options button.is-active { background: var(--paper-dim); }
 .asset-autocomplete-options button span { color: var(--slate); font-size: 11.5px; }
 .asset-autocomplete-empty { padding: 12px; color: var(--slate); font-size: 12px; text-align: center; }
 .asset-request-description textarea { min-height: 92px; }

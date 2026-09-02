@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
-import type { AttachmentOwnerType, InventoryItemListItem, InvoiceDetail, PagedResponse } from "@/lib/types";
+import type { AttachmentOwnerType, InventoryRequestOption, InvoiceDetail, PagedResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
+import ItemPicker from "@/components/ItemPicker";
 
 type LineDraft = { inventoryItemId: string; quantity: string; unitPrice: string };
 const ALLOWED_ATTACHMENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
@@ -22,8 +23,11 @@ function localToday() {
 export default function NewInvoiceView({
   dict,
   errorsDict,
+  commonDict,
   basePath,
   itemsPath,
+  itemSearchPlaceholder,
+  itemSearchEmptyLabel,
   onSubmitted,
   formId,
   onSubmittingChange,
@@ -32,8 +36,11 @@ export default function NewInvoiceView({
 }: {
   dict: Dictionary["warehouseInvoices"];
   errorsDict: Dictionary["errors"];
+  commonDict: Dictionary["common"];
   basePath: string;
   itemsPath: string;
+  itemSearchPlaceholder: string;
+  itemSearchEmptyLabel: string;
   onSubmitted: (invoice: InvoiceDetail) => void;
   // When set, the submit button renders externally (via
   // <button form={formId}>) instead of inline -- used inside a modal,
@@ -43,7 +50,10 @@ export default function NewInvoiceView({
   attachmentsDict?: Dictionary["attachments"];
   attachmentOwnerType?: AttachmentOwnerType;
 }) {
-  const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
+  const [items, setItems] = useState<InventoryRequestOption[] | null>(null);
+  const [knownItems, setKnownItems] = useState<Record<string, InventoryRequestOption>>({});
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [itemSearchError, setItemSearchError] = useState<string | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(localToday);
   const [vendor, setVendor] = useState("");
@@ -52,11 +62,50 @@ export default function NewInvoiceView({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const itemSearchAbort = useRef<AbortController | null>(null);
+  const itemSearchSequence = useRef(0);
+
+  const searchItems = useCallback((query: string) => {
+    itemSearchAbort.current?.abort();
+    const controller = new AbortController();
+    const sequence = ++itemSearchSequence.current;
+    itemSearchAbort.current = controller;
+    setItemsLoading(true);
+    setItemSearchError(null);
+
+    const params = new URLSearchParams({ page: "0", size: "20" });
+    params.append("sort", "code,asc");
+    params.append("sort", "id,asc");
+    if (query.trim()) params.set("q", query.trim());
+
+    void apiFetch<PagedResponse<InventoryRequestOption>>(`${itemsPath}?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then((page) => {
+        if (sequence !== itemSearchSequence.current) return;
+        setItems(page.content);
+        setKnownItems((current) => {
+          const next = { ...current };
+          page.content.forEach((item) => {
+            next[item.id] = item;
+          });
+          return next;
+        });
+      })
+      .catch(() => {
+        if (controller.signal.aborted || sequence !== itemSearchSequence.current) return;
+        setItems((current) => current ?? []);
+        setItemSearchError(errorsDict.generic);
+      })
+      .finally(() => {
+        if (sequence === itemSearchSequence.current) setItemsLoading(false);
+      });
+  }, [errorsDict.generic, itemsPath]);
 
   useEffect(() => {
-    apiFetch<PagedResponse<InventoryItemListItem>>(`${itemsPath}?size=100`).then((page) => setItems(page.content));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    searchItems("");
+    return () => itemSearchAbort.current?.abort();
+  }, [searchItems]);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
@@ -186,18 +235,24 @@ export default function NewInvoiceView({
               >
                 <div className="field">
                   <label>{dict.itemLabel}</label>
-                  <select
+                  <ItemPicker
+                    items={items}
                     value={line.inventoryItemId}
-                    onChange={(e) => updateLine(index, { inventoryItemId: e.target.value })}
+                    selectedItem={knownItems[line.inventoryItemId] ?? null}
+                    placeholder={itemSearchPlaceholder}
+                    ariaLabel={dict.itemLabel}
+                    emptyLabel={itemSearchEmptyLabel}
+                    loadingLabel={commonDict.loading}
+                    errorLabel={itemSearchError}
+                    clearLabel={dict.filterClear}
+                    loading={itemsLoading}
+                    onSearchChange={searchItems}
+                    onChange={(inventoryItemId, item) => {
+                      if (item) setKnownItems((current) => ({ ...current, [item.id]: item }));
+                      updateLine(index, { inventoryItemId });
+                    }}
                     required
-                  >
-                    <option value="">—</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.code} — {item.nameAr}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div className="field">
                   <label>{dict.quantityLabel}</label>

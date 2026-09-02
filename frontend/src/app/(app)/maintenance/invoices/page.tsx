@@ -16,6 +16,8 @@ export default async function MaintenanceInvoicesPage() {
       attachmentOwnerType="WAREHOUSE_INVOICE"
       basePath="/maintenance/invoices"
       itemsPath="/maintenance/parts"
+      itemSearchPlaceholder={dict.warehouseItems.searchPlaceholder}
+      itemSearchEmptyLabel={dict.maintenanceParts.noResults}
     />
   );
 }
