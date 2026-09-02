@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
 import { entityName, useEntityLocale } from "@/i18n/entityName";
 import type {
@@ -19,6 +19,7 @@ import SectionLoading from "@/components/SectionLoading";
 import ItemPicker from "@/components/ItemPicker";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
+import usePagedPickerOptions from "@/lib/usePagedPickerOptions";
 
 type MeData = { departments: LocalizedRef[] };
 type LineDraft = { inventoryItemId: string; quantityRequested: string };
@@ -45,7 +46,6 @@ export default function NewRequestView({
   const [me, setMe] = useState<MeData | null>(null);
   const entityLocale = useEntityLocale();
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
-  const [items, setItems] = useState<InventoryRequestOption[] | null>(null);
   const [rooms, setRooms] = useState<RoomOption[] | null>(null);
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [assignedDepartmentIds, setAssignedDepartmentIds] = useState<Set<string> | null>(null);
@@ -73,15 +73,43 @@ export default function NewRequestView({
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const initialItems = useMemo<InventoryRequestOption[]>(() =>
+    (editing?.lines ?? []).filter((line) => !line.removed).map((line) => ({
+      id: line.inventoryItemId,
+      code: line.itemCode,
+      nameAr: line.itemNameAr,
+      nameEn: line.itemNameEn,
+      category: editing?.category ?? null,
+      quantity: line.itemQuantity,
+      unit: line.itemUnit,
+      imageUrl: null,
+      active: true,
+    })), [editing]
+  );
+  const itemPath = `/warehouse/items/request-options?sort=code,asc&sort=id,asc${categoryId ? `&categoryId=${encodeURIComponent(categoryId)}` : ""}`;
+  const {
+    options: items,
+    knownOptions: knownItems,
+    loading: itemsLoading,
+    error: itemsError,
+    search: searchItems,
+    remember,
+  } = usePagedPickerOptions<InventoryRequestOption>(itemPath, errorsDict.generic, initialItems);
 
   useEffect(() => {
     Promise.all([
       apiFetch<MeData>("/auth/me"),
       apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<CategoryDto[]>("/warehouse/categories"),
-      apiFetch<PagedResponse<InventoryRequestOption>>("/warehouse/items/request-options?size=200"),
       apiFetch<RoomOption[]>("/rooms/options"),
-    ]).then(([m, departmentRows, c, i, r]) => {
+      editing && !editing.category && editing.lines.find((line) => !line.removed)
+        ? apiFetch<PagedResponse<InventoryRequestOption>>(
+            `/warehouse/items/request-options?page=0&size=20&q=${encodeURIComponent(editing.lines.find((line) => !line.removed)!.itemCode)}`
+          ).then((page) => page.content.find(
+            (item) => item.id === editing.lines.find((line) => !line.removed)!.inventoryItemId
+          ) ?? null).catch(() => null)
+        : Promise.resolve(null),
+    ]).then(([m, departmentRows, c, r, legacySelectedItem]) => {
       const assignedIds = new Set(m.departments.map((department) => department.id));
       // A moderator edits the request in its existing department. Their own
       // assignments define what they may moderate, but must not replace the
@@ -91,14 +119,6 @@ export default function NewRequestView({
         : assignedIds;
       const selectedDepartmentId = editing?.department?.id
         ?? (assignedIds.size === 1 ? assignedIds.values().next().value ?? "" : "");
-      const selectedItemIds = new Set(
-        editing?.lines.filter((line) => !line.removed).map((line) => line.inventoryItemId) ?? []
-      );
-      // Older requests may have derived their category from their first item
-      // without storing category_id on the request itself.
-      const inferredCategoryId = i.content.find(
-        (item) => selectedItemIds.has(item.id) && item.category?.id
-      )?.category?.id ?? "";
       const selectedRoomId = editing?.room?.id && r.some(
         (room) => room.id === editing.room?.id && room.departmentId === selectedDepartmentId
       ) ? editing.room.id : "";
@@ -107,10 +127,9 @@ export default function NewRequestView({
       setDepartments(departmentRows);
       setAssignedDepartmentIds(selectableDepartmentIds);
       setDepartmentId(selectedDepartmentId);
-      setCategoryId(editing?.category?.id ?? inferredCategoryId);
+      setCategoryId(editing?.category?.id ?? legacySelectedItem?.category?.id ?? "");
       setRoomId(selectedRoomId);
       setCategories(c);
-      setItems(i.content);
       setRooms(r);
     });
   }, [editing, entityLocale]);
@@ -134,8 +153,6 @@ export default function NewRequestView({
   function handleFilesSelected(picked: File[]) {
     if (picked.length) setFiles((current) => [...current, ...picked]);
   }
-
-  const filteredItems = items?.filter((item) => !categoryId || item.category?.id === categoryId) ?? [];
 
   const filledLines = lines.filter((l) => l.inventoryItemId);
   const hasContent = customMode ? customText.trim().length > 0 : filledLines.length > 0;
@@ -331,15 +348,24 @@ export default function NewRequestView({
                         always stays, or choosing an item would remove it from
                         its own list. */}
                     <ItemPicker
-                      items={filteredItems.filter(
+                      items={items.filter(
                         (item) =>
                           item.id === line.inventoryItemId ||
                           !lines.some((other, otherIndex) => otherIndex !== index && other.inventoryItemId === item.id)
                       )}
                       value={line.inventoryItemId}
+                      selectedItem={knownItems[line.inventoryItemId] ?? null}
                       placeholder={dict.itemSearchPlaceholder}
                       emptyLabel={dict.noMatchingItems}
-                      onChange={(itemId) => updateLine(index, { inventoryItemId: itemId })}
+                      loadingLabel={commonDict.loading}
+                      errorLabel={itemsError}
+                      clearLabel={dict.itemSearchPlaceholder}
+                      loading={itemsLoading}
+                      onSearchChange={searchItems}
+                      onChange={(itemId, item) => {
+                        if (item) remember(item);
+                        updateLine(index, { inventoryItemId: itemId });
+                      }}
                     />
                   </div>
                   <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -369,6 +395,7 @@ export default function NewRequestView({
           {customMode && (
             <div className="field span2" style={{ marginBottom: 16 }}>
               <textarea
+                className="resize-none"
                 rows={5}
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
@@ -386,7 +413,7 @@ export default function NewRequestView({
           {!customMode && (
             <div className="field span2" style={{ marginBottom: 16 }}>
               <label>{dict.notesLabel}</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <textarea className="resize-none" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           )}
 
@@ -403,7 +430,7 @@ export default function NewRequestView({
 
       {/* Step 3: Attachments + submit */}
       {step === 3 && (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <p style={{ fontSize: 12.5, color: "var(--slate)", margin: "0 0 12px" }}>{dict.attachmentsHint}</p>
 
           <PendingAttachmentPicker

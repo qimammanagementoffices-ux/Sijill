@@ -181,7 +181,7 @@ export default function NewInvoiceView({
   if (!items) return <SectionLoading />;
 
   return (
-    <form id={formId} onSubmit={handleSubmit}>
+    <form id={formId} onSubmit={handleSubmit} noValidate>
         <div className="panel">
           <div className="panel-body">
             <div className="form-grid">
@@ -236,7 +236,14 @@ export default function NewInvoiceView({
                 <div className="field">
                   <label>{dict.itemLabel}</label>
                   <ItemPicker
-                    items={items}
+                    items={items.filter(
+                      (item) =>
+                        item.id === line.inventoryItemId ||
+                        !lines.some(
+                          (other, otherIndex) =>
+                            otherIndex !== index && other.inventoryItemId === item.id
+                        )
+                    )}
                     value={line.inventoryItemId}
                     selectedItem={knownItems[line.inventoryItemId] ?? null}
                     placeholder={itemSearchPlaceholder}

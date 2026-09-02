@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ItemPicker from "@/components/ItemPicker";
-import { apiFetch } from "@/lib/apiClient";
 import type { Dictionary } from "@/i18n/getDictionary";
-import type { InventoryRequestOption, MaintenanceRequestListItem, PagedResponse } from "@/lib/types";
+import type { InventoryRequestOption, MaintenanceRequestListItem } from "@/lib/types";
+import usePagedPickerOptions from "@/lib/usePagedPickerOptions";
 
 type PartDraft = { inventoryItemId: string; quantity: number };
 
@@ -29,22 +29,25 @@ export default function MaintenanceFinishDialog({
   onCancel: () => void;
   onLoadError: (error: unknown) => void;
 }) {
-  const [parts, setParts] = useState<InventoryRequestOption[] | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
   const [drafts, setDrafts] = useState<PartDraft[]>([{ inventoryItemId: "", quantity: 1 }]);
+  const onLoadErrorRef = useRef(onLoadError);
+  const {
+    options: loadedParts,
+    knownOptions,
+    loading: partsLoading,
+    error: partsError,
+    search: searchParts,
+    remember,
+  } = usePagedPickerOptions<InventoryRequestOption>(
+    "/maintenance/parts/finish-options?sort=code,asc&sort=id,asc",
+    loadErrorLabel,
+  );
+  const parts = loadedParts?.filter((item) => item.active && item.quantity > 0) ?? null;
 
+  useEffect(() => { onLoadErrorRef.current = onLoadError; }, [onLoadError]);
   useEffect(() => {
-    apiFetch<PagedResponse<InventoryRequestOption>>("/maintenance/parts/finish-options?size=10000")
-      .then((page) => setParts(page.content.filter((item) => item.active && item.quantity > 0)))
-      .catch((error) => {
-        setParts([]);
-        setLoadFailed(true);
-        onLoadError(error);
-      });
-    // The request id owns this dialog instance. The parent's toast callback
-    // is recreated on list renders and must not restart the catalogue fetch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request.id]);
+    if (partsError) onLoadErrorRef.current(new Error(partsError));
+  }, [partsError]);
 
   function updateDraft(index: number, patch: Partial<PartDraft>) {
     setDrafts((current) => current.map((draft, i) => (i === index ? { ...draft, ...patch } : draft)));
@@ -77,12 +80,12 @@ export default function MaintenanceFinishDialog({
 
           {parts === null ? (
             <div className="empty"><span className="spinner" /></div>
-          ) : loadFailed ? (
+          ) : partsError ? (
             <p className="form-error" role="alert">{loadErrorLabel}</p>
           ) : (
             <div className="maintenance-finish-lines">
               {drafts.map((draft, index) => {
-                const selected = parts.find((part) => part.id === draft.inventoryItemId) ?? null;
+                const selected = knownOptions[draft.inventoryItemId] ?? null;
                 const choices = parts.filter(
                   (part) => part.id === draft.inventoryItemId || !drafts.some((row) => row.inventoryItemId === part.id)
                 );
@@ -93,9 +96,18 @@ export default function MaintenanceFinishDialog({
                       <ItemPicker
                         items={choices}
                         value={draft.inventoryItemId}
+                        selectedItem={selected}
                         placeholder={dict.itemLabel}
                         emptyLabel={dict.noResults}
-                        onChange={(inventoryItemId) => updateDraft(index, { inventoryItemId, quantity: 1 })}
+                        loadingLabel={commonDict.loading}
+                        errorLabel={partsError}
+                        clearLabel={`${dict.itemLabel} ×`}
+                        loading={partsLoading}
+                        onSearchChange={searchParts}
+                        onChange={(inventoryItemId, item) => {
+                          if (item) remember(item);
+                          updateDraft(index, { inventoryItemId, quantity: 1 });
+                        }}
                       />
                       {selected && (
                         <small className="hint">
@@ -129,11 +141,10 @@ export default function MaintenanceFinishDialog({
                 );
               })}
 
-              {/* Nothing left to pick means nothing to add: the row would open
-                  onto an empty list. Gone rather than disabled -- a button that
-                  can never be pressed again is just furniture. */}
-              {parts.some((part) => !drafts.some((row) => row.inventoryItemId === part.id)) && (
-                <button
+              {/* Search is paged, so the current 20 rows cannot prove the
+                  catalogue is exhausted. Keep Add available and let the next
+                  picker report an honest empty result. */}
+              <button
                   type="button"
                   className="btn btn-outline btn-sm"
                   onClick={() => setDrafts((current) => [...current, { inventoryItemId: "", quantity: 1 }])}
@@ -141,7 +152,6 @@ export default function MaintenanceFinishDialog({
                 >
                   {dict.addPart}
                 </button>
-              )}
             </div>
           )}
         </div>
@@ -150,7 +160,7 @@ export default function MaintenanceFinishDialog({
           <button type="button" className="btn btn-outline btn-sm" onClick={onCancel} disabled={submitting}>
             {commonDict.cancel}
           </button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={submitting || parts === null || loadFailed}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={submitting || parts === null || !!partsError}>
             {submitting && <span className="spinner" />}
             {title}
           </button>

@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
-import type { InventoryRequestOption, MaintenanceRequestDetail, PagedResponse } from "@/lib/types";
+import type { InventoryRequestOption, MaintenanceRequestDetail } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import AttachmentUploader from "@/components/AttachmentUploader";
 import Toast from "@/components/Toast";
+import ItemPicker from "@/components/ItemPicker";
+import usePagedPickerOptions from "@/lib/usePagedPickerOptions";
 
 type PartDraft = { inventoryItemId: string; quantity: string };
 
@@ -37,9 +39,22 @@ export default function MaintenanceRequestDetailView({
   const router = useRouter();
   const [request, setRequest] = useState<MaintenanceRequestDetail | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [parts, setParts] = useState<InventoryRequestOption[] | null>(null);
   const [partDrafts, setPartDrafts] = useState<PartDraft[]>([{ inventoryItemId: "", quantity: "1" }]);
   const [toast, setToast] = useState<string | null>(null);
+  const canFinish = permissions.includes("mt.act.finish");
+  const {
+    options: parts,
+    knownOptions,
+    loading: partsLoading,
+    error: partsError,
+    search: searchParts,
+    remember,
+  } = usePagedPickerOptions<InventoryRequestOption>(
+    "/maintenance/parts/finish-options?sort=code,asc&sort=id,asc",
+    dict.noResults,
+    [],
+    canFinish,
+  );
 
   function load() {
     apiFetch<MaintenanceRequestDetail>(`/maintenance/requests/${id}`)
@@ -56,11 +71,6 @@ export default function MaintenanceRequestDetailView({
     apiFetch<{ permissions: string[] }>("/auth/me")
       .then((me) => {
         setPermissions(me.permissions);
-        if (me.permissions.includes("mt.act.finish")) {
-          apiFetch<PagedResponse<InventoryRequestOption>>("/maintenance/parts/finish-options?size=100")
-            .then((p) => setParts(p.content))
-            .catch(() => setParts([]));
-        }
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,14 +167,14 @@ export default function MaintenanceRequestDetailView({
           />
         </div>
 
-        {request.status === "IN_PROGRESS" && !parts && (
+        {request.status === "IN_PROGRESS" && canFinish && !parts && (
           <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
             <h3 style={{ marginTop: 0 }}>{dict.partsUsedLabel}</h3>
             <span className="spinner" />
           </div>
         )}
 
-        {request.status === "IN_PROGRESS" && parts && (
+        {request.status === "IN_PROGRESS" && canFinish && parts && (
           <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)" }}>
             <h3 style={{ marginTop: 0 }}>{dict.partsUsedLabel}</h3>
             {partDrafts.map((draft, index) => (
@@ -179,19 +189,26 @@ export default function MaintenanceRequestDetailView({
                 }}
               >
                 <div className="field">
-                  <select value={draft.inventoryItemId} onChange={(e) => updatePartDraft(index, { inventoryItemId: e.target.value })}>
-                    <option value="">—</option>
-                    {/* A part already taken by another row is not offered again;
-                        this row's own choice stays so it can still render. */}
-                    {parts
-                      .filter((item) => item.id === draft.inventoryItemId
-                        || !partDrafts.some((row) => row.inventoryItemId === item.id))
-                      .map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.code} — {item.nameAr}
-                        </option>
-                      ))}
-                  </select>
+                  <label>{dict.itemLabel}</label>
+                  <ItemPicker
+                    items={parts.filter(
+                      (item) => item.id === draft.inventoryItemId
+                        || !partDrafts.some((row, rowIndex) => rowIndex !== index && row.inventoryItemId === item.id)
+                    )}
+                    value={draft.inventoryItemId}
+                    selectedItem={knownOptions[draft.inventoryItemId] ?? null}
+                    placeholder={dict.itemLabel}
+                    emptyLabel={dict.noResults}
+                    loadingLabel={commonDict.loading}
+                    errorLabel={partsError}
+                    clearLabel={`${dict.itemLabel} ×`}
+                    loading={partsLoading}
+                    onSearchChange={searchParts}
+                    onChange={(inventoryItemId, item) => {
+                      if (item) remember(item);
+                      updatePartDraft(index, { inventoryItemId });
+                    }}
+                  />
                 </div>
                 <div className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <div style={{ flex: 1 }}>
@@ -211,17 +228,15 @@ export default function MaintenanceRequestDetailView({
                 </div>
               </div>
             ))}
-            {parts.some((item) => !partDrafts.some((row) => row.inventoryItemId === item.id)) && (
-              <button type="button" className="btn btn-outline btn-sm" onClick={addPartDraft}>
-                {dict.addPart}
-              </button>
-            )}
+            <button type="button" className="btn btn-outline btn-sm" onClick={addPartDraft}>
+              {dict.addPart}
+            </button>
           </div>
         )}
 
         {/* Approve / reject / postpone / start all live on the request card.
             Only finishing stays here, because it records the parts used. */}
-        {request.status === "IN_PROGRESS" && permissions.includes("mt.act.finish") && (
+        {request.status === "IN_PROGRESS" && canFinish && (
           <div className="panel-body" style={{ borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" className="btn btn-primary btn-sm" onClick={finish}>
               {dict.finish}

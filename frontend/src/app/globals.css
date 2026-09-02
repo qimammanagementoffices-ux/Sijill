@@ -4027,3 +4027,5 @@ body.lang-en .modal-head h3 {
   padding: 10px 12px;
   gap: 12px;
 }
+/* Product textareas keep form geometry stable; authors set an adequate height separately. */
+.resize-none { resize: none; }

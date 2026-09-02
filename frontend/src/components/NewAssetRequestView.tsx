@@ -12,13 +12,14 @@ import type {
   CategoryDto,
   LocalizedEntityDto,
   LocalizedRef,
-  PagedResponse,
   RoomOption,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import DepartmentHierarchyPicker, { flattenDepartmentHierarchy } from "@/components/DepartmentHierarchyPicker";
 import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
+import SearchablePicker from "@/components/SearchablePicker";
+import usePagedPickerOptions from "@/lib/usePagedPickerOptions";
 
 type MeData = { departments: LocalizedRef[] };
 
@@ -44,7 +45,6 @@ export default function NewAssetRequestView({
   const [departments, setDepartments] = useState<LocalizedEntityDto[] | null>(null);
   const [rooms, setRooms] = useState<RoomOption[] | null>(null);
   const [categories, setCategories] = useState<CategoryDto[] | null>(null);
-  const [assets, setAssets] = useState<AssetRequestOption[] | null>(null);
   const [departmentId, setDepartmentId] = useState(editing?.department?.id ?? "");
   const [roomId, setRoomId] = useState(editing?.room?.id ?? "");
   const [destinationRoomId, setDestinationRoomId] = useState(editing?.destinationRoom?.id ?? "");
@@ -64,13 +64,34 @@ export default function NewAssetRequestView({
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(
     () => new Set((editing?.lines ?? []).map((line) => line.assetId).filter((id): id is string => !!id))
   );
-  const [assetQuery, setAssetQuery] = useState("");
-  const [assetSearchOpen, setAssetSearchOpen] = useState(false);
   const [reason, setReason] = useState(editing?.reason ?? "");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initialAssets = useMemo<AssetRequestOption[]>(() =>
+    (editing?.lines ?? []).filter((line) => line.assetId).map((line) => ({
+      id: line.assetId as string,
+      assetNumber: line.assetNumber ?? "",
+      nameAr: line.assetNameAr ?? "",
+      nameEn: line.assetNameEn ?? "",
+      category: line.categoryId ? {
+        id: line.categoryId,
+        ar: line.categoryNameAr ?? "",
+        en: line.categoryNameEn ?? "",
+      } : null,
+      room: editing?.room ?? null,
+      status: "ACTIVE",
+    })), [editing]
+  );
+  const assetPath = `/assets/request-options?sort=assetNumber,asc&sort=id,asc${roomId ? `&roomId=${encodeURIComponent(roomId)}` : ""}`;
+  const {
+    options: assets,
+    knownOptions: knownAssets,
+    loading: assetsLoading,
+    error: assetsError,
+    search: searchAssets,
+  } = usePagedPickerOptions<AssetRequestOption>(assetPath, errorsDict.generic, initialAssets);
 
   useEffect(() => {
     Promise.all([
@@ -78,14 +99,12 @@ export default function NewAssetRequestView({
       apiFetch<LocalizedEntityDto[]>("/departments"),
       apiFetch<RoomOption[]>("/rooms/options"),
       apiFetch<CategoryDto[]>("/assets/categories"),
-      apiFetch<PagedResponse<AssetRequestOption>>("/assets/request-options?size=1000"),
     ])
-      .then(([meData, departmentRows, roomRows, categoryRows, assetPage]) => {
+      .then(([meData, departmentRows, roomRows, categoryRows]) => {
         setMe(meData);
         setDepartments(departmentRows);
         setRooms(roomRows);
         setCategories(categoryRows);
-        setAssets(assetPage.content);
         // Only as a convenience on a new request: defaulting here would
         // overwrite the department an edited request already has.
         if (!editing && meData.departments.length === 1) setDepartmentId(meData.departments[0]!.id);
@@ -96,10 +115,9 @@ export default function NewAssetRequestView({
         setDepartments((current) => current ?? []);
         setRooms((current) => current ?? []);
         setCategories((current) => current ?? []);
-        setAssets((current) => current ?? []);
       })
       .finally(() => setLoading(false));
-  }, [errorsDict.generic]);
+  }, [editing, errorsDict.generic]);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
@@ -119,16 +137,10 @@ export default function NewAssetRequestView({
   );
   const departmentName = departmentOptions.find(({ item }) => item.id === departmentId)?.path ?? "—";
   const visibleRooms = (rooms ?? []).filter((room) => !departmentId || room.departmentId === departmentId);
-  const assetPool = (assets ?? []).filter((asset) => !roomId || asset.room?.id === roomId);
-  const normalizedAssetQuery = assetQuery.trim().toLocaleLowerCase(entityLocale);
-  const matchingAssets = assetPool.filter((asset) => {
-    if (selectedAssetIds.has(asset.id)) return false;
-    if (!normalizedAssetQuery) return true;
-    return `${asset.assetNumber} ${asset.nameAr} ${asset.nameEn}`
-      .toLocaleLowerCase(entityLocale)
-      .includes(normalizedAssetQuery);
-  });
-  const selectedAssets = (assets ?? []).filter((asset) => selectedAssetIds.has(asset.id));
+  const matchingAssets = (assets ?? []).filter((asset) => !selectedAssetIds.has(asset.id));
+  const selectedAssets = [...selectedAssetIds]
+    .map((id) => knownAssets[id])
+    .filter((asset): asset is AssetRequestOption => !!asset);
   const purchaseLines = Object.entries(categoryQuantities)
     .filter(([, quantity]) => quantity > 0)
     .map(([categoryId, quantity]) => ({ categoryId, assetId: null, quantity }));
@@ -139,15 +151,11 @@ export default function NewAssetRequestView({
     setPurpose(next);
     setCategoryQuantities({});
     setSelectedAssetIds(new Set());
-    setAssetQuery("");
-    setAssetSearchOpen(false);
     if (next !== "TRANSFER") setDestinationRoomId("");
   }
 
   function chooseAsset(assetId: string) {
     setSelectedAssetIds((current) => new Set([...current, assetId]));
-    setAssetQuery("");
-    setAssetSearchOpen(false);
   }
 
   function removeAsset(assetId: string) {
@@ -206,12 +214,12 @@ export default function NewAssetRequestView({
   }
 
   if (loading) return <SectionLoading />;
-  if (!me || !departments || !rooms || !categories || !assets) {
+  if (!me || !departments || !rooms || !categories) {
     return <p className="form-error" role="alert">{error ?? errorsDict.generic}</p>;
   }
 
   return (
-    <form id={formId} className="legacy-asset-request-form" onSubmit={handleSubmit}>
+    <form id={formId} className="legacy-asset-request-form" onSubmit={handleSubmit} noValidate>
       <div className="form-grid asset-request-context-grid">
         <div className={departmentOptions.length === 1 ? "readonly-box" : "field"}>
           <label className={departmentOptions.length === 1 ? "readonly-box-label" : undefined}>
@@ -329,39 +337,33 @@ export default function NewAssetRequestView({
               ))}
             </div>
           )}
-          <input
-            value={assetQuery}
-            onFocus={() => setAssetSearchOpen(true)}
-            onBlur={() => window.setTimeout(() => setAssetSearchOpen(false), 150)}
-            onChange={(event) => {
-              setAssetQuery(event.target.value);
-              setAssetSearchOpen(true);
-            }}
+          <SearchablePicker
+            items={matchingAssets}
+            value=""
             placeholder={dict.assetSearchPlaceholder}
-            autoComplete="off"
+            ariaLabel={dict.assetSearchPlaceholder}
+            emptyLabel={dict.noMatchingAssets}
+            loadingLabel="…"
+            errorLabel={assetsError}
+            clearLabel={`${dict.assetSearchPlaceholder} ×`}
+            loading={assetsLoading}
+            onSearchChange={searchAssets}
+            onChange={(assetId) => chooseAsset(assetId)}
+            itemText={(asset) => `${asset.assetNumber} — ${entityName(asset, entityLocale)}`}
+            itemSearchText={(asset) => `${asset.assetNumber} ${asset.nameAr} ${asset.nameEn}`}
+            renderItem={(asset) => (
+              <>
+                <b>{entityName(asset, entityLocale)}</b>
+                <span>{asset.assetNumber}{asset.category ? ` — ${entityLocale === "ar" ? asset.category.ar : asset.category.en}` : ""}</span>
+              </>
+            )}
           />
-          {assetSearchOpen && (
-            <div className="asset-autocomplete-options" role="listbox">
-              {matchingAssets.length === 0 ? (
-                <div className="asset-autocomplete-empty">{dict.noMatchingAssets}</div>
-              ) : matchingAssets.slice(0, 12).map((asset) => (
-                // The input's blur closes this list, and blur fires on
-                // mousedown -- before the click lands. Preventing the default
-                // keeps focus on the input so the option still exists when the
-                // click arrives.
-                <button key={asset.id} type="button" role="option" aria-selected="false" onMouseDown={(event) => event.preventDefault()} onClick={() => chooseAsset(asset.id)}>
-                  <b>{entityName(asset, entityLocale)}</b>
-                  <span>{asset.assetNumber}{asset.category ? ` — ${entityLocale === "ar" ? asset.category.ar : asset.category.en}` : ""}</span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
       <div className="field asset-request-description">
         <label>{dict.reasonLabel} <span className="required-mark">*</span></label>
-        <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder={dict.descriptionPlaceholder} required />
+        <textarea className="resize-none" value={reason} onChange={(event) => setReason(event.target.value)} placeholder={dict.descriptionPlaceholder} required />
       </div>
 
       <div className="field asset-request-attachments">
