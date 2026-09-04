@@ -47,7 +47,7 @@ irapp.sijill.digital {
 	encode zstd gzip
 
 	handle_path /auth/v1/* {
-		reverse_proxy irapp-auth:9999
+		reverse_proxy irapp-authgate:9998
 	}
 
 	handle_path /rest/v1/* {
@@ -63,14 +63,9 @@ irapp.sijill.digital {
 		reverse_proxy irapp-storage:3001
 	}
 
-	# Scanned case documents. MinIO remains private; this narrow service moves
-	# bytes and asks Postgres, using the caller's token, whether the operation is
-	# allowed. The slightly larger proxy ceiling lets the service return its own
-	# clear 10 MB limit response.
-	handle_path /storage/v1/* {
-		request_body {
-			max_size 12MB
-		}
+	# Public store-compliance pages keep their paths; no bucket is exposed.
+	@irPublicPages path /privacy /account-deletion
+	handle @irPublicPages {
 		reverse_proxy irapp-storage:3001
 	}
 
