@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import sa.sijill.api.AbstractIntegrationTest;
+import sa.sijill.api.domain.DiscountType;
 import sa.sijill.api.web.dto.CreateInventoryItemRequest;
 import sa.sijill.api.web.dto.CreateInvoiceRequest;
 import sa.sijill.api.web.dto.FirstAdminRequest;
@@ -107,5 +108,43 @@ class InvoicePostingTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invoiceRequest)))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void postingWithMixedLineTaxAndDiscount() throws Exception {
+        String token = createAdminAndGetToken("0596666666");
+        String item1 = createItem(token);
+        String item2 = createItem(token);
+
+        var invoiceRequest = new CreateInvoiceRequest(
+                "INV-MIXED-API",
+                LocalDate.now(),
+                "Modern Supplies",
+                null,
+                DiscountType.PERCENTAGE,
+                new BigDecimal("10"),
+                List.of(
+                        new InvoiceLineRequest(UUID.fromString(item1), 2, new BigDecimal("100.00"), new BigDecimal("15")),
+                        new InvoiceLineRequest(UUID.fromString(item2), 1, new BigDecimal("50.00"), new BigDecimal("5"))
+                ));
+
+        // Subtotal = 200 + 50 = 250.00
+        // TaxTotal = 30 + 2.50 = 32.50
+        // Gross = 282.50
+        // 10% discount on 282.50 = 28.25
+        // Total = 282.50 - 28.25 = 254.25
+        mockMvc.perform(post("/api/v1/warehouse/invoices")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invoiceRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subtotal").value(250.0))
+                .andExpect(jsonPath("$.taxTotal").value(32.5))
+                .andExpect(jsonPath("$.gross").value(282.5))
+                .andExpect(jsonPath("$.discountType").value("PERCENTAGE"))
+                .andExpect(jsonPath("$.discountValue").value(10.0))
+                .andExpect(jsonPath("$.discountTotal").value(28.25))
+                .andExpect(jsonPath("$.total").value(254.25))
+                .andExpect(jsonPath("$.taxRate").doesNotExist());
     }
 }

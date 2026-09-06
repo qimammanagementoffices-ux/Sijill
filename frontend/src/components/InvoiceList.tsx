@@ -129,6 +129,7 @@ export default function InvoiceList({
         { header: dict.columnVendor, value: (i: InvoiceDetail) => i.vendor },
         { header: dict.subtotalLabel, value: (i: InvoiceDetail) => i.subtotal },
         { header: dict.taxTotalLabel, value: (i: InvoiceDetail) => i.taxTotal },
+        { header: dict.discountLabel, value: (i: InvoiceDetail) => i.discountTotal ?? 0 },
         { header: dict.columnTotal, value: (i: InvoiceDetail) => i.total },
       ],
       rows
@@ -289,7 +290,12 @@ export default function InvoiceList({
                       {invoice.subtotal} {commonDict.currency}
                     </td>
                     <td className="qty-num">
-                      <span className="chip">{invoice.taxRate}%</span> {invoice.taxTotal} {commonDict.currency}
+                      {invoice.taxRate != null ? (
+                        <span className="chip">{invoice.taxRate}%</span>
+                      ) : (
+                        <span className="chip">{dict.mixedTax}</span>
+                      )}{" "}
+                      {invoice.taxTotal} {commonDict.currency}
                     </td>
                     <td className="qty-num">
                       {invoice.total} {commonDict.currency}
@@ -320,7 +326,7 @@ export default function InvoiceList({
           <div className="modal wide">
             <div className="modal-head">
               <h3>{dict.addNew}</h3>
-              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label="close">
+              <button type="button" className="modal-close" onClick={() => setShowAddModal(false)} aria-label={dict.close}>
                 ×
               </button>
             </div>
@@ -363,7 +369,7 @@ export default function InvoiceList({
               <h3>
                 {dict.cardTitle} ({viewInvoice.invoiceNumber})
               </h3>
-              <button type="button" className="modal-close" onClick={() => setViewInvoice(null)} aria-label="close">
+              <button type="button" className="modal-close" onClick={() => setViewInvoice(null)} aria-label={dict.close}>
                 ×
               </button>
             </div>
@@ -374,7 +380,7 @@ export default function InvoiceList({
                 <dt>{dict.vendorLabel}</dt>
                 <dd>{viewInvoice.vendor}</dd>
                 <dt>{dict.taxRateLabel}</dt>
-                <dd>{viewInvoice.taxRate}%</dd>
+                <dd>{viewInvoice.taxRate != null ? `${viewInvoice.taxRate}%` : dict.mixedTax}</dd>
               </dl>
 
               <div className="table-scroll" style={{ marginTop: 14 }}>
@@ -384,6 +390,7 @@ export default function InvoiceList({
                       <th>{dict.itemLabel}</th>
                       <th>{dict.quantityLabel}</th>
                       <th>{dict.unitPriceLabel}</th>
+                      <th>{dict.lineTaxLabel}</th>
                       <th>{dict.totalLabel}</th>
                     </tr>
                   </thead>
@@ -396,6 +403,9 @@ export default function InvoiceList({
                         <td className="qty-num">{line.quantity}</td>
                         <td className="qty-num">
                           {line.unitPrice} {commonDict.currency}
+                        </td>
+                        <td className="qty-num">
+                          <span className="chip">{`${line.taxRate ?? 0}%`}</span>
                         </td>
                         <td className="qty-num">
                           {line.lineTotal} {commonDict.currency}
@@ -415,8 +425,28 @@ export default function InvoiceList({
                 <dd>
                   {viewInvoice.taxTotal} {commonDict.currency}
                 </dd>
+                <dt>{dict.grossLabel}</dt>
+                <dd>
+                  {viewInvoice.gross != null
+                    ? viewInvoice.gross
+                    : (viewInvoice.subtotal + viewInvoice.taxTotal).toFixed(2)}{" "}
+                  {commonDict.currency}
+                </dd>
+                {viewInvoice.discountTotal != null && viewInvoice.discountTotal > 0 && (
+                  <>
+                    <dt>
+                      {dict.discountLabel}{" "}
+                      {viewInvoice.discountType === "PERCENTAGE" && viewInvoice.discountValue != null
+                        ? `(${viewInvoice.discountValue}%)`
+                        : ""}
+                    </dt>
+                    <dd>
+                      -{viewInvoice.discountTotal} {commonDict.currency}
+                    </dd>
+                  </>
+                )}
                 <dt>
-                  <b>{dict.totalLabel}</b>
+                  <b>{dict.finalTotalLabel}</b>
                 </dt>
                 <dd>
                   <b>

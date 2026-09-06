@@ -1947,15 +1947,88 @@ img[data-viewable] {
 }
 
 .invoice-line-row {
-  grid-template-columns: minmax(0, 2fr) minmax(90px, 0.65fr) minmax(130px, 0.9fr);
+  grid-template-columns: minmax(0, 2.2fr) minmax(75px, 0.6fr) minmax(105px, 0.8fr) minmax(95px, 0.7fr);
 }
-.invoice-totals {
+.invoice-discount-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: var(--paper);
+  border: 1.5px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+.invoice-discount-panel .field {
+  flex: 1;
+  min-width: 130px;
+}
+.invoice-ledger {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  margin-top: 16px;
-  font-size: 13px;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 440px;
+  margin-inline-start: auto;
+}
+.invoice-ledger-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.invoice-ledger-row .label {
+  color: var(--slate);
+}
+.invoice-ledger-row .val {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  direction: ltr;
+  text-align: end;
+}
+.invoice-ledger-divider {
+  height: 1.5px;
+  background: var(--line);
+  margin: 4px 0;
+}
+.invoice-ledger-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.invoice-ledger-final .label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.invoice-ledger-final .val {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--sage);
+  direction: ltr;
+  text-align: end;
+}
+@media (max-width: 680px) {
+  .invoice-line-row {
+    grid-template-columns: 1fr;
+  }
+  .invoice-ledger {
+    max-width: 100%;
+    margin-inline-start: 0;
+  }
 }
 
 .translation-table {
@@ -2711,6 +2784,16 @@ img[data-viewable] {
   box-shadow: 0 24px 60px -12px rgba(27, 42, 74, 0.4);
   animation: pop 0.15s ease;
   overflow: hidden;
+}
+dialog.modal {
+  border: none;
+  padding: 0;
+  margin: auto;
+  color: var(--ink);
+}
+dialog.modal::backdrop {
+  background: rgba(27, 42, 74, 0.45);
+  backdrop-filter: blur(2px);
 }
 .modal.wide {
   max-width: 760px;

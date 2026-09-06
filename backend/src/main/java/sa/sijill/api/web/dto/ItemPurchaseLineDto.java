@@ -24,7 +24,7 @@ public record ItemPurchaseLineDto(
                 line.getInvoice().getVendor(),
                 line.getQuantity(),
                 line.getUnitPrice(),
-                line.getInvoice().getTaxRate(),
+                line.getTaxRate(),
                 line.getLineTotal());
     }
 }

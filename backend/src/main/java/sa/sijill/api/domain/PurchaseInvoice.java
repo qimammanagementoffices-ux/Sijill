@@ -35,7 +35,7 @@ public class PurchaseInvoice {
     @Column(name = "vendor", nullable = false)
     private String vendor;
 
-    @Column(name = "tax_rate", nullable = false)
+    @Column(name = "tax_rate")
     private BigDecimal taxRate;
 
     @Column(name = "subtotal", nullable = false)
@@ -43,6 +43,16 @@ public class PurchaseInvoice {
 
     @Column(name = "tax_total", nullable = false)
     private BigDecimal taxTotal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", nullable = false)
+    private DiscountType discountType = DiscountType.FIXED;
+
+    @Column(name = "discount_value", nullable = false)
+    private BigDecimal discountValue = BigDecimal.ZERO;
+
+    @Column(name = "discount_total", nullable = false)
+    private BigDecimal discountTotal = BigDecimal.ZERO;
 
     @Column(name = "total", nullable = false)
     private BigDecimal total;

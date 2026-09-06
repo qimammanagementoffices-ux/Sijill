@@ -33,6 +33,9 @@ public class PurchaseInvoiceLine {
     @Column(name = "unit_price", nullable = false)
     private BigDecimal unitPrice;
 
+    @Column(name = "tax_rate", nullable = false)
+    private BigDecimal taxRate = BigDecimal.ZERO;
+
     @Column(name = "line_total", nullable = false)
     private BigDecimal lineTotal;
 }

@@ -164,17 +164,24 @@ export type InvoiceLineDto = {
   itemNameEn: string;
   quantity: number;
   unitPrice: number;
+  taxRate: number;
   lineTotal: number;
 };
+
+export type DiscountType = "FIXED" | "PERCENTAGE";
 
 export type InvoiceDetail = {
   id: string;
   invoiceNumber: string;
   invoiceDate: string;
   vendor: string;
-  taxRate: number;
+  taxRate: number | null;
   subtotal: number;
   taxTotal: number;
+  gross?: number;
+  discountType?: DiscountType;
+  discountValue?: number;
+  discountTotal?: number;
   total: number;
   lines: InvoiceLineDto[];
   version: number;
