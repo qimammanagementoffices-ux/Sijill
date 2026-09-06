@@ -52,6 +52,8 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Docker 29 rejects docker-java's legacy default API; callers may override this with -Dapi.version.
+    systemProperty("api.version", System.getProperty("api.version", "1.44"))
     // Without this a CI failure prints only "AssertionError at Foo.java:283",
     // which is unreadable from the log alone -- you cannot tell what was
     // expected without checking out the commit and re-running locally.
