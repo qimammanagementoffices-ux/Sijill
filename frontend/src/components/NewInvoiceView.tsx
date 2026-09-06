@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/apiClient";
-import type { AttachmentOwnerType, InventoryItemListItem, InvoiceDetail, PagedResponse, DiscountType } from "@/lib/types";
+import type { AttachmentOwnerType, InventoryRequestOption, InvoiceDetail, DiscountType } from "@/lib/types";
 import type { Dictionary } from "@/i18n/getDictionary";
 import SectionLoading from "@/components/SectionLoading";
 import PendingAttachmentPicker from "@/components/PendingAttachmentPicker";
+import ItemPicker from "@/components/ItemPicker";
+import usePagedPickerOptions from "@/lib/usePagedPickerOptions";
 
 type LineDraft = {
   inventoryItemId: string;
@@ -35,6 +37,8 @@ export default function NewInvoiceView({
   commonDict,
   basePath,
   itemsPath,
+  itemSearchPlaceholder,
+  itemSearchEmptyLabel,
   onSubmitted,
   formId,
   onSubmittingChange,
@@ -46,6 +50,8 @@ export default function NewInvoiceView({
   commonDict: Dictionary["common"];
   basePath: string;
   itemsPath: string;
+  itemSearchPlaceholder: string;
+  itemSearchEmptyLabel: string;
   onSubmitted: (invoice: InvoiceDetail, warning?: string | null) => void;
   // When set, the submit button renders externally (via
   // <button form={formId}>) instead of inline -- used inside a modal,
@@ -55,7 +61,6 @@ export default function NewInvoiceView({
   attachmentsDict?: Dictionary["attachments"];
   attachmentOwnerType?: AttachmentOwnerType;
 }) {
-  const [items, setItems] = useState<InventoryItemListItem[] | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(localToday);
   const [vendor, setVendor] = useState("");
@@ -80,10 +85,14 @@ export default function NewInvoiceView({
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    apiFetch<PagedResponse<InventoryItemListItem>>(`${itemsPath}?size=100`).then((page) => setItems(page.content));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const {
+    options: items,
+    knownOptions: knownItems,
+    loading: itemsLoading,
+    error: itemsError,
+    search: searchItems,
+    remember: rememberItem,
+  } = usePagedPickerOptions<InventoryRequestOption>(itemsPath, errorsDict.generic);
 
   useEffect(() => {
     onSubmittingChange?.(submitting);
@@ -342,7 +351,7 @@ export default function NewInvoiceView({
             <h3>{dict.addLine}</h3>
           </div>
           <div className="panel-body">
-            {lines.map((line, index) => {
+            {items === null ? <SectionLoading /> : lines.map((line, index) => {
               const lineErr = fieldErrors.lineErrors?.[index];
               return (
                 <div
@@ -357,24 +366,25 @@ export default function NewInvoiceView({
                 >
                   <div className="field">
                     <label htmlFor={`invoice-item-${index}`}>{dict.itemLabel}</label>
-                    <select
-                      id={`invoice-item-${index}`}
+                    <ItemPicker
+                      items={items.filter((item) => item.id === line.inventoryItemId || !lines.some((other, otherIndex) => otherIndex !== index && other.inventoryItemId === item.id))}
                       value={line.inventoryItemId}
-                      onChange={(e) => {
-                        updateLine(index, { inventoryItemId: e.target.value });
+                      selectedItem={knownItems[line.inventoryItemId] ?? null}
+                      placeholder={itemSearchPlaceholder}
+                      ariaLabel={dict.itemLabel}
+                      emptyLabel={itemSearchEmptyLabel}
+                      loadingLabel={commonDict.loading}
+                      errorLabel={itemsError}
+                      clearLabel={dict.filterClear}
+                      loading={itemsLoading}
+                      onSearchChange={searchItems}
+                      onChange={(itemId, item) => {
+                        if (item) rememberItem(item);
+                        updateLine(index, { inventoryItemId: itemId });
                         if (fieldErrors.lines) setFieldErrors((prev) => ({ ...prev, lines: false }));
                       }}
-                      aria-invalid={fieldErrors.lines && !line.inventoryItemId ? "true" : undefined}
-                      aria-describedby={fieldErrors.lines ? "invoice-form-error" : undefined}
                       required
-                    >
-                      <option value="">—</option>
-                      {items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.code} — {item.nameAr}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                   <div className="field">
                     <label htmlFor={`invoice-qty-${index}`}>{dict.quantityLabel}</label>
