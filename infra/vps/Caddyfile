@@ -48,10 +48,12 @@ irapp.sijill.digital {
 
 	handle_path /auth/v1/* {
 		reverse_proxy irapp-authgate:9998
+		header Cache-Control "no-store"
 	}
 
 	handle_path /rest/v1/* {
 		reverse_proxy irapp-api:3000
+		header Cache-Control "no-store"
 	}
 	# Scanned case documents. The service behind this decides nothing: it asks
 	# Postgres, with the caller's own token, whether they may touch the case.
@@ -61,16 +63,21 @@ irapp.sijill.digital {
 			max_size 12MB
 		}
 		reverse_proxy irapp-storage:3001
+		header Cache-Control "no-store"
 	}
 
 	# Public store-compliance pages keep their paths; no bucket is exposed.
 	@irPublicPages path /privacy /account-deletion
 	handle @irPublicPages {
 		reverse_proxy irapp-storage:3001
+		header Cache-Control "no-store"
 	}
 
+	# Serve the verified IR PWA release after the API and public-page handles.
+	# Fixed Flutter asset names revalidate on each load to deliver updates.
 	handle {
-		respond "Not found" 404
+		reverse_proxy irapp-web:80
+		header Cache-Control "no-cache"
 	}
 
 	request_body {
@@ -82,7 +89,7 @@ irapp.sijill.digital {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
-		Cache-Control "no-store"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		-Server
 	}
 
